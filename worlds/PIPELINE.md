@@ -28,6 +28,8 @@ Each world takes about five minutes; two run at once. Results land in `worlds/` 
 - `<id>.pano.jpg` Marble's panorama, useful for checking the look quickly
 - `worlds.json` the list the experience loads, with each world's Marble link
 
+Add `--refresh` to re-read finished worlds without generating anything (free): it records each response's shape in `state.json` and downloads anything missing, such as a panorama. `python3 tools/preview_splats.py` (from the repo root) renders a quick look at each world into `shots/worlds/`; the first draft's are in `previews/`.
+
 Add `--full-res` to also download the full resolution splat (`<id>.full.spz`, gitignored because GitHub rejects files over 100 MB).
 
 ## Run it on GitHub
@@ -39,7 +41,7 @@ The "Generate worlds" workflow (`.github/workflows/generate-worlds.yml`) runs th
 
 GitHub only lists a manually run workflow once the file is on the default branch.
 
-The other way to start it is to change `run.json` (this folder) and push to `main`. Its `quality` (`draft` or `full`), `only` (a list of ids, empty for all) and `force` fields stand in for the inputs, and the file keeps a record of what was asked for. This is how Claude starts runs, since its GitHub access can push but cannot press "Run workflow".
+The other way to start it is to change `run.json` (this folder) and push to `main`. Its `quality` (`draft` or `full`), `only` (a list of ids, empty for all), `force` and `refresh` fields stand in for the inputs, and the file keeps a record of what was asked for. This is how Claude starts runs, since its GitHub access can push but cannot press "Run workflow".
 
 ## Test without credits
 

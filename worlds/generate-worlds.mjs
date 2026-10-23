@@ -9,6 +9,8 @@
 //   --only a,b      just these element ids
 //   --force         regenerate worlds that are already finished
 //   --full-res      also download the full resolution splat (gitignored)
+//   --refresh       re-read finished worlds (free, no generation): record the response
+//                   shape and fetch anything missing, such as the panorama
 //   --concurrency n worlds in flight at once (default 2)
 //
 // Env: WORLDLABS_API_KEY (required unless --dry-run), WORLDLABS_BASE (default https://api.worldlabs.ai).
@@ -35,6 +37,7 @@ const dryRun = flag('--dry-run');
 const quality = flag('--draft') ? 'draft' : 'full';
 const force = flag('--force');
 const fullRes = flag('--full-res');
+const refresh = flag('--refresh');
 const only = opt('--only') ? new Set(opt('--only').split(',').map((s) => s.trim()).filter(Boolean)) : null;
 const concurrency = Math.max(1, Number(opt('--concurrency') || 2));
 const { model, credits } = MODELS[quality];
@@ -71,15 +74,17 @@ const isDone = (e) => {
 const todo = elements.filter((e) => force || !isDone(e));
 const resuming = todo.filter((e) => !force && state[e.id]?.operation_id && state[e.id]?.status === 'generating' && state[e.id]?.model === model);
 const newRuns = todo.length - resuming.length;
-console.log(`model ${model} (${quality}), ${elements.length} element(s), ${todo.length} to run`);
-for (const e of elements) {
-  const why = !todo.includes(e) ? 'finished, skip' : resuming.includes(e) ? 'resume operation in progress' : 'generate';
-  console.log(`  ${e.id.padEnd(17)} ${why}`);
+if (!refresh) {
+  console.log(`model ${model} (${quality}), ${elements.length} element(s), ${todo.length} to run`);
+  for (const e of elements) {
+    const why = !todo.includes(e) ? 'finished, skip' : resuming.includes(e) ? 'resume operation in progress' : 'generate';
+    console.log(`  ${e.id.padEnd(17)} ${why}`);
+  }
+  console.log(`estimated cost: ${newRuns} new generation(s) x ${credits} credits = ${newRuns * credits} credits (about ${usd(newRuns * credits)})`);
 }
-console.log(`estimated cost: ${newRuns} new generation(s) x ${credits} credits = ${newRuns * credits} credits (about ${usd(newRuns * credits)})`);
-if (dryRun) process.exit(0);
-if (!todo.length) { writeWorldsJson(); console.log('nothing to do'); process.exit(0); }
-if (!KEY) die('WORLDLABS_API_KEY is not set');
+if (dryRun && !refresh) process.exit(0);
+if (!todo.length && !refresh) { writeWorldsJson(); console.log('nothing to do'); process.exit(0); }
+if (!KEY && !dryRun) die('WORLDLABS_API_KEY is not set');
 
 // ---------- api ----------
 async function api(method, path, body) {
@@ -163,6 +168,18 @@ async function poll(e, opId) {
   throw new Error(`timed out after ${TIMEOUT_MS / 60000} minutes; rerun to keep polling operation ${opId}`);
 }
 
+// Search a response for the first value whose key matches, at any depth.
+function findDeep(o, test, depth = 0) {
+  if (!o || typeof o !== 'object' || depth > 6) return undefined;
+  for (const [k, v] of Object.entries(o)) if (test(k, v)) return v;
+  for (const v of Object.values(o)) { const r = findDeep(v, test, depth + 1); if (r !== undefined) return r; }
+  return undefined;
+}
+const isUrl = (v) => typeof v === 'string' && /^https?:\/\//.test(v);
+const panoUrl = (world) => world.assets?.imagery?.pano_url ?? findDeep(world, (k, v) => /pano/i.test(k) && isUrl(v));
+const scaleOf = (world) => world.assets?.splats?.semantics_metadata?.metric_scale_factor ?? findDeep(world, (k, v) => k === 'metric_scale_factor' && typeof v === 'number') ?? null;
+const panoName = (e, url) => `${e.id}.pano${extname(new URL(url).pathname) || '.jpg'}`;
+
 async function worldFrom(op) {
   let world = pick(op, 'response.world', 'response');
   const worldId = pick(world || {}, 'world_id', 'id') || pick(op, 'metadata.world_id');
@@ -200,7 +217,7 @@ async function run(e) {
     const op = await poll(e, s.operation_id);
     const { world, worldId } = await worldFrom(op);
     const spz = world.assets.splats?.spz_urls || {};
-    const pano = world.assets.imagery?.pano_url;
+    const pano = panoUrl(world);
     if (!spz['500k'] && !spz.full_res) throw new Error(`no splat urls in world ${shape(world.assets)}`);
 
     const files = {};
@@ -212,14 +229,15 @@ async function run(e) {
     };
     await get(spz['500k'] || spz.full_res, `${e.id}.spz`);
     await get(spz['100k'], `${e.id}.100k.spz`);
-    await get(pano, `${e.id}.pano${extname(new URL(pano || 'https://x/a.jpg').pathname) || '.jpg'}`);
+    if (pano) await get(pano, panoName(e, pano));
     if (fullRes) await get(spz.full_res, `${e.id}.full.spz`);
 
     Object.assign(s, {
       status: 'done', world_id: worldId, finished_at: new Date().toISOString(),
       marble_url: world.world_marble_url || world.marble_url || null,
-      metric_scale_factor: world.assets.splats?.semantics_metadata?.metric_scale_factor ?? null,
+      metric_scale_factor: scaleOf(world),
       caption: world.assets.caption || null,
+      response_shape: shape(world),
       files,
     });
     delete s.error;
@@ -233,6 +251,25 @@ async function run(e) {
     log(e.id, `FAILED: ${err.message}`);
     throw err;
   }
+}
+
+async function refreshWorld(e) {
+  const s = state[e.id];
+  const res = await api('GET', `/marble/v1/worlds/${encodeURIComponent(s.world_id)}`);
+  const world = res.world || res;
+  s.response_shape = shape(world);
+  s.metric_scale_factor = scaleOf(world);
+  s.marble_url = world.world_marble_url || world.marble_url || s.marble_url || null;
+  s.files = s.files || {};
+  const pano = panoUrl(world);
+  if (pano && !existsSync(join(OUT, panoName(e, pano)))) {
+    const n = await download(pano, join(OUT, panoName(e, pano)));
+    s.files[panoName(e, pano)] = n;
+    log(e.id, `downloaded ${panoName(e, pano)} ${mb(n)}`);
+  }
+  saveState();
+  log(e.id, `refreshed: pano ${pano ? 'yes' : 'none in response'}, metric_scale_factor ${s.metric_scale_factor ?? 'none'}`);
+  log(e.id, `response shape ${s.response_shape}`);
 }
 
 function writeWorldsJson() {
@@ -254,6 +291,18 @@ function writeWorldsJson() {
     });
   writeFileSync(join(OUT, 'worlds.json'), JSON.stringify({ updated: new Date().toISOString(), worlds }, null, 2) + '\n');
   return worlds.length;
+}
+
+// ---------- refresh ----------
+if (refresh) {
+  const done = elements.filter((e) => state[e.id]?.status === 'done' && state[e.id]?.world_id);
+  console.log(`refresh ${done.length} finished world(s), no generation, no credits`);
+  if (dryRun) process.exit(0);
+  if (!KEY) die('WORLDLABS_API_KEY is not set');
+  let failed = 0;
+  for (const e of done) { try { await refreshWorld(e); } catch (err) { failed++; log(e.id, `FAILED: ${err.message}`); } }
+  console.log(`worlds.json lists ${writeWorldsJson()} world(s)`);
+  process.exit(failed ? 1 : 0);
 }
 
 // ---------- main ----------

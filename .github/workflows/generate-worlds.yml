@@ -6,8 +6,8 @@ name: Generate worlds
 # instead of paying for them again. Each commit redeploys on Vercel.
 #
 # Two ways to start it: "Run workflow" on the Actions tab, or a push to main
-# that changes worlds/run.json, whose quality, only and force fields stand in
-# for the inputs below. The workflow's own commits never touch run.json.
+# that changes worlds/run.json, whose quality, only, force and refresh fields
+# stand in for the inputs below. refresh re-reads finished worlds for free. The workflow's own commits never touch run.json.
 #
 # Needs the repository secret WORLDLABS_API_KEY (Settings > Secrets and
 # variables > Actions). Never put the key in code or logs.
@@ -30,6 +30,10 @@ on:
         default: ""
       force:
         description: "Regenerate worlds that are already finished"
+        type: boolean
+        default: false
+      refresh:
+        description: "Only re-read finished worlds and fetch missing panoramas (free, no generation)"
         type: boolean
         default: false
 
@@ -58,20 +62,23 @@ jobs:
           IN_QUALITY: ${{ inputs.quality }}
           IN_ONLY: ${{ inputs.only }}
           IN_FORCE: ${{ inputs.force }}
+          IN_REFRESH: ${{ inputs.refresh }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            q="$IN_QUALITY"; o="$IN_ONLY"; f="$IN_FORCE"
+            q="$IN_QUALITY"; o="$IN_ONLY"; f="$IN_FORCE"; r="$IN_REFRESH"
           else
             q=$(node -p "require('./worlds/run.json').quality || 'draft'")
             o=$(node -p "[].concat(require('./worlds/run.json').only || []).join(',')")
             f=$(node -p "String(require('./worlds/run.json').force === true)")
+            r=$(node -p "String(require('./worlds/run.json').refresh === true)")
           fi
           case "$q" in draft|full) ;; *) echo "::error::quality must be draft or full, got '$q'"; exit 1 ;; esac
           case "$o" in *[!a-z0-9,-]*) echo "::error::only may hold element ids and commas only"; exit 1 ;; esac
           echo "quality=$q" >> "$GITHUB_OUTPUT"
           echo "only=$o" >> "$GITHUB_OUTPUT"
           echo "force=$f" >> "$GITHUB_OUTPUT"
-          echo "quality=$q only=${o:-all} force=$f"
+          echo "refresh=$r" >> "$GITHUB_OUTPUT"
+          echo "quality=$q only=${o:-all} force=$f refresh=$r"
 
       - name: Check the API key is set
         env:
@@ -88,11 +95,13 @@ jobs:
           QUALITY: ${{ steps.settings.outputs.quality }}
           ONLY: ${{ steps.settings.outputs.only }}
           FORCE: ${{ steps.settings.outputs.force }}
+          REFRESH: ${{ steps.settings.outputs.refresh }}
         run: |
           args=()
           [ "$QUALITY" = "draft" ] && args+=(--draft)
           [ -n "$ONLY" ] && args+=(--only "$ONLY")
           [ "$FORCE" = "true" ] && args+=(--force)
+          [ "$REFRESH" = "true" ] && args+=(--refresh)
           node generate-worlds.mjs --dry-run "${args[@]}"
 
       - name: Generate
@@ -102,11 +111,13 @@ jobs:
           QUALITY: ${{ steps.settings.outputs.quality }}
           ONLY: ${{ steps.settings.outputs.only }}
           FORCE: ${{ steps.settings.outputs.force }}
+          REFRESH: ${{ steps.settings.outputs.refresh }}
         run: |
           args=()
           [ "$QUALITY" = "draft" ] && args+=(--draft)
           [ -n "$ONLY" ] && args+=(--only "$ONLY")
           [ "$FORCE" = "true" ] && args+=(--force)
+          [ "$REFRESH" = "true" ] && args+=(--refresh)
           node generate-worlds.mjs "${args[@]}"
 
       - name: Report sizes

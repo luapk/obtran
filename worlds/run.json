@@ -2,5 +2,6 @@
   "quality": "draft",
   "only": [],
   "force": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. First draft run: all seven elements, requested by Paul on 23 October 2026 (second attempt, after the API key was added as an Actions secret)."
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. Refresh only: re-read the seven draft worlds for panoramas and scale, no generation (23 October 2026).",
+  "refresh": true
 }
