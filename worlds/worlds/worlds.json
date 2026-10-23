@@ -1,0 +1,138 @@
+{
+  "updated": "2026-10-23T21:21:11.351Z",
+  "worlds": [
+    {
+      "id": "bob-cockpit",
+      "title": "Bob's cockpit",
+      "model": "marble-1.0-draft",
+      "world_id": "a8d3296b-ed09-4a8f-aeaf-ab5fb2fda74b",
+      "marble_url": "https://marble.worldlabs.ai/world/a8d3296b-ed09-4a8f-aeaf-ab5fb2fda74b",
+      "splats": {
+        "500k": "worlds/bob-cockpit.spz",
+        "100k": "worlds/bob-cockpit.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0,
+        0.14428945074106364,
+        0.33185971117005597,
+        0.553182214472537
+      ]
+    },
+    {
+      "id": "bob-head",
+      "title": "Bob's head",
+      "model": "marble-1.0-draft",
+      "world_id": "75fa8454-7f55-47c9-80bc-90b318fc3711",
+      "marble_url": "https://marble.worldlabs.ai/world/75fa8454-7f55-47c9-80bc-90b318fc3711",
+      "splats": {
+        "500k": "worlds/bob-head.spz",
+        "100k": "worlds/bob-head.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.12967875036840554,
+        0.18308631211857018,
+        0.2770409666961391,
+        0.3095030514385353
+      ]
+    },
+    {
+      "id": "bob",
+      "title": "Bob",
+      "model": "marble-1.0-draft",
+      "world_id": "09ee16c6-6d38-442c-be4c-8ea0f563945f",
+      "marble_url": "https://marble.worldlabs.ai/world/09ee16c6-6d38-442c-be4c-8ea0f563945f",
+      "splats": {
+        "500k": "worlds/bob.spz",
+        "100k": "worlds/bob.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.05894488653109343,
+        0.17872711421098517,
+        0.29472443265546716,
+        0.43591979075850046
+      ]
+    },
+    {
+      "id": "singularity-core",
+      "title": "The singularity",
+      "model": "marble-1.0-draft",
+      "world_id": "0053a884-f885-43a9-a915-76ec17df253a",
+      "marble_url": "https://marble.worldlabs.ai/world/0053a884-f885-43a9-a915-76ec17df253a",
+      "splats": {
+        "500k": "worlds/singularity-core.spz",
+        "100k": "worlds/singularity-core.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.22487474211612143,
+        0.3142981691368788,
+        0.6899498968464486,
+        0.6100697471665214
+      ]
+    },
+    {
+      "id": "hull-machinery",
+      "title": "Hull machinery",
+      "model": "marble-1.0-draft",
+      "world_id": "c7b62e87-4d3f-4139-9909-4ea780131177",
+      "marble_url": "https://marble.worldlabs.ai/world/c7b62e87-4d3f-4139-9909-4ea780131177",
+      "splats": {
+        "500k": "worlds/hull-machinery.spz",
+        "100k": "worlds/hull-machinery.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.668140288829944,
+        0.2478204010462075,
+        1,
+        0.4969485614646905
+      ]
+    },
+    {
+      "id": "ribbon-loops",
+      "title": "Ribbon loops",
+      "model": "marble-1.0-draft",
+      "world_id": "a083e2ca-792a-420c-a516-eefeb1b524dc",
+      "marble_url": "https://marble.worldlabs.ai/world/a083e2ca-792a-420c-a516-eefeb1b524dc",
+      "splats": {
+        "500k": "worlds/ribbon-loops.spz",
+        "100k": "worlds/ribbon-loops.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.4300029472443265,
+        0.6449433304272014,
+        1,
+        0.955536181342633
+      ]
+    },
+    {
+      "id": "monolith-slabs",
+      "title": "Monolith slabs",
+      "model": "marble-1.0-draft",
+      "world_id": "481cdb8a-045e-4e3a-a547-44b20385c2fa",
+      "marble_url": "https://marble.worldlabs.ai/world/481cdb8a-045e-4e3a-a547-44b20385c2fa",
+      "splats": {
+        "500k": "worlds/monolith-slabs.spz",
+        "100k": "worlds/monolith-slabs.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0,
+        0.7395379250217959,
+        0.4500442086648983,
+        0.9997820401046208
+      ]
+    }
+  ]
+}
