@@ -2,7 +2,8 @@
 
   python3 tools/build.py            served build: assets and worlds as files
   python3 tools/build.py --inline   one self contained HTML file with base64 assets
-  python3 tools/build.py --local    load three.js from /node_modules instead of jsDelivr
+  python3 tools/build.py --local    load three.js and Spark from /node_modules instead of jsDelivr
+  python3 tools/build.py --out dir  write somewhere other than dist/ (relative to the repo root)
 """
 import base64
 import json
@@ -15,13 +16,19 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "prototype" / "index.src.html"
 ASSETS = ROOT / "prototype" / "assets"
 WORLDS = ROOT / "worlds" / "worlds"
-DIST = ROOT / "dist"
+DIST = ROOT / (sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else "dist")
 
-THREE_VERSION = "0.170.0"
+THREE_VERSION = "0.180.0"
 THREE_CDN = f"https://cdn.jsdelivr.net/npm/three@{THREE_VERSION}/build/three.module.js"
 THREE_LOCAL = "/node_modules/three/build/three.module.js"
+THREE_ADDONS_CDN = f"https://cdn.jsdelivr.net/npm/three@{THREE_VERSION}/examples/jsm/"
+THREE_ADDONS_LOCAL = "/node_modules/three/examples/jsm/"
+SPARK_VERSION = "2.4.0"
+SPARK_CDN = f"https://cdn.jsdelivr.net/npm/@sparkjsdev/spark@{SPARK_VERSION}/dist/spark.module.js"
+SPARK_LOCAL = "/node_modules/@sparkjsdev/spark/dist/spark.module.js"
 
-WORLD_FILE = re.compile(r"^(worlds\.json|[a-z0-9-]+(\.100k)?\.spz|.+\.pano\.(jpg|png|webp))$")
+# panoramas stay in the repo for checking; the page never loads them
+WORLD_FILE = re.compile(r"^(worlds\.json|views\.json|reliefs\.json|[a-z0-9-]+(\.100k)?(\.clean)?\.spz)$")
 
 
 def js_numbers(x):
@@ -49,6 +56,8 @@ def main():
     meta = json.dumps(js_numbers(meta), separators=(",", ":"), ensure_ascii=False)
     fill = {
         "%%THREE_URL%%": THREE_LOCAL if local else THREE_CDN,
+        "%%THREE_ADDONS_URL%%": THREE_ADDONS_LOCAL if local else THREE_ADDONS_CDN,
+        "%%SPARK_URL%%": SPARK_LOCAL if local else SPARK_CDN,
         "%%PAGE_SRC%%": data_uri("page.jpg", "image/jpeg") if inline else "assets/page.jpg",
         "%%DEPTH_SRC%%": data_uri("depth.png", "image/png") if inline else "assets/depth.png",
         "%%META%%": meta,
@@ -70,9 +79,12 @@ def main():
             shutil.copyfile(ASSETS / name, DIST / "assets" / name)
         (DIST / "worlds").mkdir()
         if WORLDS.exists():
-            for f in sorted(WORLDS.iterdir()):
-                if WORLD_FILE.match(f.name):
-                    shutil.copyfile(f, DIST / "worlds" / f.name)
+            names = sorted(f.name for f in WORLDS.iterdir() if WORLD_FILE.match(f.name))
+            # when a cleaned splat exists the page loads that, so the raw one is not deployed
+            superseded = lambda n: n.endswith(".spz") and ".clean." not in n and n[:-4] + ".clean.spz" in names
+            for n in names:
+                if not superseded(n):
+                    shutil.copyfile(WORLDS / n, DIST / "worlds" / n)
                     copied += 1
         if not (DIST / "worlds" / "worlds.json").exists():
             (DIST / "worlds" / "worlds.json").write_text(json.dumps({"worlds": []}, separators=(",", ":")) + "\n")
@@ -80,7 +92,7 @@ def main():
     kb = round(len(html.encode()) / 1024)
     mode = ("inline" if inline else "files") + (", local three" if local else "")
     extra = "" if inline else f", {copied} world files"
-    print(f"dist/index.html {kb} KB ({mode}){extra}")
+    print(f"{DIST.relative_to(ROOT)}/index.html {kb} KB ({mode}){extra}")
 
 
 if __name__ == "__main__":

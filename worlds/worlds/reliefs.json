@@ -1,0 +1,36 @@
+{
+  "worlds": [
+    {
+      "id": "bob-head-relief",
+      "title": "Bob's head (page)",
+      "relief": true,
+      "splats": {
+        "500k": "worlds/bob-head-relief.spz",
+        "100k": "worlds/bob-head-relief.100k.spz"
+      },
+      "yaw": [
+        -30,
+        30
+      ],
+      "pitch": [
+        -24,
+        24
+      ],
+      "parallax": 3.2,
+      "shapes": {
+        "face": {
+          "cx": 249.79,
+          "cy": 329.87,
+          "a": 152.47,
+          "b": 81.32,
+          "theta": -1.22
+        },
+        "ring": [
+          499.0,
+          264.8,
+          480.0
+        ]
+      }
+    }
+  ]
+}

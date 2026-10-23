@@ -30,7 +30,9 @@ The original brief (written with Gemini) belongs at `source/original-brief.md`, 
   - `singularity-core`: the tunnel and starburst kept, set in a ring in a grey void.
   - `hull-machinery`, `ribbon-loops`, `monolith-slabs`: the forms come back as real 3D objects in space and the white ribbons hold up well, but black turns to sepia-brown haze and the line detail softens.
   - So: the colour grade (task 4) is needed everywhere, the three object regions are the most promising Marble worlds, and Bob is the clearest case for building from the page itself (task 6).
-- **Not started:** loading Marble worlds into the experience (Spark) and per-panel experiences.
+- **Ink pass (task 4, 23 October):** the void after the breach is now the singularity Marble world, rendered by Spark and graded to the page's tones; the procedural void is the fallback if Spark or the world fails. Paul reviewed a Gemini-written "splat stylization guide" first; its ideas were right but its code was not (no Spark CLI exists, `onBeforeCompile` does not reach Spark's shaders, OrbitControls puts the camera outside a world made to be seen from inside). What was built instead is below under "The prototype, as built".
+- **Bob's head from the page (task 6, started):** Paul has no layered PSD or ink scans, so `tools/make_bob_head.py` builds a relief from the scan: face ellipse fitted to the ink outline, halo, helmet ring, surroundings fading to ink. It is `?world=bob-head-relief` for now; it gets its place in the story with the portals (task 5).
+- **Not started:** per-region experiences, entered through Spark portals (task 5).
 
 ### Paul's feedback on the prototype (the reason for the next phase)
 
@@ -57,15 +59,23 @@ tools/
   extract_page.py             PDF to source/page_rgb.png (handles Adobe inverted CMYK)
   make_assets.py              page_rgb.png to the three files in prototype/assets; --crops recuts worlds/crops
   build.py / build.mjs        index.src.html to dist/ (same output; Vercel uses build.mjs)
-                              default: assets and worlds as files; --inline: one file, base64 assets; --local: three.js from /node_modules
+                              default: assets and worlds as files; --inline: one file, base64 assets;
+                              --local: three.js and Spark from /node_modules; --out <dir>: build elsewhere
+  clean_worlds.py             prune each world's splats to <id>.clean.spz, and write views.json:
+                              per-world ink grade (palette and thresholds from its crop) and look limits
+  make_bob_head.py            Bob's head as a relief of splats from the scan, plus reliefs.json
+  preview_splats.py           quick 360 and forward renders of a world beside its crop
   smoke-test.cjs              headless Chrome walkthrough with screenshots
 worlds/
   manifest.json               element ids, crops and their pixel rects on the page, prompts, shared style line
-  crops/*.jpg                 five crops from the page, cut clear of lettering
+  crops/*.jpg                 seven crops from the page, cut clear of lettering
+  previews/*.jpg              the first draft's renders from preview_splats.py
+  run.json                    settings for the next workflow run; changing it on main starts one
   generate-worlds.mjs         upload, generate, poll, download (Node 18+, no dependencies)
   mock-api.mjs                local stand in for the four World Labs endpoints
   PIPELINE.md                 how to run it locally, on GitHub, and against the mock
-  worlds/                     output: <id>.spz (500k), <id>.100k.spz, <id>.pano.jpg, state.json, worlds.json
+  worlds/                     output: <id>.spz (500k), <id>.100k.spz, <id>.pano.png, state.json, worlds.json;
+                              from tools: <id>(.100k).clean.spz, views.json, bob-head-relief(.100k).spz, reliefs.json
 .github/workflows/generate-worlds.yml
 vercel.json                   build command and output directory
 ```
@@ -80,7 +90,7 @@ vercel.json                   build command and output directory
 
 ## The prototype, as built
 
-Stack: three.js 0.170.0 from jsDelivr on WebGL2, custom ShaderMaterials, Web Audio synthesised in code. No GSAP, no Spark, no WebGPU.
+Stack: three.js 0.180.0 and Spark 2.4.0 (`@sparkjsdev/spark`), both from jsDelivr, on WebGL2; custom ShaderMaterials for the page; Web Audio synthesised in code. No GSAP, no WebGPU. Spark 2.4 needs three 0.180 or later, and imports `three/addons/`, so the import map carries that entry too (without it Spark fails to load).
 
 ### Stages (the `state.stage` values)
 
@@ -94,20 +104,34 @@ Stack: three.js 0.170.0 from jsDelivr on WebGL2, custom ShaderMaterials, Web Aud
    - The camera reaches the page plane at u = 0.42, then flies to `VOID_Z = -26`.
    - The FOV widens mid-flight and there is a small roll.
    - Fog density falls from 0.6 to 0.034.
-4. **`void`:** drag to look, slow drift, an idle auto-rotate after 4 s. "To be continued..." arrives as the original lettering on a card attached to the camera, then a "Read again" button.
+4. **`void`:** you are inside the singularity Marble world (see "The worlds layer"). Drag to look, the pointer or tilt slides the viewpoint slightly, an idle sweep after 4 s stays within the world's look limits. "To be continued..." arrives as the original lettering on a card attached to the camera, then a "Read again" button. If the world cannot load, the procedural void (ink slabs, rings, ribbons, starburst) is used.
+
+### The worlds layer (Spark)
+
+- The story world (`singularity-core`) starts loading on the Start tap. During the breach the drawn rings carry the dive; at the flash (u = 0.72) the world replaces them.
+- Worlds are `SplatMesh` objects from `views.json` file paths (the cleaned splats; 100k on `pointer: coarse`), turned from Marble's OpenCV axes with `quaternion.set(1, 0, 0, 0)`, scaled by `WORLD_SCALE = 12` and centred on `P0`, so the camera sits at Marble's viewpoint. Draft worlds have no `metric_scale_factor`.
+- One Spark `objectModifier` (a raw GLSL dyno node, `inkModifier`) does three things per splat:
+  - **Suction:** swirl and pull towards the core straight ahead. It runs from 1 during the breach and unwinds after arrival, so the world opens out of the singularity.
+  - **Jitter:** banded horizontal shear like a bad transmission. The transmitter "crackles" every 9 to 17 s in the void, with a static burst, echoing "CRSSHKKKKK!".
+  - **Ink grade:** each world's own palette and thresholds from `views.json` (`clean_worlds.py` samples ink, mid tone and paper from the world's crop and matches the crop's share of each over the front view; paper never below luminance 0.42), plus sparse warm grain in the ink and splats shrunk to 0.88 for crisper lines. Uniforms animate through `mesh.updateVersion()`.
+- Look limits come from `views.json` (yaw and pitch around the forward view that holds drawn content, never under plus or minus 60 and 40 degrees) and ease back rather than stop dead. The viewpoint drift is held within 8% of the world's radius, because a world only holds together near its viewpoint.
+- **Review mode:** `?world=<id>` skips the page and opens a world with buttons for every world and an "Ink grade" toggle, for judging worlds side by side. Ids are those in `worlds.json` plus `bob-head-relief`.
+- **Reliefs:** `reliefs.json` lists worlds built from the page rather than by Marble. They are loaded the same way but not graded (they are the page's own ink), with tighter look limits and stronger viewpoint parallax, since parallax is what shows a relief's depth.
 
 ### Other behaviour
 
 - **Audio:** a muffled cabin hum and tape hiss, a static burst on "CRSSHKKKKK!", blips on Smokehouse lines, a rising tone during the hold, then a riser, a sub-bass drop and a boom at the breach. In the void there is an HRTF-panned drone with the listener tied to the camera.
 - **Reduced motion:** no parallax, and a fade to black instead of the dive.
-- **Test hook:** `window.__ot = { state, breach, showBeat, BEATS, camera }`. Setting `state.freeze = true` stops breach time so frames can be captured at chosen points (see `tools/smoke-test.cjs`).
+- **Test hook:** `window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax }`. Setting `state.freeze = true` stops breach time so frames can be captured at chosen points (see `tools/smoke-test.cjs`).
 - **Timing:** hold, breach and ending timers use wall-clock time (capped at 0.25 s a frame), so slow devices don't stall them. Visual smoothing uses a 0.05 s cap.
 
 ### Known issues
 
 - Lifted boxes carry a sliver of the surrounding art, because rects are axis-aligned and the boxes are slanted. Clean cut-outs fix this.
 - The depth map is a heuristic. It reads well head-on and stretches at hard edges at large parallax.
-- The procedural void is generic. It should be replaced or reduced once real worlds exist.
+- The procedural void is generic. It is now only the fallback, and the breach's first 70%.
+- Marble worlds of framed art (cockpit, Bob's head) are a picture in an invented room; the grade cannot fix that. `monolith-slabs` is the weakest of the object worlds: Marble's bright brown haze between the slabs still grades pale where the crop has dark ground.
+- Under SwiftShader (no GPU) 500k splats render at a frame every few seconds, so a full desktop walkthrough takes 15 to 30 minutes. Not representative of real devices, but not yet measured on one either.
 - Inside a claude.ai artifact, device motion is blocked, so tilt only works when self-hosted.
 - The whole page is one 2 MB HTML file with base64 assets. That is fine for an artifact, but on Vercel the assets should be served as files.
 
@@ -157,11 +181,13 @@ Marble makes explorable scenes from an image, so a close crop of a character may
 
 ### 3. Deploy on Vercel
 
-- Done: the Vercel project is connected, and `dist/` gets `worlds/worlds/*.spz`, the panoramas and `worlds.json` (an empty list until worlds exist), with the page loading its texture and depth as files.
+- Done: the Vercel project is connected, and `dist/` gets the splats (only the cleaned ones when they exist), `worlds.json`, `views.json` and `reliefs.json`, with the page loading its texture and depth as files. Panoramas stay in the repo only.
 - Every push, including the workflow's commits, then redeploys.
 - Device tilt works here, because the self-hosted page isn't sandboxed. Test on an iPhone: `DeviceOrientationEvent.requestPermission` has to be called from the Start tap, which it already is.
 
 ### 4. Load Marble worlds with Spark
+
+Done for the story world and review mode (see "The worlds layer"). Remaining: measure frame rates on a real iPhone and mid-range Android; if phones struggle with 100k splats plus the page, try Spark's LoD (`lod` / `enableLod` options) before cutting splats. The original notes follow.
 
 - Keep the page stage as it is, since it already matches the art.
 - Add `SparkRenderer` and load each world listed in `worlds.json`: the 100k file on phones (`pointer: coarse` or a GPU check), 500k on desktop.
@@ -169,7 +195,9 @@ Marble makes explorable scenes from an image, so a close crop of a character may
 - Scale with `metric_scale_factor`, then position each world beyond the singularity.
 - Spark and the existing custom ShaderMaterials share one WebGLRenderer. Check that depth sorting with the page points and the void geometry is correct.
 
-### 5. Build the per-region experiences (once task 1 is confirmed)
+### 5. Build the per-region experiences (next)
+
+Spark 2.4 has `SparkPortals`: paired disks that render one splat world through another and move the camera across when it passes through. That is close to "tap a region and dive into its world" out of the box; check its options in `dist/types/SparkPortals.d.ts` before building.
 
 Working design, for each region:
 
@@ -186,6 +214,8 @@ Working design, for each region:
 
 ### 6. Fidelity fallback
 
+Started for Bob's head: `tools/make_bob_head.py` (no source layers exist; Paul confirmed). The face ellipse is fitted to the ink outline (centre 250, 330 in the crop; 152 x 81 px at minus 70 degrees), the helmet ring to its white arc. Depths are constants at the top of the script; tune them there. Same approach applies to any region Marble loses.
+
 If Marble's worlds lose too much of the ink, build regions from the page itself:
 
 - Cut each drawn element (hull blocks, ribbons, the panel) from the scan.
@@ -198,7 +228,7 @@ Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the b
 
 ## Testing
 
-- `npm i --no-save three@0.170.0 puppeteer` (or `puppeteer-core` with Chrome at `CHROME_PATH`), then `node tools/build.mjs --local`, then serve the repo root on port 8765 (`python3 -m http.server 8765`) and run `node tools/smoke-test.cjs shots 1280 860 desk`, and again at 390 x 844. It walks every beat, the hold, the breach at five frozen points and the void, fails on any page error, and writes screenshots.
+- `npm i --no-save three@0.180.0 @sparkjsdev/spark@2.4.0 puppeteer` (or `puppeteer-core` with Chrome at `CHROME_PATH`), then `node tools/build.mjs --local`, then serve the repo root on port 8765 (`python3 -m http.server 8765`) and run `node tools/smoke-test.cjs shots 1280 860 desk`, and again at 390 x 844. It walks every beat, the hold, the breach at five frozen points and the void, requires the Marble world to load after the breach (`WORLD=0` accepts the fallback), fails on any page error, and writes screenshots. To look at one world: `http://localhost:8765/dist/index.html?world=<id>`.
 - Without a GPU, Chrome needs `--use-angle=swiftshader --enable-unsafe-swiftshader`. Frame rates are low, which is why timers use wall-clock time.
 - To test the pipeline without spending credits, point `WORLDLABS_BASE` at a local mock that implements the four endpoints above.
 - Check on a real iPhone and a mid-range Android before calling anything done. Target 60 fps on desktop and 30 or more on phones. If phones struggle, cut the 195k breach points to about 120k.

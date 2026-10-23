@@ -6,7 +6,8 @@
 //   node tools/smoke-test.cjs shots 1280 860 desk
 //   node tools/smoke-test.cjs shots 390 844 phone
 //
-// Env: URL (default http://localhost:8765/dist/index.html), CHROME_PATH.
+// Env: URL (default http://localhost:8765/dist/index.html), CHROME_PATH,
+// WORLD=0 to accept the drawn void when the Marble world is unavailable.
 // Without a GPU, Chrome runs on SwiftShader, so frame rates are low; the page's
 // timers use wall clock time, which is why the waits below are in seconds.
 const fs = require('fs');
@@ -87,12 +88,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await page.evaluate(() => { window.__ot.state.freeze = true; });
   for (const u of [0.15, 0.35, 0.5, 0.7, 0.9]) {
     await page.evaluate((u) => { window.__ot.state.breachT = u * 4.8; }, u);
-    await sleep(1200);
+    await sleep(2500);
     await shot(`breach-${Math.round(u * 100)}`);
   }
   await page.evaluate(() => { window.__ot.state.freeze = false; window.__ot.state.breachT = 4.8; });
-  await page.waitForFunction(() => window.__ot.state.stage === 'void', { timeout: 30000 });
-  await sleep(6500);
+  await page.waitForFunction(() => window.__ot.state.stage === 'void', { timeout: 120000 });
+  // the Marble world should replace the drawn void (set WORLD=0 to accept the fallback)
+  if (process.env.WORLD !== '0') {
+    await page.waitForFunction(() => window.__ot.worlds.ok && window.__ot.worlds.mesh && window.__ot.worlds.mesh.visible, { timeout: 120000 })
+      .catch(() => { throw new Error('the Marble world did not load after the breach'); });
+  }
+  // the ending runs on wall clock time at no more than 0.25 s a frame, so wait for it rather than sleep
+  await page.waitForFunction(() => document.getElementById('again').classList.contains('show'), { timeout: 600000 });
+  await sleep(1500);
   await shot('void-end');
   await page.mouse.move(W / 2, H / 2);
   await page.mouse.down();
@@ -101,7 +109,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await sleep(1200);
   await shot('void-look');
 
-  const st = await page.evaluate(() => ({ stage: window.__ot.state.stage, again: document.getElementById('again').classList.contains('show') }));
+  const st = await page.evaluate(() => ({ stage: window.__ot.state.stage, again: document.getElementById('again').classList.contains('show'), world: window.__ot.worlds.id, splats: window.__ot.worlds.mesh?.numSplats ?? null }));
   await browser.close();
   console.log(JSON.stringify(st));
   if (errors.length) { console.error('page errors:\n' + errors.join('\n')); process.exit(1); }

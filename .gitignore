@@ -8,3 +8,5 @@ worlds/worlds/*.part
 worlds/worlds/*.tmp
 .vercel/
 .DS_Store
+dist-*/
+__pycache__/

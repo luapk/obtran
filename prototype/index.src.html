@@ -47,6 +47,9 @@
   #again { left: 50%; bottom: max(70px, calc(env(safe-area-inset-bottom) + 56px)); transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity 0.8s; }
   #again.show { opacity: 1; pointer-events: auto; }
 
+  #review { position: fixed; left: 14px; top: max(14px, env(safe-area-inset-top)); z-index: 4; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 120px); }
+  #review .ui-btn { position: static; }
+  #review .ui-btn[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
   #ring { position: fixed; width: 96px; height: 96px; margin: -48px 0 0 -48px; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.2s; }
   #ring.on { opacity: 1; }
   #ring circle { fill: none; stroke-width: 3; }
@@ -77,7 +80,8 @@
 <svg id="ring" viewBox="0 0 96 96" aria-hidden="true"><circle class="track" cx="48" cy="48" r="40"/><circle class="prog" id="ringProg" cx="48" cy="48" r="40" stroke-dasharray="251.3" stroke-dashoffset="251.3"/></svg>
 <div class="sr" aria-live="polite" id="sr"></div>
 
-<script type="importmap">{ "imports": { "three": "%%THREE_URL%%" } }</script>
+<div id="review" hidden></div>
+<script type="importmap">{ "imports": { "three": "%%THREE_URL%%", "three/addons/": "%%THREE_ADDONS_URL%%", "@sparkjsdev/spark": "%%SPARK_URL%%" } }</script>
 <script type="module">
 import * as THREE from 'three';
 
@@ -543,6 +547,158 @@ tbcCard.renderOrder = 10;
 tbcCard.visible = false;
 camera.add(tbcCard);
 
+
+/* ---------- Marble worlds (Spark) ---------- */
+// The void after the breach is a Marble world rendered by Spark, graded back to the
+// page's three tones. ?world=<id> opens any world straight away, for review.
+// If Spark or the world fails to load, the procedural void above is used instead.
+const params = new URLSearchParams(location.search);
+const REVIEW = params.get('world');
+const STORY_WORLD = 'singularity-core';
+const WORLD_SCALE = 12;
+const DEG = Math.PI / 180;
+const worlds = {
+  Spark: null, ok: false, list: [], views: {}, id: null, mesh: null, loading: null,
+  limits: { yaw: [-Math.PI, Math.PI], pitch: [-1.3, 1.3] }, parallax: 0.6, offset: new THREE.Vector3(),
+  u: null, suction: 0, jitter: 0, nextCrackle: 0, drift: new THREE.Vector3(),
+};
+
+async function loadSpark() {
+  if (worlds.Spark) return worlds.Spark;
+  worlds.Spark = await import('@sparkjsdev/spark');
+  const { dyno } = worlds.Spark;
+  worlds.u = {
+    time: dyno.dynoFloat(0), grade: dyno.dynoFloat(1), suction: dyno.dynoFloat(0), jitter: dyno.dynoFloat(0),
+    lo: dyno.dynoFloat(0.15), hi: dyno.dynoFloat(0.3), grit: dyno.dynoFloat(0.04), grain: dyno.dynoFloat(0.22), size: dyno.dynoFloat(0.88),
+    ink: dyno.dynoVec3(new THREE.Vector3(0.020, 0.016, 0.012)),
+    mid: dyno.dynoVec3(new THREE.Vector3(0.300, 0.300, 0.270)),
+    paper: dyno.dynoVec3(new THREE.Vector3(0.937, 0.914, 0.875)),
+  };
+  const spark = new worlds.Spark.SparkRenderer({ renderer });
+  scene.add(spark);
+  return worlds.Spark;
+}
+
+// Per splat, on the GPU: pull towards the core and swirl (suction), shear in bands
+// like a bad transmission (jitter), then threshold the colour to the crop's ink, mid
+// tone and paper, with a sparse warm grain in the ink like the page's sepia wash.
+function inkModifier() {
+  const { dyno } = worlds.Spark, u = worlds.u;
+  return dyno.dynoBlock({ gsplat: dyno.Gsplat }, { gsplat: dyno.Gsplat }, ({ gsplat }) => {
+    const node = dyno.dyno({
+      inTypes: {
+        gsplat: dyno.Gsplat, time: 'float', grade: 'float', suction: 'float', jitter: 'float', lo: 'float', hi: 'float',
+        grit: 'float', grain: 'float', size: 'float', ink: 'vec3', mid: 'vec3', paper: 'vec3',
+      },
+      outTypes: { gsplat: dyno.Gsplat },
+      inputs: { gsplat, ...u },
+      globals: () => [dyno.defineGsplat, `
+        float otHash(float n) { return fract(sin(n) * 43758.5453123); }
+      `],
+      statements: ({ inputs: i, outputs: o }) => [`
+        ${o.gsplat} = ${i.gsplat};
+        vec3 c = ${o.gsplat}.center;
+        float id = float(${o.gsplat}.index);
+        if (${i.suction} > 0.0) {
+          // the core sits straight ahead of the viewpoint (Marble's +z)
+          vec3 core = vec3(0.0, 0.0, 1.25);
+          vec3 d = c - core;
+          float r = length(d.xy);
+          float a = ${i.suction} * (2.5 + 5.0 / (r + 0.3)) * (0.75 + 0.5 * otHash(id));
+          float cs = cos(a), sn = sin(a);
+          d.xy = vec2(d.x * cs - d.y * sn, d.x * sn + d.y * cs);
+          float pull = ${i.suction} * ${i.suction};
+          c = core + d * (1.0 - 0.96 * pull);
+          ${o.gsplat}.scales *= 1.0 - 0.7 * pull;
+        }
+        if (${i.jitter} > 0.0) {
+          float band = floor(c.y * 34.0) + floor(${i.time} * 22.0) * 7.0;
+          float h = otHash(band);
+          c.x += (h - 0.5) * ${i.jitter} * step(0.55, h) * 0.12;
+          c.z += (otHash(id + floor(${i.time} * 30.0)) - 0.5) * ${i.jitter} * 0.01;
+        }
+        ${o.gsplat}.center = c;
+        vec3 rgb = ${o.gsplat}.rgba.rgb;
+        float lum = dot(rgb, vec3(0.299, 0.587, 0.114)) + (otHash(id * 0.618) - 0.5) * ${i.grit};
+        float w = max(0.004, (${i.hi} - ${i.lo}) * 0.25);
+        vec3 grainy = mix(${i.ink}, vec3(0.32, 0.25, 0.17), step(1.0 - ${i.grain}, otHash(id * 1.37)) * 0.55);
+        vec3 inked = mix(grainy, ${i.mid}, smoothstep(${i.lo} - w, ${i.lo} + w, lum));
+        inked = mix(inked, ${i.paper}, smoothstep(${i.hi} - w, ${i.hi} + w, lum));
+        inked *= 1.0 + ${i.jitter} * 0.6 * step(0.8, otHash(floor(c.y * 34.0) + floor(${i.time} * 22.0)));
+        ${o.gsplat}.rgba.rgb = mix(rgb, inked, ${i.grade});
+        ${o.gsplat}.scales *= mix(1.0, ${i.size}, ${i.grade});
+      `],
+    });
+    return { gsplat: node.outputs.gsplat };
+  });
+}
+
+async function fetchJson(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); }
+
+// Load a world by id. Resolves once the splats are ready, or rejects.
+function loadWorld(id) {
+  worlds.loading = (async () => {
+    await loadSpark();
+    if (!worlds.list.length) {
+      const [list, views, reliefs] = await Promise.all([
+        fetchJson('worlds/worlds.json'), fetchJson('worlds/views.json').catch(() => ({})), fetchJson('worlds/reliefs.json').catch(() => ({ worlds: [] })),
+      ]);
+      // Marble worlds, then reliefs built from the page itself (tools/make_bob_head.py)
+      worlds.list = [...(list.worlds || []), ...(reliefs.worlds || [])]; worlds.views = views;
+    }
+    const entry = worlds.list.find((w) => w.id === id);
+    if (!entry) throw new Error(`no world ${id}`);
+    const view = entry.relief ? entry : worlds.views[id] || {};
+    const files = view.files || entry.splats;
+    const url = (isTouch && files['100k']) || files['500k'];
+    if (worlds.mesh && worlds.id === id) return worlds.mesh;
+    const mesh = new worlds.Spark.SplatMesh({ url, objectModifier: inkModifier() });
+    await mesh.initialized;
+    // swap only once the new world is ready, so there is never a gap
+    if (worlds.mesh) { scene.remove(worlds.mesh); worlds.mesh.dispose?.(); }
+    mesh.quaternion.set(1, 0, 0, 0);            // Marble's OpenCV axes (y down, +z ahead) to three's
+    mesh.scale.setScalar(WORLD_SCALE);
+    mesh.position.copy(P0);
+    mesh.visible = state.stage === 'breach' || state.stage === 'void';
+    scene.add(mesh);
+    worlds.mesh = mesh; worlds.id = id; worlds.ok = true;
+    // the grade measured from the world's crop by tools/clean_worlds.py; a relief is the page's own ink
+    const g = view.grade;
+    worlds.relief = !!entry.relief;
+    worlds.u.grade.value = entry.relief ? 0 : 1;
+    worlds.parallax = entry.parallax || 0.6;
+    if (g) {
+      worlds.u.lo.value = g.lo; worlds.u.hi.value = g.hi;
+      worlds.u.ink.value.fromArray(g.ink); worlds.u.mid.value.fromArray(g.mid); worlds.u.paper.value.fromArray(g.paper);
+    }
+    // look limits from tools/clean_worlds.py, in Marble's frame (yaw right is positive) to the camera's
+    const y = view.yaw || [-180, 180], p = view.pitch || [-75, 75];
+    worlds.limits = { yaw: [-y[1] * DEG, -y[0] * DEG], pitch: [p[0] * DEG, p[1] * DEG] };
+    return mesh;
+  })();
+  return worlds.loading;
+}
+
+function useWorld(on) {
+  // the procedural void stays as the fallback; the world replaces it when present
+  voidGroup.visible = !on && (state.stage === 'breach' || state.stage === 'void');
+  if (worlds.mesh) worlds.mesh.visible = on;
+}
+
+function updateWorld(dt, t) {
+  if (!worlds.mesh || !worlds.u) return;
+  const u = worlds.u;
+  if (state.stage === 'void' && !REVIEW && t > worlds.nextCrackle) {
+    // the transmitter still crackles: a burst of static shears the world for a moment
+    worlds.nextCrackle = t + 9 + Math.random() * 8;
+    worlds.jitter = 1; sound.staticBurst();
+  }
+  worlds.jitter = Math.max(0, worlds.jitter - dt * 1.6);
+  const changed = u.suction.value !== worlds.suction || worlds.jitter > 0 || u.jitter.value > 0;
+  u.time.value = t; u.suction.value = worlds.suction; u.jitter.value = worlds.jitter;
+  if (changed) worlds.mesh.updateVersion();
+}
+
 /* ---------- sound ---------- */
 class Sound {
   constructor() { this.ok = false; this.muted = false; this.voices = []; }
@@ -719,6 +875,9 @@ function breach() {
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
   pagePts.visible = true;
   voidGroup.visible = true;
+  worlds.suction = 1;
+  // the drawn rings carry the dive; the world takes over at the flash (see the frame loop)
+  (worlds.loading || loadWorld(STORY_WORLD)).then(() => { if (worlds.mesh) worlds.mesh.visible = true; }).catch((e) => console.warn('world unavailable, using the drawn void', e));
   state.camStart = camera.position.clone();
   state.lookStart = lookTarget.clone();
   if (reducedMotion) {
@@ -734,6 +893,9 @@ function enterVoid() {
   look.yaw = 0; look.pitch = 0;
   voidU.uFog.value = 0.034;
   $('black').style.opacity = 0;
+  worlds.drift.set(0, 0, 0);
+  worlds.nextCrackle = shared.uTime.value + 6;
+  if (worlds.ok) useWorld(true);
   setHint('Drag to look around');
 }
 
@@ -764,7 +926,7 @@ canvas.addEventListener('pointerdown', (e) => {
   if (state.stage === 'void') { look.dragging = true; look.lastX = e.clientX; look.lastY = e.clientY; canvas.setPointerCapture(e.pointerId); }
 });
 canvas.addEventListener('pointermove', (e) => {
-  if (state.stage === 'read' || state.stage === 'gate') {
+  if (state.stage === 'read' || state.stage === 'gate' || (state.stage === 'void' && !look.dragging && e.pointerType === 'mouse')) {
     parallax.tx = (e.clientX / innerWidth - 0.5) * 2; parallax.ty = (e.clientY / innerHeight - 0.5) * 2;
   }
   if (state.holding) { ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px'; }
@@ -772,6 +934,11 @@ canvas.addEventListener('pointermove', (e) => {
     const dx = e.clientX - look.lastX, dy = e.clientY - look.lastY;
     look.lastX = e.clientX; look.lastY = e.clientY;
     look.vyaw = -dx * 0.0042; look.vpitch = -dy * 0.0042;
+    if (worlds.ok) {
+      const L = worlds.limits, over = (v, a, b) => (v < a ? a - v : v > b ? v - b : 0);
+      look.vyaw *= 1 / (1 + 6 * over(look.yaw + look.vyaw, L.yaw[0], L.yaw[1]));
+      look.vpitch *= 1 / (1 + 6 * over(look.pitch + look.vpitch, L.pitch[0], L.pitch[1]));
+    }
     look.yaw += look.vyaw; look.pitch = clamp(look.pitch + look.vpitch, -1.3, 1.3); look.idle = 0;
   }
 });
@@ -820,9 +987,44 @@ $('start').addEventListener('click', async () => {
     } else addEventListener('deviceorientation', onOrient);
   } catch (e) { /* tilt stays off, pointer still works */ }
   $('gate').classList.add('hide');
+  if (REVIEW) { startReview(); return; }
   state.stage = 'read';
   showBeat(0);
+  loadWorld(STORY_WORLD).catch((e) => console.warn('world unavailable, using the drawn void', e));
 });
+
+// ?world=<id>: go straight into a world, with buttons to switch worlds and compare the grade
+async function startReview() {
+  state.stage = 'void'; state.endT = 0;
+  enterVoid();
+  if (sound.ok) { sound.cabin.gain.setTargetAtTime(0, sound.now(), 0.4); sound.hiss.gain.setTargetAtTime(0, sound.now(), 0.4); sound.startSpace(); }
+  const panel = $('review');
+  panel.hidden = false;
+  const show = async (id) => {
+    panel.querySelectorAll('[data-world]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.world === id)));
+    setHint('Loading ' + id);
+    try {
+      await loadWorld(id); useWorld(true); look.yaw = 0; look.pitch = 0; worlds.drift.set(0, 0, 0);
+      worlds.suction = 0.6; setHint('Drag to look around');
+      history.replaceState(null, '', '?world=' + id);
+    } catch (e) { setHint('Could not load ' + id); console.error(e); }
+  };
+  try { await loadWorld(REVIEW === '1' ? STORY_WORLD : REVIEW); } catch (e) { console.error(e); }
+  for (const w of worlds.list) {
+    const b = document.createElement('button');
+    b.className = 'ui-btn'; b.type = 'button'; b.textContent = w.title; b.dataset.world = w.id;
+    b.addEventListener('click', () => show(w.id));
+    panel.append(b);
+  }
+  const g = document.createElement('button');
+  g.className = 'ui-btn'; g.type = 'button'; g.textContent = 'Ink grade'; g.setAttribute('aria-pressed', 'true');
+  g.addEventListener('click', () => {
+    const on = worlds.u.grade.value < 0.5; worlds.u.grade.value = on ? 1 : 0; g.setAttribute('aria-pressed', String(on)); worlds.mesh?.updateVersion();
+  });
+  panel.append(g);
+  show(worlds.id || STORY_WORLD);
+}
+if (REVIEW) $('note').textContent = 'Review mode: opens the Marble worlds directly.';
 $('mute').addEventListener('click', () => { const m = !sound.muted; sound.setMuted(m); $('mute').textContent = m ? 'Sound off' : 'Sound on'; $('mute').setAttribute('aria-pressed', String(m)); });
 $('again').addEventListener('click', () => location.reload());
 
@@ -891,6 +1093,8 @@ function frame() {
       const sc = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
       ptsMat.uniforms.uScale.value = sc;
       voidU.uFog.value = lerp(0.6, 0.034, smooth(0.1, 0.75, u));
+      worlds.suction = 1 - 0.6 * smooth(0.5, 1, u);
+      if (worlds.ok && u > 0.72 && voidGroup.visible) useWorld(true);
       if (u > 0.7 && u < 0.73) flash(0.35);
     }
     if (state.breachT >= BREACH_DUR) enterVoid();
@@ -899,17 +1103,35 @@ function frame() {
   // void free look
   if (state.stage === 'void') {
     state.endT += rawDt;
+    // wall clock, like the other story timers, so a slow device still settles
+    worlds.suction = Math.max(0, worlds.suction - rawDt * (reducedMotion ? 10 : 0.18));
+    const lim = worlds.ok ? worlds.limits : { yaw: [-Infinity, Infinity], pitch: [-1.3, 1.3] };
     if (!look.dragging) {
       look.vyaw *= Math.exp(-dt * 3); look.vpitch *= Math.exp(-dt * 3);
-      look.yaw += look.vyaw; look.pitch = clamp(look.pitch + look.vpitch, -1.3, 1.3);
+      look.yaw += look.vyaw; look.pitch += look.vpitch;
       look.idle += dt;
-      if (look.idle > 4 && !reducedMotion) look.yaw += dt * 0.04;
+      if (look.idle > 4 && !reducedMotion) {
+        // drift slowly; inside a world, sweep back and forth within what Marble made
+        if (worlds.ok) look.yaw += Math.sin(state.endT * 0.05) * dt * 0.05;
+        else look.yaw += dt * 0.04;
+      }
+      // ease back inside the limits rather than stopping dead
+      look.yaw += (clamp(look.yaw, lim.yaw[0], lim.yaw[1]) - look.yaw) * (1 - Math.exp(-dt * 4));
+      look.pitch += (clamp(look.pitch, lim.pitch[0], lim.pitch[1]) - look.pitch) * (1 - Math.exp(-dt * 4));
     }
+    look.pitch = clamp(look.pitch, -1.3, 1.3);
     const gy = reducedMotion ? 0 : parallax.gx * 0.6, gp = reducedMotion ? 0 : -parallax.gy * 0.4;
     camera.rotation.set(look.pitch + gp, look.yaw - gy, 0);
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    if (!reducedMotion) camera.position.addScaledVector(fwd, dt * 0.25);
-    if (state.endT > 3 && !tbcCard.visible) {
+    if (worlds.ok) {
+      // a world only holds together near its viewpoint, so the drift stays within a small radius
+      if (!reducedMotion) worlds.drift.addScaledVector(fwd, dt * (worlds.relief ? 0.02 : 0.06)).clampLength(0, WORLD_SCALE * 0.08);
+      // the pointer (or tilt) slides the viewpoint a little, which is what shows a relief's depth
+      const px = reducedMotion ? 0 : clamp(parallax.tx + parallax.gx, -1.2, 1.2), py = reducedMotion ? 0 : clamp(parallax.ty + parallax.gy, -1.2, 1.2);
+      worlds.offset.lerp(tmpV.set(px, -py, 0).multiplyScalar(worlds.parallax).applyQuaternion(camera.quaternion), 1 - Math.exp(-dt * 4));
+      camera.position.copy(P0).add(worlds.drift).add(worlds.offset);
+    } else if (!reducedMotion) camera.position.addScaledVector(fwd, dt * 0.25);
+    if (state.endT > 3 && !tbcCard.visible && !REVIEW) {
       tbcCard.visible = true;
       const gp = tbc.mesh.geometry.parameters, visW = 2 * 2.4 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
       const s = Math.min(0.34 / gp.height, (visW * 0.78) / gp.width);
@@ -920,13 +1142,14 @@ function frame() {
       tbcCard.material.uniforms.uOpacity.value = smooth(3, 4.5, state.endT);
       tbcCard.material.uniforms.uFlick.value = state.endT < 3.6 ? 1 : 0;
     }
-    if (state.endT > 5) $('again').classList.add('show');
+    if (state.endT > 5 && !REVIEW) $('again').classList.add('show');
     if (state.endT > 6 && look.idle < 1) setHint('');
   }
 
   spinners.forEach((s) => { s.o.rotation.y += s.s * dt; s.o.rotation.x += s.s * 0.5 * dt; });
   sing.material.rotation += dt * 0.03;
   sing.scale.setScalar(46 + Math.sin(t * 0.7) * 2);
+  updateWorld(rawDt, t);
   sound.update(dt, camera);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -936,7 +1159,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   depth.generateMipmaps = false; depth.minFilter = THREE.LinearFilter; depth.anisotropy = 1;
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
-  window.__ot = { state, breach, showBeat, BEATS, camera };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

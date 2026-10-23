@@ -120,6 +120,21 @@ jobs:
           [ "$REFRESH" = "true" ] && args+=(--refresh)
           node generate-worlds.mjs "${args[@]}"
 
+      - uses: actions/setup-python@v5
+        if: always()
+        with:
+          python-version: "3.12"
+
+      - name: Clean the worlds and measure their grade and look limits
+        if: always()
+        run: |
+          if ls worlds/worlds/*.spz >/dev/null 2>&1; then
+            pip install --quiet numpy pillow
+            python tools/clean_worlds.py
+          else
+            echo "No worlds to clean."
+          fi
+
       - name: Report sizes
         if: always()
         run: ls -la worlds/worlds/ || true

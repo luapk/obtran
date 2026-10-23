@@ -19,11 +19,15 @@ Vercel runs the first one on every push (`vercel.json`).
 ## Test
 
 ```
-npm i --no-save three@0.170.0 puppeteer
+npm i --no-save three@0.180.0 @sparkjsdev/spark@2.4.0 puppeteer
 node tools/build.mjs --local
 python3 -m http.server 8765
 node tools/smoke-test.cjs shots 1280 860 desk
 node tools/smoke-test.cjs shots 390 844 phone
 ```
+
+Open `dist/index.html?world=<id>` to look at one Marble world (or `bob-head-relief`) with the ink grade on and off.
+
+After new worlds are generated: `python3 tools/clean_worlds.py` (the workflow runs it too), and `python3 tools/make_bob_head.py` for Bob's head from the page.
 
 `CLAUDE.md` has the full brief, state of play and task list.

@@ -1,0 +1,275 @@
+{
+  "bob-cockpit": {
+    "yaw": [
+      -170.0,
+      170.0
+    ],
+    "pitch": [
+      -80,
+      75.0
+    ],
+    "radius": 1.377395749092102,
+    "grade": {
+      "lo": 0.3575,
+      "hi": 0.42,
+      "ink": [
+        0.03,
+        0.041,
+        0.039
+      ],
+      "mid": [
+        0.29,
+        0.311,
+        0.301
+      ],
+      "paper": [
+        0.893,
+        0.917,
+        0.91
+      ],
+      "shares": [
+        0.615,
+        0.059,
+        0.326
+      ]
+    },
+    "files": {
+      "500k": "worlds/bob-cockpit.clean.spz",
+      "100k": "worlds/bob-cockpit.100k.clean.spz"
+    }
+  },
+  "bob-head": {
+    "yaw": [
+      -170.0,
+      170.0
+    ],
+    "pitch": [
+      -80,
+      75.0
+    ],
+    "radius": 1.209410309791565,
+    "grade": {
+      "lo": 0.3641,
+      "hi": 0.4424,
+      "ink": [
+        0.037,
+        0.05,
+        0.051
+      ],
+      "mid": [
+        0.288,
+        0.316,
+        0.315
+      ],
+      "paper": [
+        0.934,
+        0.948,
+        0.944
+      ],
+      "shares": [
+        0.342,
+        0.059,
+        0.599
+      ]
+    },
+    "files": {
+      "500k": "worlds/bob-head.clean.spz",
+      "100k": "worlds/bob-head.100k.clean.spz"
+    }
+  },
+  "bob": {
+    "yaw": [
+      -70.0,
+      90.0
+    ],
+    "pitch": [
+      -70.0,
+      75.0
+    ],
+    "radius": 1.2562944889068604,
+    "grade": {
+      "lo": 0.642,
+      "hi": 0.7117,
+      "ink": [
+        0.034,
+        0.046,
+        0.046
+      ],
+      "mid": [
+        0.29,
+        0.318,
+        0.316
+      ],
+      "paper": [
+        0.908,
+        0.929,
+        0.922
+      ],
+      "shares": [
+        0.45,
+        0.053,
+        0.496
+      ]
+    },
+    "files": {
+      "500k": "worlds/bob.clean.spz",
+      "100k": "worlds/bob.100k.clean.spz"
+    }
+  },
+  "hull-machinery": {
+    "yaw": [
+      -120.0,
+      100.0
+    ],
+    "pitch": [
+      -65.0,
+      65.0
+    ],
+    "radius": 1.1954150199890137,
+    "grade": {
+      "lo": 0.2446,
+      "hi": 0.42,
+      "ink": [
+        0.032,
+        0.041,
+        0.039
+      ],
+      "mid": [
+        0.315,
+        0.32,
+        0.294
+      ],
+      "paper": [
+        0.807,
+        0.834,
+        0.837
+      ],
+      "shares": [
+        0.663,
+        0.136,
+        0.201
+      ]
+    },
+    "files": {
+      "500k": "worlds/hull-machinery.clean.spz",
+      "100k": "worlds/hull-machinery.100k.clean.spz"
+    }
+  },
+  "monolith-slabs": {
+    "yaw": [
+      -60,
+      100.0
+    ],
+    "pitch": [
+      -80,
+      75.0
+    ],
+    "radius": 1.2061610221862793,
+    "grade": {
+      "lo": 0.2499,
+      "hi": 0.42,
+      "ink": [
+        0.038,
+        0.043,
+        0.037
+      ],
+      "mid": [
+        0.324,
+        0.304,
+        0.252
+      ],
+      "paper": [
+        0.756,
+        0.774,
+        0.763
+      ],
+      "shares": [
+        0.739,
+        0.185,
+        0.076
+      ]
+    },
+    "files": {
+      "500k": "worlds/monolith-slabs.clean.spz",
+      "100k": "worlds/monolith-slabs.100k.clean.spz"
+    }
+  },
+  "ribbon-loops": {
+    "yaw": [
+      -110.0,
+      100.0
+    ],
+    "pitch": [
+      -40,
+      80
+    ],
+    "radius": 1.180310845375061,
+    "grade": {
+      "lo": 0.2432,
+      "hi": 0.42,
+      "ink": [
+        0.037,
+        0.044,
+        0.04
+      ],
+      "mid": [
+        0.314,
+        0.308,
+        0.272
+      ],
+      "paper": [
+        0.804,
+        0.83,
+        0.83
+      ],
+      "shares": [
+        0.683,
+        0.162,
+        0.155
+      ]
+    },
+    "files": {
+      "500k": "worlds/ribbon-loops.clean.spz",
+      "100k": "worlds/ribbon-loops.100k.clean.spz"
+    }
+  },
+  "singularity-core": {
+    "yaw": [
+      -110.0,
+      115.0
+    ],
+    "pitch": [
+      -75.0,
+      80
+    ],
+    "radius": 1.2832963466644287,
+    "grade": {
+      "lo": 0.3392,
+      "hi": 0.4772,
+      "ink": [
+        0.029,
+        0.04,
+        0.04
+      ],
+      "mid": [
+        0.286,
+        0.324,
+        0.34
+      ],
+      "paper": [
+        0.819,
+        0.85,
+        0.858
+      ],
+      "shares": [
+        0.675,
+        0.093,
+        0.233
+      ]
+    },
+    "files": {
+      "500k": "worlds/singularity-core.clean.spz",
+      "100k": "worlds/singularity-core.100k.clean.spz"
+    }
+  }
+}
