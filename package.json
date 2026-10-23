@@ -1,0 +1,12 @@
+{
+  "name": "obtran-003",
+  "private": true,
+  "description": "OBTRAN 003 interactive comic page",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "build:inline": "node tools/build.mjs --inline",
+    "build:local": "node tools/build.mjs --local",
+    "serve": "python3 -m http.server 8765",
+    "smoke": "node tools/smoke-test.cjs shots 1280 860 desk && node tools/smoke-test.cjs shots 390 844 phone"
+  }
+}

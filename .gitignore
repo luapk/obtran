@@ -1,0 +1,10 @@
+dist/
+node_modules/
+package-lock.json
+shots/
+source/page_rgb.png
+worlds/worlds/*.full.spz
+worlds/worlds/*.part
+worlds/worlds/*.tmp
+.vercel/
+.DS_Store

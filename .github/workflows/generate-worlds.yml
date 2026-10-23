@@ -1,0 +1,105 @@
+name: Generate worlds
+
+# Runs worlds/generate-worlds.mjs against the World Labs API and commits
+# worlds/worlds/ back to the branch it ran on. The commit also happens when the
+# run fails, so state.json lets the next run resume operations in progress
+# instead of paying for them again. Each commit redeploys on Vercel.
+#
+# Needs the repository secret WORLDLABS_API_KEY (Settings > Secrets and
+# variables > Actions). Never put the key in code or logs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      quality:
+        description: "draft (marble-1.0-draft, about $0.18 a world) or full (marble-1.1, about $1.26 a world)"
+        type: choice
+        options: [draft, full]
+        default: draft
+      only:
+        description: "Comma separated element ids (blank for all), e.g. bob-cockpit,singularity-core"
+        type: string
+        required: false
+        default: ""
+      force:
+        description: "Regenerate worlds that are already finished"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: generate-worlds-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the API key is set
+        env:
+          WORLDLABS_API_KEY: ${{ secrets.WORLDLABS_API_KEY }}
+        run: |
+          if [ -z "$WORLDLABS_API_KEY" ]; then
+            echo "::error::Add the WORLDLABS_API_KEY secret under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Plan
+        working-directory: worlds
+        env:
+          QUALITY: ${{ inputs.quality }}
+          ONLY: ${{ inputs.only }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          args=()
+          [ "$QUALITY" = "draft" ] && args+=(--draft)
+          [ -n "$ONLY" ] && args+=(--only "$ONLY")
+          [ "$FORCE" = "true" ] && args+=(--force)
+          node generate-worlds.mjs --dry-run "${args[@]}"
+
+      - name: Generate
+        working-directory: worlds
+        env:
+          WORLDLABS_API_KEY: ${{ secrets.WORLDLABS_API_KEY }}
+          QUALITY: ${{ inputs.quality }}
+          ONLY: ${{ inputs.only }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          args=()
+          [ "$QUALITY" = "draft" ] && args+=(--draft)
+          [ -n "$ONLY" ] && args+=(--only "$ONLY")
+          [ "$FORCE" = "true" ] && args+=(--force)
+          node generate-worlds.mjs "${args[@]}"
+
+      - name: Report sizes
+        if: always()
+        run: ls -la worlds/worlds/ || true
+
+      - name: Commit results
+        if: always()
+        env:
+          QUALITY: ${{ inputs.quality }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worlds/worlds
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Generate worlds ($QUALITY, $OUTCOME)"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

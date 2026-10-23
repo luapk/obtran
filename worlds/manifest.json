@@ -1,0 +1,42 @@
+{
+  "page": "source/OBTRAN_003_comic_AW.pdf",
+  "page_px": [3393, 4588],
+  "style": "Hand drawn comic ink: black ink and white chalk lines on deep black, with dusty sepia wash. High contrast, cross hatching and scratchy hatching for shading, no colours beyond black, off white and sepia. Keep the drawn line quality; do not make it photographic.",
+  "elements": [
+    {
+      "id": "bob-cockpit",
+      "title": "Bob's cockpit",
+      "crop": "crops/bob-cockpit.jpg",
+      "crop_px": [0, 662, 1126, 1876],
+      "prompt": "The inside of a cramped, angular spacecraft cockpit. A small figure in a round helmet with a halo of light sits at the centre in a high backed pilot seat, surrounded by dense panels of switches, dials, cables and screens on every wall. The space is tight and boxy, seen from just behind the pilot."
+    },
+    {
+      "id": "singularity-core",
+      "title": "The singularity",
+      "crop": "crops/singularity-core.jpg",
+      "crop_px": [763, 1442, 1578, 1357],
+      "prompt": "Looking down a vast circular tunnel of machinery towards a blinding white starburst at its centre. Concentric rings of plating, struts and cables spiral inward. Light radiates out from the core in thin white rays."
+    },
+    {
+      "id": "hull-machinery",
+      "title": "Hull machinery",
+      "crop": "crops/hull-machinery.jpg",
+      "crop_px": [2267, 1137, 1126, 1143],
+      "prompt": "A field of broken spaceship hull fragments drifting in dark space: blocky panels, vents, pipes, antennae and plating, densely packed and slowly separating, catching hard white light on their edges."
+    },
+    {
+      "id": "ribbon-loops",
+      "title": "Ribbon loops",
+      "crop": "crops/ribbon-loops.jpg",
+      "crop_px": [1459, 2959, 1934, 1425],
+      "prompt": "Long white ribbons looping and knotting through dark space above a sprawl of machinery, like chalk lines drawn in the air. The ribbons cast faint shadows and twist over each other in large, slow curves."
+    },
+    {
+      "id": "monolith-slabs",
+      "title": "Monolith slabs",
+      "crop": "crops/monolith-slabs.jpg",
+      "crop_px": [0, 3393, 1527, 1194],
+      "prompt": "Huge dark angular slabs and monoliths tilted at steep angles in empty space, their faces scratched with fine white lines and markings, lit from one side with long hard shadows."
+    }
+  ]
+}
