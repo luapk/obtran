@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-23T21:21:11.351Z",
+  "updated": "2026-10-23T21:31:59.324Z",
   "worlds": [
     {
       "id": "bob-cockpit",
@@ -11,7 +11,7 @@
         "500k": "worlds/bob-cockpit.spz",
         "100k": "worlds/bob-cockpit.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/bob-cockpit.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0,
@@ -30,7 +30,7 @@
         "500k": "worlds/bob-head.spz",
         "100k": "worlds/bob-head.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/bob-head.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.12967875036840554,
@@ -49,7 +49,7 @@
         "500k": "worlds/bob.spz",
         "100k": "worlds/bob.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/bob.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.05894488653109343,
@@ -68,7 +68,7 @@
         "500k": "worlds/singularity-core.spz",
         "100k": "worlds/singularity-core.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/singularity-core.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.22487474211612143,
@@ -87,7 +87,7 @@
         "500k": "worlds/hull-machinery.spz",
         "100k": "worlds/hull-machinery.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/hull-machinery.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.668140288829944,
@@ -106,7 +106,7 @@
         "500k": "worlds/ribbon-loops.spz",
         "100k": "worlds/ribbon-loops.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/ribbon-loops.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.4300029472443265,
@@ -125,7 +125,7 @@
         "500k": "worlds/monolith-slabs.spz",
         "100k": "worlds/monolith-slabs.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/monolith-slabs.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0,

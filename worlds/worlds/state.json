@@ -12,8 +12,10 @@
     "caption": "The scene is the inside of a cramped, angular spacecraft cockpit, rendered in a hand-drawn comic ink style with high contrast, cross-hatching, and scratchy hatching for shading, and no colors beyond black, off-white, and sepia, establishing a dramatic and intense tone. A small figure in a round helmet, emanating a halo of light, occupies a high-backed pilot seat at the center, controlling the vessel. The pilot is surrounded by dense panels filled with an array of switches, dials, cables, and screens, which cover every wall of the cockpit. The space is exceptionally tight and boxy, creating an enclosed and claustrophobic environment. The walls are not just angular but also constructed from metallic panels, some featuring exposed wiring and circuit boards, suggesting a functional but raw interior. Further along the cockpit's periphery, more control surfaces and diagnostic displays extend, indicating the complexity of the spacecraft's systems. The floor is covered with various foot pedals and additional control mechanisms, integrating the pilot fully into the operational framework of the ship. Overhead, the ceiling similarly boasts a network of visible wiring, small indicator lights, and access panels, reinforcing the utilitarian and technical aesthetic of the cockpit. Behind the pilot's seat, the structure of the cockpit continues, with more intricate machinery and control systems, completing the dense operational environment. The 360 scene is faultless.",
     "files": {
       "bob-cockpit.spz": 5634525,
-      "bob-cockpit.100k.spz": 1207798
-    }
+      "bob-cockpit.100k.spz": 1207798,
+      "bob-cockpit.pano.png": 6518470
+    },
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
   },
   "bob-head": {
     "status": "done",
@@ -28,8 +30,10 @@
     "caption": "The scene is a highly stylized, high-contrast comic book illustration, rendered with black ink, white chalk, and a sepia wash, evoking a raw and intense atmosphere. The overall tone is dramatic and slightly unsettling, emphasizing the stark lines and strong visual impact. The circular glass space helmet, enclosing the bald pilot's head, is centrally positioned, with a blazing halo of white light radiating from behind the head and filling the helmet, casting fine scratched lines around its rim. Beyond the immediate helmet, the cockpit machinery is just visible at the edges, a complex array of levers, dials, and blinking lights that extend in a chaotic yet purposeful manner around the pilot. The intricate network of controls and displays suggests a highly advanced, perhaps experimental, spacecraft, with pipes and conduits snaking along the interior walls. The pilot's small, calm, wide-set eyes and tiny mouth are visible, conveying a sense of quiet determination amidst the surrounding chaos. The cockpit walls are paneled with various technical components, including pressure gauges and communication arrays, all rendered with meticulous cross-hatching and scratchy hatching to create shading and texture, maintaining the distinct hand-drawn line quality. The deep black background outside the helmet transitions into the dimly lit, confined space of the cockpit, emphasizing the isolation of the pilot. The 360 scene is faultless.",
     "files": {
       "bob-head.spz": 5084848,
-      "bob-head.100k.spz": 1110026
-    }
+      "bob-head.100k.spz": 1110026,
+      "bob-head.pano.png": 4931789
+    },
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
   },
   "bob": {
     "status": "done",
@@ -44,8 +48,10 @@
     "caption": "The scene is a stylized, gritty comic book illustration, rendered in high-contrast black ink and white chalk lines on a deep black background, with a dusty sepia wash, giving it a dramatic and slightly vintage tone. The unseen rest of the scene reveals the full expanse of the pilot's cockpit, wrapping around him in a tight, confined space. The walls of the cockpit are a chaotic mesh of wires, pipes, and exposed circuitry, all depicted with the same scratchy hatching and cross-hatching technique. Directly to the pilot's left, a series of blinking lights and illuminated toggle switches extend along a control panel, casting faint glows that reflect off the textured surfaces. To his right, an array of schematic diagrams and warning indicators are etched onto a metal plate, obscured partially by a larger, heavily reinforced metal strut that extends from the ceiling to the floor. Behind the pilot's head, the white halo of light expands to encompass more of the cockpit's inner workings, revealing additional complex machinery and hydraulic lines that pulse with unseen energy. Below his feet, a sturdy footrest integrates with the floor, which is also adorned with a network of pressure gauges and small, numerical displays. The space behind him features storage compartments and emergency oxygen masks, all rendered with the same meticulous detail and oppressive, claustrophobic feel. The air inside the cockpit feels thick with the hum of machinery and the scent of ozone and stale coffee. The 360 scene is faultless.",
     "files": {
       "bob.spz": 5481801,
-      "bob.100k.spz": 1157337
-    }
+      "bob.100k.spz": 1157337,
+      "bob.pano.png": 4863809
+    },
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
   },
   "singularity-core": {
     "status": "done",
@@ -60,8 +66,10 @@
     "caption": "The scene is a panoramic depiction of an abstract, mechanical environment, rendered in a striking hand-drawn comic ink style with high contrast and stark black, off-white, and sepia tones. The overall tone is intense and dramatic, emphasizing a sense of immense power emanating from a central point. The scene features a vast circular tunnel of machinery, spiraling inward towards a blinding white starburst at its center. Concentric rings of plating, reinforced by sturdy struts and numerous cables, form the walls of this immense passage. Light radiates outward from the core in thin, sharp white rays, cutting through the darkness of the tunnel. The intricate details are conveyed through meticulous cross-hatching and scratchy hatching techniques, which provide depth and shading without introducing any additional colors. This intricate network of mechanical components extends uniformly in all directions, maintaining its drawn line quality and abstract character throughout the entire 360-degree view. The 360 scene is faultless.",
     "files": {
       "singularity-core.spz": 5416584,
-      "singularity-core.100k.spz": 1131222
-    }
+      "singularity-core.100k.spz": 1131222,
+      "singularity-core.pano.png": 5710148
+    },
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
   },
   "hull-machinery": {
     "status": "done",
@@ -76,8 +84,10 @@
     "caption": "The scene is a field of broken spaceship hull fragments drifting in dark space, rendered in a hand-drawn comic ink style with high contrast and scratchy hatching for shading. The overall tone is desolate and fragmented, emphasizing the remnants of a catastrophic event. Densely packed, blocky panels, vents, pipes, antennae, and plating are slowly separating, each catching hard white light along their edges, creating sharp distinctions against the deep black of space. The forms are characterized by thick black ink and precise white chalk lines, with a dusty sepia wash providing subtle depth. Various components, from structural ribs to shattered conduits, are entangled yet also drifting apart, indicating a silent, ongoing dispersion. Some larger sections suggest the curvature of a once-whole vessel, now fractured into innumerable pieces, revealing inner workings and support structures. Smaller, more intricate debris spins gently amidst the larger chunks, catching and reflecting the stark illumination. The fragmentation extends in all directions, with larger pieces providing visual anchors around which smaller, more numerous particles dance. The 360 scene is faultless.",
     "files": {
       "hull-machinery.spz": 4780899,
-      "hull-machinery.100k.spz": 1028920
-    }
+      "hull-machinery.100k.spz": 1028920,
+      "hull-machinery.pano.png": 4991942
+    },
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
   },
   "ribbon-loops": {
     "status": "done",
@@ -92,8 +102,10 @@
     "caption": "The scene is a hand-drawn illustration, rendered in a high-contrast style using black ink, white chalk lines, and a dusty sepia wash, creating a stark and intricate visual. The overall tone is industrial and abstract, evoking a sense of complex inner workings and dynamic movement. Long white ribbons, like chalk lines drawn in the air, loop and knot through the dark space, casting faint shadows as they twist over each other in large, slow curves. Beneath these ribbons, a sprawl of machinery extends, characterized by dense cross-hatching and scratchy lines that define its form and shading. Rectangular and block-like components of the machinery are outlined in white chalk, creating a layered effect against the deep black background. The ribbons interact with the machinery, sometimes appearing to weave through its components, sometimes floating above it. The intricate details of the machinery suggest complex gears, levers, and interconnected parts, all rendered with a tactile, drawn quality. The white lines of the ribbons contrast sharply with the dark machinery and sepia-toned background, drawing the eye along their sweeping paths. The overall composition suggests a vast, interconnected system, where the elegant curves of the ribbons provide a counterpoint to the rigid, functional shapes of the machines. The 360 scene is faultless.",
     "files": {
       "ribbon-loops.spz": 4595414,
-      "ribbon-loops.100k.spz": 972708
-    }
+      "ribbon-loops.100k.spz": 972708,
+      "ribbon-loops.pano.png": 4779892
+    },
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
   },
   "monolith-slabs": {
     "status": "done",
@@ -108,7 +120,9 @@
     "caption": "The scene is rendered in a hand-drawn comic ink style, utilizing black ink and white chalk lines on a deep black background, complemented by a dusty sepia wash. The overall tone is stark and abstract, emphasizing high contrast and sharp angles. Huge dark angular slabs and monoliths are tilted at steep angles throughout the empty space, their faces deeply scratched with fine white lines and intricate markings. These colossal structures are dramatically lit from one side, casting long, hard shadows that stretch across the sepia-toned backdrop. Cross-hatching and scratchy hatching techniques define the shading, enhancing the graphic quality of the drawing without introducing any colors beyond black, off-white, and sepia. The composition maintains a raw, drawn line quality, deliberately avoiding any photographic realism, extending these architectural, abstract forms into the surrounding void. The 360 scene is faultless.",
     "files": {
       "monolith-slabs.spz": 5342614,
-      "monolith-slabs.100k.spz": 1147540
-    }
+      "monolith-slabs.100k.spz": 1147540,
+      "monolith-slabs.pano.png": 4314569
+    },
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
   }
 }
