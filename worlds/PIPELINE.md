@@ -39,6 +39,8 @@ The "Generate worlds" workflow (`.github/workflows/generate-worlds.yml`) runs th
 
 GitHub only lists a manually run workflow once the file is on the default branch.
 
+The other way to start it is to change `run.json` (this folder) and push to `main`. Its `quality` (`draft` or `full`), `only` (a list of ids, empty for all) and `force` fields stand in for the inputs, and the file keeps a record of what was asked for. This is how Claude starts runs, since its GitHub access can push but cannot press "Run workflow".
+
 ## Test without credits
 
 ```

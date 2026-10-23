@@ -141,7 +141,7 @@ Marble makes explorable scenes from an image, so a close crop of a character may
 ### 2. Set up GitHub and run a draft generation
 
 - Done: the repo exists and Paul has added `WORLDLABS_API_KEY` as an Actions secret. Never put the key in code, logs or commits.
-- The workflow has to be on `main` before it can be run.
+- The workflow has to be on `main` before it can be run. It starts from "Run workflow" or from a push to `main` that changes `worlds/run.json` (quality, only, force). Claude's GitHub access cannot dispatch workflows (403), so Claude starts runs by editing `run.json`.
 - Run "Generate worlds" with quality = draft: seven worlds, about 1,610 credits (about $1.29).
 - The workflow commits `worlds/worlds/` back, including on failure, so `state.json` lets a rerun resume in-progress operations.
 - Check the 500k `.spz` sizes. GitHub rejects files over 100 MB, and full-res files are gitignored.
