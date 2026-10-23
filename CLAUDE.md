@@ -27,7 +27,7 @@ The original brief (written with Gemini) belongs at `source/original-brief.md`, 
 ### Paul's feedback on the prototype (the reason for the next phase)
 
 1. **"Why does the Gaussian splat not match the image?"** There are no real splats in the prototype. The page relief and the breach particles are sampled from the page. Everything after the breach (slabs, rings, ribbons, starburst) is procedural geometry invented in code, so the 3D world does not look like his drawing. This is the main thing to fix.
-2. **"I want the individual panel to have separate experiences each."** The exact meaning is not confirmed. The working assumption, already reflected in `worlds/manifest.json`, is that each region of the art becomes its own world you enter: Bob's cockpit, the singularity, the hull machinery, the ribbon loops, the monolith slabs. Confirm this with Paul before building the region worlds. The other reading is that each dialogue beat gets its own scene.
+2. **"I want the individual panel to have separate experiences each."** Confirmed by Paul on 23 October: each region of the art becomes its own world you enter (Bob's cockpit, the singularity, the hull machinery, the ribbon loops, the monolith slabs), and so does Bob himself, with his head the most important. `worlds/manifest.json` now has seven elements, including `bob` (the figure) and `bob-head` (head, halo and helmet ring).
 3. **He wants the generation automated through GitHub and Vercel.** Design below.
 
 ## Repo map
@@ -134,13 +134,15 @@ Stack: three.js 0.170.0 from jsDelivr on WebGL2, custom ShaderMaterials, Web Aud
 
 ### 1. Confirm the panel structure with Paul
 
-Ask which reading of "separate experiences per panel" he means. Do not spend credits on full-quality worlds until this is settled. A draft run of the current manifest is fine if he wants to see Marble's output first.
+Done: one world per region of the art, plus Bob and Bob's head (see feedback point 2). Full-quality worlds still wait until Paul has seen a draft run.
+
+Marble makes explorable scenes from an image, so a close crop of a character may come back as a room with Bob flattened into it rather than a figure you can look at from around him. Judge `bob` and `bob-head` from the draft panoramas. If Marble loses him, build Bob's head from the page itself (task 6): a relief splat or layered cut-out from the scan, with hand-made depth for the face, halo and helmet ring.
 
 ### 2. Set up GitHub and run a draft generation
 
 - Done: the repo exists and Paul has added `WORLDLABS_API_KEY` as an Actions secret. Never put the key in code, logs or commits.
 - The workflow has to be on `main` before it can be run.
-- Run "Generate worlds" with quality = draft.
+- Run "Generate worlds" with quality = draft: seven worlds, about 1,610 credits (about $1.29).
 - The workflow commits `worlds/worlds/` back, including on failure, so `state.json` lets a rerun resume in-progress operations.
 - Check the 500k `.spz` sizes. GitHub rejects files over 100 MB, and full-res files are gitignored.
 - Look at the panoramas with Paul. The question is how much of his ink Marble keeps.
@@ -167,6 +169,7 @@ Working design, for each region:
 - It opens its own world, interaction and sound, with a way back to the page.
 - Suggested starting points, to agree with Paul:
   - **Bob's cockpit:** sit in his seat and look around his instruments.
+  - **Bob, and his head:** the one Paul cares about most. Come face to face with him inside the helmet, the halo behind his head; the figure world shows him in the seat with the coffee cup and the four numbered dials.
   - **The singularity:** the existing breach.
   - **Hull machinery:** drift between fragments.
   - **Ribbon loops:** follow a ribbon.

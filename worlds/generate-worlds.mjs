@@ -77,7 +77,7 @@ for (const e of elements) {
   console.log(`  ${e.id.padEnd(17)} ${why}`);
 }
 console.log(`estimated cost: ${newRuns} new generation(s) x ${credits} credits = ${newRuns * credits} credits (about ${usd(newRuns * credits)})`);
-if (dryRun) { writeWorldsJson(); process.exit(0); }
+if (dryRun) process.exit(0);
 if (!todo.length) { writeWorldsJson(); console.log('nothing to do'); process.exit(0); }
 if (!KEY) die('WORLDLABS_API_KEY is not set');
 

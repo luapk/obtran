@@ -4,7 +4,7 @@ Turns crops of the OBTRAN 003 page into World Labs Marble splat worlds in one co
 
 ## What's here
 
-- `crops/` five elements cut from the page at full resolution: Bob's cockpit, the singularity, hull machinery, ribbon loops, monolith slabs
+- `crops/` seven elements cut from the page at full resolution: Bob's cockpit, Bob, Bob's head, the singularity, hull machinery, ribbon loops, monolith slabs
 - `manifest.json` one entry per element: crop, its pixel rectangle on the page (`crop_px`, x y w h), title and scene prompt, plus a shared style line that holds the black, white and sepia ink look
 - `generate-worlds.mjs` the pipeline (Node 18 or later, nothing to install)
 - `mock-api.mjs` a local stand in for the World Labs endpoints, for testing without credits
@@ -60,7 +60,7 @@ Run this in a copy of the folder, or delete `worlds/` afterwards, so the fake fi
 
 ## Changing what gets generated
 
-Edit `manifest.json`. To add an element, add a crop to `crops/` and an entry with a new `id`. Prompts describe the scene; the shared `style` line is appended to every prompt.
+Edit `manifest.json`. To add an element, add an entry with a new `id` and its `crop_px` rectangle (x, y, width, height on the 3393 x 4588 page), then run `python3 tools/make_assets.py --crops` from the repo root to cut the crop, or add the crop to `crops/` yourself. Keep crops clear of lettering. Prompts describe the scene; the shared `style` line is appended to every prompt.
 
 ## Commercial use
 

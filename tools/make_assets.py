@@ -7,15 +7,16 @@ Writes three files to prototype/assets:
   meta.json  page aspect, singularity centre, lettering boxes, panel polygon,
              all in page UV with the origin top left
 
-With --crops it also recuts worlds/crops/*.jpg from the full resolution page,
-using the pixel rectangles in worlds/manifest.json.
+With --crops it also cuts any missing worlds/crops/*.jpg from the full
+resolution page, using the pixel rectangles in worlds/manifest.json. Add
+--recut to recut the ones that already exist too.
 
 Positions are authored in a 1000 wide grid over the page (1000 x 1352).
 The depth map is a heuristic: a radial tunnel that recedes at the
 singularity, with Bob's panel and the lettering boxes raised flat. If layered
 artwork or separate ink scans turn up, a hand made depth map replaces this.
 
-Usage: python3 tools/make_assets.py [--crops]
+Usage: python3 tools/make_assets.py [--crops [--recut]]
 Needs: Pillow, numpy.
 """
 import json
@@ -137,6 +138,8 @@ def main():
         for el in manifest["elements"]:
             x, y, w, h = el["crop_px"]
             dest = ROOT / "worlds" / el["crop"]
+            if dest.exists() and "--recut" not in sys.argv:
+                continue
             page.crop((x, y, x + w, y + h)).save(dest, quality=92)
             print(f"wrote {dest.relative_to(ROOT)} {w}x{h}")
 
