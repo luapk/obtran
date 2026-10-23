@@ -30,6 +30,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const browser = await puppeteer.launch({
     headless: true,
     executablePath,
+    // software rendering can take minutes for one frame of a 500k splat world
+    protocolTimeout: 20 * 60 * 1000,
     args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required', '--no-sandbox'],
   });
   const page = await browser.newPage();
