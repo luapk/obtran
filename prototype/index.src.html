@@ -60,7 +60,9 @@
   @media (max-width: 600px) { #review { gap: 4px; } #review .ui-btn { font-size: 0.56rem; letter-spacing: 0.1em; padding: 0.35rem 0.45rem; } }
   #ring { position: fixed; width: 96px; height: 96px; margin: -48px 0 0 -48px; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.2s; }
   #ring.on { opacity: 1; }
-  #ring circle { fill: none; stroke-width: 3; }
+  #ring { --p: 0; transition: opacity 0.2s, transform 0.08s; filter: drop-shadow(0 0 calc(4px + 14px * var(--p)) rgba(239, 233, 223, calc(0.35 + 0.6 * var(--p)))); }
+  #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #ring circle { fill: none; stroke-width: 4; }
   #ring .track { stroke: rgba(239,233,223,0.2); }
   #ring .prog { stroke: var(--paper); stroke-linecap: square; transform: rotate(-90deg); transform-origin: 50% 50%; }
 
@@ -73,6 +75,7 @@
 <div class="grain"></div>
 <div class="flash" id="flash"></div>
 <div class="black" id="black"></div>
+<canvas id="fx" aria-hidden="true"></canvas>
 
 <div id="gate" role="dialog" aria-label="Start">
   <div class="gate-card">
@@ -109,6 +112,7 @@ const BREACH_DUR = 4.8;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isTouch = matchMedia('(pointer: coarse)').matches;
 
+const HOLD_DUR = 1.4;                     // seconds of press and hold to unlock
 const BEATS = [
   { b: 'caption' },
   { b: 'crsh', fx: 'static' },
@@ -210,6 +214,7 @@ const pageMat = new THREE.ShaderMaterial({
     uRects: { value: bubbleRects },
     uLifts: { value: lifts },
     uOpacity: { value: 1 },
+    uPanelGlow: { value: 0 },
   },
   transparent: true,
   vertexShader: GLSL_COMMON + `
@@ -224,9 +229,22 @@ const pageMat = new THREE.ShaderMaterial({
     uniform float uLifts[10];
     uniform float uOpacity;
     uniform float uFlash;
+    uniform float uPanelGlow;
     varying vec2 vPuv;
     void main() {
       vec3 col = texture2D(uPage, vPuv).rgb;
+      // "tap to enter": a faint halo around Bob's panel (the depth map's blue channel is its mask)
+      if (uPanelGlow > 0.002) {
+        float pm = texture2D(uDepth, vPuv).b, halo = 0.0;
+        for (int k = 0; k < 12; k++) {
+          float a = float(k) * 0.5236;
+          vec2 o = vec2(cos(a), sin(a) / uAspect);
+          halo += texture2D(uDepth, vPuv + o * 0.012).b + texture2D(uDepth, vPuv + o * 0.03).b;
+        }
+        halo /= 24.0;
+        col += vec3(1.0, 0.93, 0.82) * max(halo - pm, 0.0) * 1.9 * uPanelGlow;
+        col *= 1.0 + 0.07 * pm * uPanelGlow;
+      }
       for (int i = 0; i < 10; i++) {
         vec4 r = uRects[i];
         vec2 m = smoothstep(r.xy - 0.004, r.xy + 0.004, vPuv) * (1.0 - smoothstep(r.zw - 0.004, r.zw + 0.004, vPuv));
@@ -246,25 +264,57 @@ scene.add(pageMesh);
 
 /* ---------- lifted bubbles ---------- */
 const bubbleZ = 0.24 * DEPTH_SCALE + 0.006;
+// distance inside a box's outline (negative outside), in page widths; uPoly as polyUniform makes it
+const POLY_GLSL = `
+  uniform vec2 uPoly[8]; uniform int uPolyN; uniform float uAspect;
+  float polyInside(vec2 q) {
+    if (uPolyN < 3) return 1.0;
+    float d = 1.0;
+    for (int i = 0; i < 8; i++) {
+      if (i >= uPolyN) break;
+      vec2 a = uPoly[i];
+      vec2 b = uPoly[0];
+      if (i + 1 < uPolyN) b = uPoly[i + 1 < 8 ? i + 1 : 7];
+      vec2 e = normalize(b - a);
+      d = min(d, (q - a).y * e.x - (q - a).x * e.y);
+    }
+    return d;
+  }
+`;
+// each box's own outline (tools/trace_bubbles.py), in page UV with v scaled to page units so
+// distances are even both ways; wound so the inside is on the positive side of every edge
+function polyUniform(poly) {
+  const pts = (poly || []).map(([u, v]) => new THREE.Vector2(u, v * META.aspect));
+  let area = 0;
+  pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]; area += p.x * q.y - q.x * p.y; });
+  if (area < 0) pts.reverse();
+  const n = pts.length;
+  while (pts.length < 8) pts.push(pts[pts.length - 1] || new THREE.Vector2());
+  return { pts: pts.slice(0, 8), n: Math.min(n, 8) };
+}
 const bubbles = META.bubbles.map((b, i) => {
   const [u0, v0, u1, v1] = b.uv;
+  const poly = polyUniform(b.poly);
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uPage: shared.uPage, uRect: { value: new THREE.Vector4(u0, v0, u1, v1) }, uFlick: { value: 0 }, uTime: shared.uTime, uOpacity: { value: 1 }, uGlow: { value: 0 } },
+    uniforms: { uPage: shared.uPage, uRect: { value: new THREE.Vector4(u0, v0, u1, v1) }, uFlick: { value: 0 }, uTime: shared.uTime, uOpacity: { value: 1 }, uGlow: { value: 0 },
+      uPoly: { value: poly.pts }, uPolyN: { value: poly.n }, uAspect: { value: META.aspect } },
     transparent: true,
     depthWrite: false,
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
       uniform sampler2D uPage; uniform vec4 uRect; uniform float uFlick; uniform float uTime; uniform float uOpacity; uniform float uGlow;
       varying vec2 vUv;
+      ${POLY_GLSL}
       void main(){
         vec2 p = mix(uRect.xy, uRect.zw, vec2(vUv.x, 1.0 - vUv.y));
+        float inside = smoothstep(-0.0005, 0.0004, polyInside(vec2(p.x, p.y * uAspect)));
         vec3 col = texture2D(uPage, p).rgb;
         float scan = 0.82 + 0.18 * sin(gl_FragCoord.y * 1.7 + uTime * 30.0);
         float jitter = 0.75 + 0.5 * fract(sin(floor(uTime * 24.0) * 12.9898) * 43758.5453);
         col *= mix(1.0, scan * jitter, uFlick);
         col += vec3(0.25, 0.22, 0.18) * uGlow;
         float edge = smoothstep(0.0, 0.015, vUv.x) * smoothstep(0.0, 0.015, 1.0 - vUv.x) * smoothstep(0.0, 0.03, vUv.y) * smoothstep(0.0, 0.03, 1.0 - vUv.y);
-        gl_FragColor = vec4(col, uOpacity * edge);
+        gl_FragColor = vec4(col, uOpacity * edge * inside);
         #include <colorspace_fragment>
       }`,
   });
@@ -1154,10 +1204,41 @@ card.visible = false;
 camera.add(card);
 const cardState = { lift: 0, vel: 0, target: 0, tilt: 0, aspect: 1 };
 
+// a faint glow behind a card the reader has to act on (the hold, and QNTM CTRL), following
+// the box's own outline; the card is drawn over it, so only the light around the box shows
+const GLOW_M = 0.03;                               // how far the glow reaches, in page widths
+const glowMat = new THREE.ShaderMaterial({
+  uniforms: { uRect: { value: new THREE.Vector4() }, uPoly: { value: [] }, uPolyN: { value: 0 }, uAspect: { value: META.aspect }, uStrength: { value: 0 }, uTime: shared.uTime },
+  transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform vec4 uRect; uniform float uStrength; uniform float uTime;
+    varying vec2 vUv;
+    ${POLY_GLSL}
+    void main(){
+      vec2 p = mix(uRect.xy, uRect.zw, vec2(vUv.x, 1.0 - vUv.y));
+      float d = -polyInside(vec2(p.x, p.y * uAspect));
+      float g = exp(-max(d, 0.0) / 0.009) * smoothstep(${GLOW_M.toFixed(3)}, ${(GLOW_M * 0.5).toFixed(3)}, d);
+      g *= 0.85 + 0.15 * sin(uTime * 7.0 + p.x * 140.0 + p.y * 90.0);
+      gl_FragColor = vec4(vec3(1.0, 0.92, 0.8) * g * uStrength, 1.0);
+    }`,
+});
+const cardGlow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), glowMat);
+cardGlow.renderOrder = 9;
+cardGlow.visible = false;
+card.add(cardGlow);
+
 function setCard(beatIndex) {
   const b = bubbleById[BEATS[beatIndex].b];
   const [u0, v0, u1, v1] = b.uv;
   cardMat.uniforms.uRect.value.set(u0, v0, u1, v1);
+  cardMat.uniforms.uPoly.value = b.mat.uniforms.uPoly.value;
+  cardMat.uniforms.uPolyN.value = b.mat.uniforms.uPolyN.value;
+  const gm = GLOW_M, gv = GLOW_M / META.aspect;
+  glowMat.uniforms.uRect.value.set(u0 - gm, v0 - gv, u1 + gm, v1 + gv);
+  glowMat.uniforms.uPoly.value = b.mat.uniforms.uPoly.value;
+  glowMat.uniforms.uPolyN.value = b.mat.uniforms.uPolyN.value;
+  cardGlow.scale.set((u1 - u0 + 2 * gm) / (u1 - u0), (v1 - v0 + 2 * gv) / (v1 - v0), 1);
   cardState.aspect = ((u1 - u0) * PW) / ((v1 - v0) * PH);
   cardState.lift = 0; cardState.vel = 0; cardState.target = 1;
   cardState.tilt = (Math.random() - 0.5) * 0.08;
@@ -1181,8 +1262,14 @@ function updateCard(dt) {
   cardMat.uniforms.uOpacity.value = clamp(cardState.lift * 1.4, 0, 1);
   journey.cardT += dt;
   cardMat.uniforms.uFlick.value = journey.cardT < 0.5 ? 1 : 0;
-  const trigger = BEATS[STEPS[journey.step]?.beat]?.trigger;
-  cardMat.uniforms.uGlow.value = trigger && journey.phase === 'space' ? 0.3 + 0.3 * Math.sin(shared.uTime.value * 5) : 0;
+  const beat = BEATS[STEPS[journey.step]?.beat];
+  const act = journey.phase === 'space' && (beat?.trigger || beat?.hold);
+  cardMat.uniforms.uGlow.value = beat?.trigger && act ? 0.3 + 0.3 * Math.sin(shared.uTime.value * 5) : 0;
+  // the glow breathes while it waits, and builds as the hold charges
+  const hp = state.holding ? clamp(state.holdT / HOLD_DUR, 0, 1) : 0;
+  const glow = act ? (state.holding ? 0.7 + 1.6 * hp : 0.42 + 0.22 * Math.sin(shared.uTime.value * 2.4)) : 0;
+  glowMat.uniforms.uStrength.value = glow * cardMat.uniforms.uOpacity.value;
+  cardGlow.visible = glow > 0.01;
 }
 
 function hitCard(x, y) {
@@ -1202,22 +1289,50 @@ function worldFiles(id) {
 // warm the browser cache with the next space while the reader is in this one
 function prefetchWorld(id) { for (const url of worldFiles(id)) fetch(url).catch(() => {}); }
 
+// ---------- power-up grains: thrown out of the press while the hold charges ----------
+const fx = { el: $('fx'), ctx: null, parts: [], dpr: 1, acc: 0, dirty: false };
+fx.ctx = fx.el.getContext('2d');
+function fxResize() { fx.dpr = Math.min(devicePixelRatio || 1, 2); fx.el.width = innerWidth * fx.dpr; fx.el.height = innerHeight * fx.dpr; }
+fxResize();
+addEventListener('resize', fxResize);
+function fxEmit(n, x, y, speed) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = speed * (0.3 + Math.random() * 0.7);
+    fx.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: 0.45 + Math.random() * 0.75, w: 0.6 + Math.random() * 1.7, warm: Math.random() < 0.28 });
+  }
+  if (fx.parts.length > 1800) fx.parts.splice(0, fx.parts.length - 1800);
+}
+function fxUpdate(dt) {
+  const c = fx.ctx, d = fx.dpr;
+  if (!fx.parts.length) { if (fx.dirty) { c.clearRect(0, 0, fx.el.width, fx.el.height); fx.dirty = false; } return; }
+  c.clearRect(0, 0, fx.el.width, fx.el.height); fx.dirty = true;
+  c.lineCap = 'round';
+  for (const p of fx.parts) {
+    p.life += dt;
+    // a slight swirl as they fly, like the sand in the spaces
+    const vx = p.vx, sw = 0.8 * dt;
+    p.vx -= p.vy * sw; p.vy += vx * sw;
+    p.vx *= 1 - dt * 0.7; p.vy *= 1 - dt * 0.7;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const k = 1 - p.life / p.max;
+    if (k <= 0) continue;
+    c.strokeStyle = p.warm ? `rgba(196,150,104,${k.toFixed(3)})` : `rgba(239,233,223,${k.toFixed(3)})`;
+    c.lineWidth = p.w * d;
+    c.beginPath(); c.moveTo(p.x * d, p.y * d); c.lineTo((p.x - p.vx * 0.04) * d, (p.y - p.vy * 0.04) * d); c.stroke();
+  }
+  fx.parts = fx.parts.filter((p) => p.life < p.max);
+}
+
 // ---------- films: short clips of Bob that cut in, full screen, as he speaks ----------
 // assets/films/index.json lists the clips and the beats that cue them ("cues": { beat: { clip,
 // at, len, from } }: start this many seconds into the line, hold this long, from this point in
 // the clip). A cue cuts in with a flash, holds a moment and snaps back to the space with a burst
-// of signal jitter; a tap or key cuts it short. ?films=1 previews PROPOSED_CUES before Paul
-// approves them. The films carry no sound: the voice is the page's.
-const PROPOSED_CUES = {
-  // W-what the hell Smokehouse? His eyes snap open, then his mouth drops as he stammers
-  bob1: { clip: 'bob-close', at: 0.3, from: 0, len: 3.2 },
-  // Holy smokes! Er, ok. His hand goes to the dials, they light, the halo turns to a vortex
-  holy: { clip: 'bob-wide', at: 0.15, from: 1.4, len: 3.5 },
-};
+// of signal jitter; a tap or key cuts it short. ?films=0 turns them off. The films carry no
+// sound: the voice is the page's.
 const films = { index: null, videos: {}, on: false, timers: [] };
 (async () => {
   try { const r = await fetch('assets/films/index.json', { cache: 'no-cache' }); films.index = r.ok ? await r.json() : null; } catch (e) { films.index = null; }
-  if (films.index && params.get('films') === '1') films.index.cues = { ...PROPOSED_CUES, ...(films.index.cues || {}) };
+  if (films.index && params.get('films') === '0') films.index.cues = {};
 })();
 function filmCue(beat) {
   const cue = films.index?.cues?.[beat];
@@ -1384,15 +1499,18 @@ function hitBubble(b, x, y) {
   return ray.intersectObject(b.hit, false).length > 0;
 }
 function startHold(x, y) {
-  state.holding = true; state.holdT = 0;
+  state.holding = true; state.holdT = 0; state.holdX = x; state.holdY = y; fx.acc = 0;
   ring.style.left = x + 'px'; ring.style.top = y + 'px'; ring.classList.add('on');
   sound.holdStart();
 }
 function endHold(success) {
   if (!state.holding) return;
   state.holding = false; ring.classList.remove('on'); ringProg.style.strokeDashoffset = 251.3;
+  ring.style.transform = ''; ring.style.setProperty('--p', '0');
   sound.holdStop(success);
   if (success) {
+    fxEmit(reducedMotion ? 60 : 340, state.holdX, state.holdY, 1100);
+    flash(0.7);
     if (navigator.vibrate) navigator.vibrate(40);
     if (journey.on) { const i = journey.step; journey.phase = 'space'; showStep(i + 1); } else showBeat(state.beat + 1);
   }
@@ -1408,7 +1526,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (state.stage === 'read' || state.stage === 'gate' || (state.stage === 'void' && !look.dragging && e.pointerType === 'mouse')) {
     parallax.tx = (e.clientX / innerWidth - 0.5) * 2; parallax.ty = (e.clientY / innerHeight - 0.5) * 2;
   }
-  if (state.holding) { ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px'; }
+  if (state.holding) { ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px'; state.holdX = e.clientX; state.holdY = e.clientY; }
   if (state.stage === 'void' && look.dragging) {
     const dx = e.clientX - look.lastX, dy = e.clientY - look.lastY;
     look.lastX = e.clientX; look.lastY = e.clientY;
@@ -1567,6 +1685,8 @@ function frame() {
     camera.lookAt(lookTarget);
     const agitTarget = state.stage === 'read' && !journey.on ? smooth(0, BEATS.length - 1, Math.max(0, state.beat)) : journey.on ? 0.25 : 0;
     shared.uAgit.value = lerp(shared.uAgit.value, agitTarget, 1 - Math.exp(-dt * 1.5));
+    const panelGlow = journey.on && state.stage === 'read' && journey.phase === 'idle' ? 0.6 + 0.4 * Math.sin(t * 2.2) : 0;
+    pageMat.uniforms.uPanelGlow.value = lerp(pageMat.uniforms.uPanelGlow.value, panelGlow, 1 - Math.exp(-dt * 3));
   }
 
   // bubble lift and flicker
@@ -1594,10 +1714,19 @@ function frame() {
   // hold to unlock
   if (state.holding) {
     state.holdT += rawDt;
-    const p = clamp(state.holdT / 1.4, 0, 1);
+    const p = clamp(state.holdT / HOLD_DUR, 0, 1);
     ringProg.style.strokeDashoffset = 251.3 * (1 - p);
+    // power up: the ring swells and brightens, grains fly out of the press faster and further,
+    // and the world's signal starts to break up
+    ring.style.transform = `scale(${1 + 0.45 * p})`;
+    ring.style.setProperty('--p', p.toFixed(3));
+    fx.acc += rawDt * (reducedMotion ? 25 : 70 + 520 * p * p);
+    const n = Math.floor(fx.acc); fx.acc -= n;
+    fxEmit(n, state.holdX, state.holdY, 120 + 640 * p);
+    if (!reducedMotion && journey.on) worlds.jitter = Math.max(worlds.jitter, 0.4 * p * p);
     if (p >= 1) endHold(true);
   }
+  fxUpdate(dt);
 
   // breach
   if (state.stage === 'breach') {
@@ -1697,7 +1826,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   depth.generateMipmaps = false; depth.minFilter = THREE.LinearFilter; depth.anisotropy = 1;
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, sound, films, playFilm, stopFilm };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

@@ -1,5 +1,5 @@
 {
-  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). Empty until Paul approves; ?films=1 previews the proposed cues in index.src.html. v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one.",
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Approved by Paul on 24 October; ?films=0 turns them off.",
   "clips": {
     "bob-wide": {
       "file": "bob-wide.mp4",
@@ -12,5 +12,20 @@
       "v": "c20e2718"
     }
   },
-  "cues": {}
+  "cues": {
+    "bob1": {
+      "clip": "bob-close",
+      "at": 0.3,
+      "from": 0,
+      "len": 3.2,
+      "note": "W-what the hell Smokehouse? His eyes snap open, then his mouth drops as he stammers"
+    },
+    "holy": {
+      "clip": "bob-wide",
+      "at": 0.15,
+      "from": 1.4,
+      "len": 3.5,
+      "note": "Holy smokes! Er, ok. His hand goes to the dials, they light, the halo turns to a vortex"
+    }
+  }
 }

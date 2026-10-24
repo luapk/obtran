@@ -132,6 +132,9 @@ def main():
                     np.asarray(panel)], axis=-1)
     Image.fromarray(rgb, "RGB").save(OUT / "depth.png", optimize=True)
     print(f"wrote page.jpg {tex.size}, depth.png {dw}x{dh}, meta.json to {OUT}")
+    # the boxes' own outlines and widened card rects go into meta.json on top of the rects above
+    import trace_bubbles
+    trace_bubbles.main()
 
     if "--crops" in sys.argv:
         manifest = json.loads((ROOT / "worlds" / "manifest.json").read_text())
