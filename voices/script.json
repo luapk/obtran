@@ -1,6 +1,6 @@
 {
-  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are eleven_v3 audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again. The Render voices workflow runs whenever this file changes on main or the working branch. Spoken text may differ from the lettering for pronunciation: \"Canes\" is said \"cane-iss\" (Paul), so it is spelt \"Cane-iss\"; the hyphens make \"Spomenik-Operative-Bob\" one name, QNTM CTRL is said \"quantum control\", and Cryptoflage rhymes with camouflage, so it is spelt \"Crypto-flahzh\". \"Engage...\" is a stern monotone command (Paul, 24 October): high stability, no style, and a full stop rather than an exclamation mark.",
-  "model": "eleven_v3",
+  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again. The Render voices workflow runs whenever this file changes on main or the working branch. Spoken text may differ from the lettering for pronunciation: \"Canes\" is said \"caynis\" (Paul), so it is spelt \"Caynis\"; the hyphens make \"Spomenik-Operative-Bob\" one name, QNTM CTRL is said \"quantum control\", and Cryptoflage rhymes with camouflage, so it is spelt \"Crypto-flahzh\". \"Engage...\" is a stern monotone command (Paul, 24 October): high stability, and a full stop rather than an exclamation mark. All lines use Eleven v4 (eleven_v4, Paul, 24 October), which takes only stability and similarity_boost as settings (style and speaker boost are not supported), so pacing and delivery come from the audio tags and punctuation.",
+  "model": "eleven_v4",
   "output_format": "mp3_44100_128",
   "voices": {
     "smokehouse": {
@@ -14,9 +14,7 @@
       },
       "settings": {
         "stability": 0.35,
-        "similarity_boost": 0.75,
-        "style": 0.6,
-        "use_speaker_boost": true
+        "similarity_boost": 0.75
       }
     },
     "bob": {
@@ -30,9 +28,7 @@
       },
       "settings": {
         "stability": 0.45,
-        "similarity_boost": 0.75,
-        "style": 0.3,
-        "use_speaker_boost": true
+        "similarity_boost": 0.75
       }
     },
     "narrator": {
@@ -40,9 +36,7 @@
       "radio": false,
       "settings": {
         "stability": 0.55,
-        "similarity_boost": 0.75,
-        "style": 0.0,
-        "use_speaker_boost": true
+        "similarity_boost": 0.75
       }
     }
   },
@@ -50,7 +44,7 @@
     {
       "beat": "caption",
       "speaker": "narrator",
-      "text": "[calm, measured] Cane-iss Crescenza, 3091 AD. Spomenik-Operative-Bob sips his morning coffee, when suddenly the vessel's transmitter erupts..."
+      "text": "[calm, measured] Caynis Crescenza, 3091 AD. Spomenik-Operative-Bob sips his morning coffee, when suddenly the vessel's transmitter erupts..."
     },
     {
       "beat": "smoke1",
@@ -62,8 +56,7 @@
       "speaker": "smokehouse",
       "text": "[stern, flat monotone, commanding] Engage Chemical Digital Crypto-flahzh.",
       "settings": {
-        "stability": 0.9,
-        "style": 0.0
+        "stability": 0.9
       }
     },
     {
