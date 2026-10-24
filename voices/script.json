@@ -1,5 +1,5 @@
 {
-  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are eleven_v3 audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again.",
+  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are eleven_v3 audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again. The Render voices workflow runs whenever this file changes on main or the working branch.",
   "model": "eleven_v3",
   "output_format": "mp3_44100_128",
   "voices": {
