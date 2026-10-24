@@ -36,7 +36,7 @@
       }
     },
     "narrator": {
-      "id": null,
+      "id": "jvcMcno3QtjOzGtfpjoI",
       "radio": false,
       "settings": {
         "stability": 0.55,
@@ -50,7 +50,7 @@
     {
       "beat": "caption",
       "speaker": "narrator",
-      "text": "Canes Crescenza, 3091 AD. Spomenik Operative Bob sips his morning coffee, when suddenly the vessel's transmitter erupts..."
+      "text": "[calm, measured] Canes Crescenza, 3091 AD. Spomenik Operative Bob sips his morning coffee, when suddenly the vessel's transmitter erupts..."
     },
     {
       "beat": "smoke1",
@@ -90,7 +90,7 @@
     {
       "beat": "tbc",
       "speaker": "narrator",
-      "text": "To be continued..."
+      "text": "[quietly] To be continued..."
     }
   ]
 }
