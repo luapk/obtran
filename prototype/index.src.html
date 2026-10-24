@@ -28,9 +28,10 @@
   /* a short film of Bob that cuts in full screen as he speaks (assets/films) */
   #film { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; }
   #film.on { opacity: 1; pointer-events: auto; animation: filmIn 0.16s steps(3, end); }
-  #film video { display: block; width: 100%; height: 100%; object-fit: cover; filter: contrast(1.08); }
+  #film video { display: none; width: 100%; height: 100%; object-fit: cover; filter: contrast(1.08); }
   /* the films are portrait: on a wide screen show the whole frame with ink either side */
   @media (min-aspect-ratio: 4/5) { #film video { object-fit: contain; } }
+  #film video.cur { display: block; }
   @keyframes filmIn { 0% { transform: translateX(-3%) scaleY(1.04); filter: brightness(2.2); } 60% { transform: translateX(1.5%); } 100% { transform: none; filter: none; } }
   .black { position: fixed; inset: 0; pointer-events: none; background: #000; opacity: 0; transition: opacity 0.5s; }
 
@@ -1345,11 +1346,23 @@ function filmVideo(id) {
     v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
     const clip = films.index.clips[id];
     v.src = 'assets/films/' + clip.file + (clip.v ? '?v=' + clip.v : '');
+    // kept on the page (hidden) from the start: some phone browsers are stricter with a video
+    // that is not in the document
+    $('film').append(v);
     films.videos[id] = v;
   }
   return films.videos[id];
 }
 function prefetchFilm(beat) { const cue = filmCue(beat); if (cue) filmVideo(cue.clip).load(); }
+// called from the Start tap: starting and stopping each film inside the reader's own gesture
+// lets phones that block a page's own video playback (data saver, low power) play them later
+function primeFilms() {
+  if (!films.index?.clips || REVIEW) return;
+  for (const id of Object.keys(films.index.clips)) {
+    const v = filmVideo(id);
+    v.play().then(() => { if (!films.on || !v.classList.contains('cur')) v.pause(); }).catch(() => { /* tried again at its cue */ });
+  }
+}
 function playFilm(beat) {
   stopFilm(false);
   const cue = filmCue(beat);
@@ -1358,10 +1371,11 @@ function playFilm(beat) {
   films.timers.push(setTimeout(() => {
     try { v.currentTime = cue.from || 0; } catch (e) { /* not loaded yet: start from the top */ }
     v.play().then(() => {
-      box.replaceChildren(v); box.classList.add('on'); films.on = true;
+      for (const o of Object.values(films.videos)) o.classList.toggle('cur', o === v);
+      box.classList.add('on'); films.on = true;
       flash(0.6);
       films.timers.push(setTimeout(() => stopFilm(true), (cue.len || 2.4) * 1000));
-    }).catch(() => { /* a film that cannot play is skipped; the line still plays */ });
+    }).catch((e) => console.warn('film not played:', cue.clip, e && e.name));   // the line still plays
   }, (cue.at || 0) * 1000));
 }
 function stopFilm(snap) {
@@ -1371,7 +1385,7 @@ function stopFilm(snap) {
     box.classList.remove('on'); films.on = false;
     if (snap) { flash(0.45); if (!reducedMotion) worlds.jitter = Math.max(worlds.jitter, 0.7); }
   }
-  box.querySelector('video')?.pause();
+  for (const v of Object.values(films.videos)) { v.pause(); v.classList.remove('cur'); }
 }
 $('film').addEventListener('pointerdown', (e) => { e.stopPropagation(); stopFilm(true); });
 
@@ -1601,6 +1615,7 @@ function onOrient(e) {
 
 $('start').addEventListener('click', async () => {
   sound.start();
+  primeFilms();
   try {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       const r = await DeviceOrientationEvent.requestPermission();
