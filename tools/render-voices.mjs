@@ -78,7 +78,8 @@ for (const p of plan) {
       if (!res.ok) {
         const err = (await res.text().catch(() => '')).slice(0, 300);
         if ((res.status === 429 || res.status >= 500) && attempt < 3) { console.log(`  ${p.line.beat} HTTP ${res.status}, retrying`); await new Promise((r) => setTimeout(r, 3000 * attempt)); continue; }
-        throw new Error(`HTTP ${res.status} ${err}`);
+        // a refused key or a bad request will not change on a retry
+        const e = new Error(`HTTP ${res.status} ${err}`); e.final = true; throw e;
       }
       const buf = Buffer.from(await res.arrayBuffer());
       writeFileSync(join(OUT, p.file) + '.part', buf);
@@ -88,7 +89,7 @@ for (const p of plan) {
       console.log(`  ${p.line.beat.padEnd(8)} ${(buf.length / 1024).toFixed(0)} KB`);
       done = true;
     } catch (e) {
-      if (attempt === 3) { console.error(`  ${p.line.beat} FAILED: ${e.message}`); failed++; }
+      if (attempt === 3 || e.final) { console.error(`  ${p.line.beat} FAILED: ${e.message}`); failed++; break; }
       else await new Promise((r) => setTimeout(r, 3000 * attempt));
     }
   }
