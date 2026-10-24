@@ -557,6 +557,8 @@ const params = new URLSearchParams(location.search);
 const REVIEW = params.get('world');
 const STORY_WORLD = 'singularity-core';
 const WORLD_SCALE = 12;
+// share of the sand shown over a relief (Bob's head): enough to drift past, not enough to hide his face
+const RELIEF_SAND = 0.35;
 const DEG = Math.PI / 180;
 const worlds = {
   Spark: null, ok: false, list: [], views: {}, id: null, mesh: null, loading: null,
@@ -700,7 +702,8 @@ function sandModifier() {
         vec3 dir = c / d;
         // drifts: coarse cells of space are dense or sparse
         float dens = otSandHash(dot(floor(c * 2.2), vec3(17.0, 59.0, 113.0)));
-        float keep = step(1.0 - (0.03 + 0.9 * smoothstep(0.62, 0.97, dens)), h4);
+        // sand scales how many grains show: 1 in Marble worlds, less over a relief so the face reads
+        float keep = step(1.0 - ${i.sand} * (0.03 + 0.9 * smoothstep(0.62, 0.97, dens)), h4);
         // start anywhere between the viewer and the world
         vec3 p0 = dir * d * mix(0.2, 0.95, h1);
         float cyc = fract(${i.time} * (0.015 + 0.025 * h2) + h3);
@@ -719,7 +722,7 @@ function sandModifier() {
         // opacity above 1 gives Spark a hard edge, so a grain reads as a point rather than a soft blob
         // no grains right at the viewpoint, where they would fill the screen
         float near = smoothstep(0.22, 0.38, len);
-        ${o.gsplat}.rgba = vec4(col, keep * near * sin(3.14159 * cyc) * 1.8 * ${i.sand});
+        ${o.gsplat}.rgba = vec4(col, keep * near * sin(3.14159 * cyc) * 1.8);
       `],
     });
     return { gsplat: node.outputs.gsplat };
@@ -763,7 +766,7 @@ function loadWorld(id) {
       scene.add(m);
     }
     worlds.mesh = mesh; worlds.echoes = echoes; worlds.sandMesh = sandMesh; worlds.id = id; worlds.ok = true;
-    worlds.u.sand.value = worlds.sandOn && !reducedMotion ? 1 : 0;
+    worlds.u.sand.value = worlds.sandOn && !reducedMotion ? (entry.relief ? RELIEF_SAND : 1) : 0;
     // the grade measured from the world's crop by tools/clean_worlds.py; a relief is the page's own ink
     const g = view.grade;
     worlds.relief = !!entry.relief;
@@ -926,7 +929,18 @@ class Sound {
     const entry = this.voiceIndex?.[beat];
     if (!entry || !this.ok) return null;
     if (!this.voiceBuffers[beat]) {
-      this.voiceBuffers[beat] = fetch('assets/voice/' + entry.file).then((r) => r.arrayBuffer()).then((b) => this.ctx.decodeAudioData(b)).catch(() => null);
+      this.voiceBuffers[beat] = fetch('assets/voice/' + entry.file).then((r) => r.arrayBuffer()).then((b) => this.ctx.decodeAudioData(b)).then((buf) => {
+        // measured once: where the speech ends (renders can trail seconds of silence, which
+        // would push the unkey beep late) and a gain that brings every line to a similar level
+        const d = buf.getChannelData(0);
+        let last = d.length - 1, sum = 0, n = 0;
+        while (last > 0 && Math.abs(d[last]) < 0.02) last--;
+        for (let i = 0; i <= last; i++) { if (Math.abs(d[i]) > 0.02) { sum += d[i] * d[i]; n++; } }
+        const rms = n ? Math.sqrt(sum / n) : 0.1;
+        buf.speechEnd = Math.min(buf.duration, (last + 1) / buf.sampleRate + 0.12);
+        buf.level = Math.min(2.2, Math.max(0.6, 0.2 / rms));
+        return buf;
+      }).catch(() => null);
     }
     return this.voiceBuffers[beat];
   }
@@ -941,6 +955,9 @@ class Sound {
     const ctx = this.ctx, t = this.now() + 0.05;
     const src = ctx.createBufferSource(); src.buffer = buf;
     const out = ctx.createGain(); out.gain.value = 1;
+    // the level match goes before the radio, so every line drives it about as hard
+    const lvl = ctx.createGain(); lvl.gain.value = buf.level || 1; src.connect(lvl);
+    const len = buf.speechEnd || buf.duration;
     out.connect(this.master);
     const parts = [src, out];
     if (entry.radio) {
@@ -954,9 +971,9 @@ class Sound {
       for (let i = 0; i < curve.length; i++) { const x = (i / 1023) * 2 - 1; curve[i] = Math.tanh(x * rc.drive) / Math.tanh(rc.drive); }
       drive.curve = curve; drive.oversample = '2x';
       const g = ctx.createGain(); g.gain.value = 0.85;
-      src.connect(hp).connect(mid).connect(lp).connect(drive).connect(g).connect(out);
+      lvl.connect(hp).connect(mid).connect(lp).connect(drive).connect(g).connect(out);
       // squelch as the mic keys, then the voice
-      const key = 0.16, end = key + buf.duration;
+      const key = 0.16, end = key + len;
       const sq = ctx.createBufferSource(); sq.buffer = this.noise;
       const sqf = ctx.createBiquadFilter(); sqf.type = 'bandpass'; sqf.frequency.value = 2200; sqf.Q.value = 0.8;
       const sqg = ctx.createGain(); sqg.gain.setValueAtTime(0, t); sqg.gain.linearRampToValueAtTime(0.32, t + 0.01); sqg.gain.setTargetAtTime(0, t + key - 0.04, 0.02);
@@ -971,12 +988,12 @@ class Sound {
       const bf = ctx.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = 1250; bf.Q.value = 4;
       const bg = ctx.createGain(); bg.gain.setValueAtTime(0, t + end + 0.04); bg.gain.linearRampToValueAtTime(0.05, t + end + 0.045); bg.gain.setTargetAtTime(0, t + end + 0.16, 0.015);
       beep.connect(bf).connect(bg).connect(out); beep.start(t + end + 0.03); beep.stop(t + end + 0.4);
-      src.start(t + key);
+      src.start(t + key, 0, len);
       parts.push(sq, bed, beep);
     } else {
-      src.connect(out);
-      const wet = ctx.createGain(); wet.gain.value = 0.12; src.connect(wet).connect(this.reverb);
-      src.start(t);
+      lvl.connect(out);
+      const wet = ctx.createGain(); wet.gain.value = 0.12; lvl.connect(wet).connect(this.reverb);
+      src.start(t, 0, len);
     }
     this.voiceParts = parts;
   }
@@ -1448,7 +1465,7 @@ async function startReview() {
   sb.className = 'ui-btn'; sb.type = 'button'; sb.textContent = 'Sand'; sb.setAttribute('aria-pressed', String(worlds.sandOn));
   sb.addEventListener('click', () => {
     worlds.sandOn = !worlds.sandOn; sb.setAttribute('aria-pressed', String(worlds.sandOn));
-    worlds.u.sand.value = worlds.sandOn && !reducedMotion ? 1 : 0;
+    worlds.u.sand.value = worlds.sandOn && !reducedMotion ? (worlds.relief ? RELIEF_SAND : 1) : 0;
     worlds.sandMesh?.updateVersion();
   });
   panel.append(sb);

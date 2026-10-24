@@ -8,7 +8,8 @@
 //
 // Env: URL (default http://localhost:8765/dist/index.html), CHROME_PATH,
 // WORLD=0 to accept the drawn void when the Marble world is unavailable,
-// CLASSIC=1 to walk the old flow (beats on the page, one breach) instead of the journey.
+// CLASSIC=1 to walk the old flow (beats on the page, one breach) instead of the journey,
+// LITE=1 to report a low memory device, so the page loads the 100k worlds (much faster here).
 // Without a GPU, Chrome runs on SwiftShader, so frame rates are low; the page's
 // timers use wall clock time, which is why the waits below are in seconds.
 const fs = require('fs');
@@ -38,6 +39,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   });
   const page = await browser.newPage();
   await page.setViewport({ width: W, height: H, deviceScaleFactor: 1, isMobile: phone, hasTouch: phone });
+  if (process.env.LITE === '1') await page.evaluateOnNewDocument(() => Object.defineProperty(navigator, 'deviceMemory', { get: () => 2 }));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -75,7 +77,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const beat = await page.evaluate((b) => window.__ot.BEATS[b], steps[i].beat);
       if (beat.hold) {
         await page.keyboard.down('Space');
-        await page.waitForFunction((s) => window.__ot.journey.step === s + 1, { timeout: 120000, polling: 200 }, i)
+        // at most 0.25 s of hold counts per frame, and a 500k world can take tens of seconds a frame here
+        await page.waitForFunction((s) => window.__ot.journey.step === s + 1, { timeout: 600000, polling: 200 }, i)
           .catch(() => { throw new Error('hold did not unlock the next beat'); });
         await page.keyboard.up('Space');
       } else if (beat.trigger) {
