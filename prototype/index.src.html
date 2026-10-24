@@ -562,6 +562,7 @@ const worlds = {
   Spark: null, ok: false, list: [], views: {}, id: null, mesh: null, loading: null,
   limits: { yaw: [-Math.PI, Math.PI], pitch: [-1.3, 1.3] }, parallax: 2.0, offset: new THREE.Vector3(),
   radius: 1.2, wander: new THREE.Vector3(), wanderT: null, echoes: [], extrudeOn: params.get('extrude') !== '0', lastTick: -1,
+  sandMesh: null, sandOn: params.get('sand') !== '0',
   u: null, suction: 0, jitter: 0, nextCrackle: 0, drift: new THREE.Vector3(),
 };
 
@@ -572,7 +573,7 @@ async function loadSpark() {
   worlds.u = {
     time: dyno.dynoFloat(0), grade: dyno.dynoFloat(1), suction: dyno.dynoFloat(0), jitter: dyno.dynoFloat(0),
     lo: dyno.dynoFloat(0.15), hi: dyno.dynoFloat(0.3), grit: dyno.dynoFloat(0.04), grain: dyno.dynoFloat(0.22), size: dyno.dynoFloat(0.88),
-    extrude: dyno.dynoFloat(1),
+    extrude: dyno.dynoFloat(1), sand: dyno.dynoFloat(1),
     ink: dyno.dynoVec3(new THREE.Vector3(0.020, 0.016, 0.012)),
     mid: dyno.dynoVec3(new THREE.Vector3(0.300, 0.300, 0.270)),
     paper: dyno.dynoVec3(new THREE.Vector3(0.937, 0.914, 0.875)),
@@ -672,7 +673,58 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
   });
 }
 
-function worldMeshes() { return worlds.mesh ? [worlds.mesh, ...worlds.echoes] : []; }
+function worldMeshes() { return worlds.mesh ? [worlds.mesh, ...worlds.echoes, ...(worlds.sandMesh ? [worlds.sandMesh] : [])] : []; }
+
+// Sands of time: the world's lighter splat file again, shrunk to grains and spread
+// through the space between the viewer and the world. They swirl about the line of
+// sight towards the core (faster near the centre) and are flung slowly outward as they
+// drift towards the viewer, then fade and start again. Coarse cells of space are dense
+// or sparse, so the grains gather in drifts. Every depth holding something that moves is
+// what makes the space read in 3D.
+function sandModifier() {
+  const { dyno } = worlds.Spark, u = worlds.u;
+  return dyno.dynoBlock({ gsplat: dyno.Gsplat }, { gsplat: dyno.Gsplat }, ({ gsplat }) => {
+    const node = dyno.dyno({
+      inTypes: { gsplat: dyno.Gsplat, time: 'float', sand: 'float', paper: 'vec3' },
+      outTypes: { gsplat: dyno.Gsplat },
+      inputs: { gsplat, time: u.time, sand: u.sand, paper: u.paper },
+      globals: () => [dyno.defineGsplat, `
+        float otSandHash(float n) { return fract(sin(n) * 43758.5453123); }
+      `],
+      statements: ({ inputs: i, outputs: o }) => [`
+        ${o.gsplat} = ${i.gsplat};
+        vec3 c = ${o.gsplat}.center;
+        float id = float(${o.gsplat}.index);
+        float h1 = otSandHash(id * 0.731), h2 = otSandHash(id * 1.913), h3 = otSandHash(id * 2.477), h4 = otSandHash(id * 3.119);
+        float d = max(length(c), 1e-4);
+        vec3 dir = c / d;
+        // drifts: coarse cells of space are dense or sparse
+        float dens = otSandHash(dot(floor(c * 2.2), vec3(17.0, 59.0, 113.0)));
+        float keep = step(1.0 - (0.03 + 0.9 * smoothstep(0.62, 0.97, dens)), h4);
+        // start anywhere between the viewer and the world
+        vec3 p0 = dir * d * mix(0.2, 0.95, h1);
+        float cyc = fract(${i.time} * (0.015 + 0.025 * h2) + h3);
+        float r0 = length(p0.xy) + 0.02;
+        float r = r0 * (0.55 + 1.1 * cyc);                                  // flung outward
+        float a = atan(p0.y, p0.x) + ${i.time} * 0.2 / (0.25 + r) * (0.8 + 0.4 * h2);   // swirl, faster near the axis
+        float z = p0.z - cyc * 0.3 * d;                                      // drifting towards the viewer
+        ${o.gsplat}.center = vec3(cos(a) * r, sin(a) * r, z);
+        float len = length(${o.gsplat}.center);
+        float g = 0.0008 * len + 0.00015;                                     // fine grains, about the same size on screen
+        // drawn out a little along the swirl, like sand in a long exposure
+        float th = 0.5 * (a + 1.5708);
+        ${o.gsplat}.quaternion = vec4(0.0, 0.0, sin(th), cos(th));
+        ${o.gsplat}.scales = vec3(g * (1.5 + 2.5 * h2), g, g);
+        vec3 col = mix(${i.paper}, vec3(0.62, 0.48, 0.33), step(0.72, h3));
+        // opacity above 1 gives Spark a hard edge, so a grain reads as a point rather than a soft blob
+        // no grains right at the viewpoint, where they would fill the screen
+        float near = smoothstep(0.22, 0.38, len);
+        ${o.gsplat}.rgba = vec4(col, keep * near * sin(3.14159 * cyc) * 1.8 * ${i.sand});
+      `],
+    });
+    return { gsplat: node.outputs.gsplat };
+  });
+}
 
 async function fetchJson(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); }
 
@@ -699,17 +751,19 @@ function loadWorld(id) {
     // echo layers: the lighter file again, nearer and fainter, bright ink only (not for reliefs)
     const echoes = entry.relief ? [] : [[0.8, 0.14], [0.64, 0.07]].map(([depth, alpha]) =>
       new worlds.Spark.SplatMesh({ url: files['100k'] || url, objectModifier: inkModifier({ depth, alpha, brightOnly: 1 }) }));
-    await Promise.all([mesh.initialized, ...echoes.map((e) => e.initialized)]);
+    const sandMesh = worlds.sandOn || REVIEW ? new worlds.Spark.SplatMesh({ url: files['100k'] || url, objectModifier: sandModifier() }) : null;
+    await Promise.all([mesh.initialized, ...echoes.map((e) => e.initialized), ...(sandMesh ? [sandMesh.initialized] : [])]);
     // swap only once the new world is ready, so there is never a gap
     for (const old of worldMeshes()) { scene.remove(old); old.dispose?.(); }
-    for (const m of [mesh, ...echoes]) {
+    for (const m of [mesh, ...echoes, ...(sandMesh ? [sandMesh] : [])]) {
       m.quaternion.set(1, 0, 0, 0);            // Marble's OpenCV axes (y down, +z ahead) to three's
       m.scale.setScalar(WORLD_SCALE);
       m.position.copy(P0);
       m.visible = state.stage === 'breach' || state.stage === 'void';
       scene.add(m);
     }
-    worlds.mesh = mesh; worlds.echoes = echoes; worlds.id = id; worlds.ok = true;
+    worlds.mesh = mesh; worlds.echoes = echoes; worlds.sandMesh = sandMesh; worlds.id = id; worlds.ok = true;
+    worlds.u.sand.value = worlds.sandOn && !reducedMotion ? 1 : 0;
     // the grade measured from the world's crop by tools/clean_worlds.py; a relief is the page's own ink
     const g = view.grade;
     worlds.relief = !!entry.relief;
@@ -750,6 +804,7 @@ function updateWorld(dt, t) {
   worlds.lastTick = tick;
   u.time.value = t; u.suction.value = worlds.suction; u.jitter.value = worlds.jitter;
   if (changed) for (const m of worldMeshes()) m.updateVersion();
+  else if (worlds.sandMesh && u.sand.value > 0) worlds.sandMesh.updateVersion();   // the sand moves every frame
 }
 
 /* ---------- sound ---------- */
@@ -1091,6 +1146,14 @@ async function startReview() {
     for (const m of worldMeshes()) m.updateVersion();
   });
   panel.append(x);
+  const sb = document.createElement('button');
+  sb.className = 'ui-btn'; sb.type = 'button'; sb.textContent = 'Sand'; sb.setAttribute('aria-pressed', String(worlds.sandOn));
+  sb.addEventListener('click', () => {
+    worlds.sandOn = !worlds.sandOn; sb.setAttribute('aria-pressed', String(worlds.sandOn));
+    worlds.u.sand.value = worlds.sandOn && !reducedMotion ? 1 : 0;
+    worlds.sandMesh?.updateVersion();
+  });
+  panel.append(sb);
   show(worlds.id || STORY_WORLD);
 }
 if (REVIEW) $('note').textContent = 'Review mode: opens the Marble worlds directly.';
