@@ -1173,6 +1173,111 @@ function enterVoid() {
 }
 
 
+/* ---------- shards: slabs from the bottom left of the page, flung out of the singularity ---------- */
+// Outlines traced by eye from the scan in the 1000 wide page grid (Paul, 24 October: "trace some
+// of the angular shards to the bottom left of the comic page and have a series of them rotate out
+// with the centrifugal force of the centre, all at different sizes and shapes"). Each is cut from
+// the page texture with a thin paper rim, and many copies at different sizes, stretches and
+// tumbles spiral out of the core: small and fast near the axis, wider and slower as they are flung
+// out and come past the viewer, then they start again.
+const SHARD_OUTLINES = [
+  [[71.9, 1143.6], [98, 1119.8], [171.7, 1180.7], [100, 1263.1]],          // the wedge
+  [[46.4, 1073.4], [92.2, 1113.2], [76.9, 1129.7], [43.5, 1094.3]],        // the small parallelogram
+  [[110.2, 976.9], [143.6, 955.1], [158.9, 976.9], [127, 994.5]],          // the trapezoid under the lettering
+  [[365.7, 1002.1], [442.6, 1147.1], [397.6, 1285.7], [270, 1216]],        // the big slab
+  [[296.1, 1322], [367.2, 1317.6], [357, 1342.3], [302, 1341]],            // the sliver at the foot
+];
+const SHARD_COUNT = reducedMotion ? 12 : 44;
+const shards = { group: new THREE.Group(), list: [], on: params.get('shards') !== '0', level: 0 };
+{
+  const H = 1000 * META.aspect;
+  const shardMat = new THREE.ShaderMaterial({
+    uniforms: { uPage: shared.uPage, uOpacity: { value: 1 } },
+    transparent: true, side: THREE.DoubleSide,
+    vertexShader: `attribute vec2 puv; varying vec2 vPuv; void main(){ vPuv = puv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `uniform sampler2D uPage; uniform float uOpacity; varying vec2 vPuv;
+      void main(){ vec3 c = texture2D(uPage, vPuv).rgb; if (!gl_FrontFacing) c *= 0.6; gl_FragColor = vec4(c, uOpacity);
+      #include <colorspace_fragment>
+      }`,
+  });
+  const rimMat = new THREE.MeshBasicMaterial({ color: 0xefe9df, transparent: true, side: THREE.DoubleSide });
+  // outlines in shard space: centred, longest side 1, y up; each edge pushed out by w for the rim
+  const offset = (pts, w) => {
+    let area = 0;
+    pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]; area += p.x * q.y - q.x * p.y; });
+    const sgn = area > 0 ? 1 : -1;
+    const lines = pts.map((p, i) => {
+      const q = pts[(i + 1) % pts.length], d = q.clone().sub(p).normalize();
+      return [p.clone().add(new THREE.Vector2(d.y, -d.x).multiplyScalar(w * sgn)), d];
+    });
+    return lines.map((l, i) => {
+      const [a, d] = lines[(i + lines.length - 1) % lines.length], [b, e] = l;
+      const den = d.x * e.y - d.y * e.x;
+      if (Math.abs(den) < 1e-6) return b.clone();
+      const t = ((b.x - a.x) * e.y - (b.y - a.y) * e.x) / den;
+      return a.clone().add(d.clone().multiplyScalar(t));
+    });
+  };
+  const templates = SHARD_OUTLINES.map((o) => {
+    const cx = o.reduce((a, p) => a + p[0], 0) / o.length, cy = o.reduce((a, p) => a + p[1], 0) / o.length;
+    const ext = Math.max(...o.map((p) => Math.abs(p[0] - cx)), ...o.map((p) => Math.abs(p[1] - cy))) * 2;
+    const pts = o.map(([x, y]) => new THREE.Vector2((x - cx) / ext, -(y - cy) / ext));
+    const geo = new THREE.ShapeGeometry(new THREE.Shape(pts));
+    const pos = geo.attributes.position, puv = new Float32Array(pos.count * 2);
+    for (let i = 0; i < pos.count; i++) { puv[i * 2] = (cx + pos.getX(i) * ext) / 1000; puv[i * 2 + 1] = (cy - pos.getY(i) * ext) / H; }
+    geo.setAttribute('puv', new THREE.BufferAttribute(puv, 2));
+    const rimShape = new THREE.Shape(offset(pts, 0.022));
+    rimShape.holes.push(new THREE.Path(pts.slice().reverse()));
+    return { geo, rim: new THREE.ShapeGeometry(rimShape) };
+  });
+  for (let i = 0; i < SHARD_COUNT; i++) {
+    const tpl = templates[i % templates.length];
+    const mat = shardMat.clone(); mat.uniforms.uPage = shared.uPage;
+    const mesh = new THREE.Mesh(tpl.geo, mat), rm = rimMat.clone();
+    mesh.add(new THREE.Mesh(tpl.rim, rm));
+    shards.group.add(mesh);
+    shards.list.push({ mesh, mat, rm, life: 0, T: 1, theta: 0, axis: new THREE.Vector3(), spin: 0, size: 1 });
+  }
+  shards.group.visible = false;
+  scene.add(shards.group);
+}
+function respawnShard(sh, first) {
+  sh.T = 9 + Math.random() * 10;
+  sh.life = first ? Math.random() * sh.T : 0;
+  sh.theta = Math.random() * Math.PI * 2;
+  sh.axis.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+  sh.spin = (0.4 + Math.random() * 1.5) * (Math.random() < 0.5 ? -1 : 1);
+  // mostly small, a few large: all different sizes, and stretched so no two share a shape
+  sh.size = 0.35 + 3.1 * Math.pow(Math.random(), 2.2);
+  const st = 0.65 + Math.random() * 0.8;
+  sh.mesh.scale.set(sh.size * st, sh.size / st, sh.size);
+  sh.mesh.quaternion.setFromEuler(new THREE.Euler(Math.random() * 6.3, Math.random() * 6.3, Math.random() * 6.3));
+}
+shards.list.forEach((sh) => respawnShard(sh, true));
+const _q = new THREE.Quaternion();
+function updateShards(dt) {
+  // only in the singularity, and only as it opens out of its core
+  const want = shards.on && state.stage === 'void' && worlds.ok && worlds.id === STORY_WORLD ? 1 - worlds.suction : 0;
+  shards.level += (want - shards.level) * (1 - Math.exp(-dt * 1.5));
+  shards.group.visible = shards.level > 0.01;
+  if (!shards.group.visible) return;
+  shards.group.position.copy(P0);
+  const pace = reducedMotion ? 0.35 : 1;
+  for (const sh of shards.list) {
+    sh.life += dt * pace;
+    if (sh.life > sh.T) respawnShard(sh, false);
+    const ph = sh.life / sh.T;
+    const d = 13 - 11.8 * Math.pow(ph, 1.15);           // from deep in the core towards the viewer
+    const r = 0.15 + 8.4 * Math.pow(ph, 1.8);           // flung outward, faster as it goes
+    sh.theta += dt * pace * (0.22 + 1.5 / (1 + r));     // quick near the axis, slower out wide
+    sh.mesh.position.set(r * Math.cos(sh.theta), r * Math.sin(sh.theta), -d);
+    sh.mesh.quaternion.premultiply(_q.setFromAxisAngle(sh.axis, sh.spin * dt * pace));
+    const a = shards.level * smooth(0, 0.12, ph) * (1 - smooth(0.85, 1, ph));
+    sh.mat.uniforms.uOpacity.value = a; sh.rm.opacity = a * 0.9;
+    sh.mesh.visible = a > 0.01;
+  }
+}
+
 /* ---------- the journey: one space at a time ---------- */
 // The page opens as drawn; a tap dives into Bob's panel, and from there each beat of
 // the dialogue happens inside a world, its lettering box springing up in front of the
@@ -1675,6 +1780,10 @@ async function startReview() {
     worlds.sandMesh?.updateVersion();
   });
   panel.append(sb);
+  const shb = document.createElement('button');
+  shb.className = 'ui-btn'; shb.type = 'button'; shb.textContent = 'Shards'; shb.setAttribute('aria-pressed', String(shards.on));
+  shb.addEventListener('click', () => { shards.on = !shards.on; shb.setAttribute('aria-pressed', String(shards.on)); });
+  panel.append(shb);
   show(worlds.id || STORY_WORLD);
 }
 if (REVIEW) $('note').textContent = 'Review mode: opens the Marble worlds directly.';
@@ -1832,6 +1941,7 @@ function frame() {
   sing.scale.setScalar(46 + Math.sin(t * 0.7) * 2);
   updateJourney(rawDt, dt);
   updateWorld(rawDt, t);
+  updateShards(dt);
   sound.update(dt, camera);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -1841,7 +1951,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   depth.generateMipmaps = false; depth.minFilter = THREE.LinearFilter; depth.anisotropy = 1;
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
