@@ -32,6 +32,7 @@ The original brief (written with Gemini) belongs at `source/original-brief.md`, 
   - So: the colour grade (task 4) is needed everywhere, the three object regions are the most promising Marble worlds, and Bob is the clearest case for building from the page itself (task 6).
 - **Ink pass (task 4, 23 October):** the void after the breach is now the singularity Marble world, rendered by Spark and graded to the page's tones; the procedural void is the fallback if Spark or the world fails. Paul reviewed a Gemini-written "splat stylization guide" first; its ideas were right but its code was not (no Spark CLI exists, `onBeforeCompile` does not reach Spark's shaders, OrbitControls puts the camera outside a world made to be seen from inside). What was built instead is below under "The prototype, as built".
 - **Bob's head from the page (task 6, started):** Paul has no layered PSD or ink scans, so `tools/make_bob_head.py` builds a relief from the scan: face ellipse fitted to the ink outline, halo, helmet ring, surroundings fading to ink. It is `?world=bob-head-relief` for now; it gets its place in the story with the portals (task 5).
+- **Paul's phone test (24 October):** the worlds looked flat, zoomed in and all alike. Three causes, all fixed: phones loaded the 100k files (too coarse to read; now 500k unless `navigator.deviceMemory` is under 4), the camera only turned at Marble's viewpoint (now it wanders slowly through the middle of the world, and pointer or tilt slides it further), and portrait used a landscape lens (now the vertical field widens until about 70 degrees fit across, capped at 100). The deeper cause is the assets: in every draft world almost all forward splats sit between 0.8 and 1.8 units from the viewpoint, nothing nearer, so a draft world is a thick shell around you, closer to a panorama with relief than a space with things in it. Whether marble-1.1 gives deeper worlds is untested; it needs Paul's go-ahead to spend credits.
 - **Not started:** per-region experiences, entered through Spark portals (task 5).
 
 ### Paul's feedback on the prototype (the reason for the next phase)
@@ -109,12 +110,14 @@ Stack: three.js 0.180.0 and Spark 2.4.0 (`@sparkjsdev/spark`), both from jsDeliv
 ### The worlds layer (Spark)
 
 - The story world (`singularity-core`) starts loading on the Start tap. During the breach the drawn rings carry the dive; at the flash (u = 0.72) the world replaces them.
-- Worlds are `SplatMesh` objects from `views.json` file paths (the cleaned splats; 100k on `pointer: coarse`), turned from Marble's OpenCV axes with `quaternion.set(1, 0, 0, 0)`, scaled by `WORLD_SCALE = 12` and centred on `P0`, so the camera sits at Marble's viewpoint. Draft worlds have no `metric_scale_factor`.
+- Worlds are `SplatMesh` objects from `views.json` file paths (the cleaned splats; 500k everywhere, 100k only when `navigator.deviceMemory` is under 4), turned from Marble's OpenCV axes with `quaternion.set(1, 0, 0, 0)`, scaled by `WORLD_SCALE = 12` and centred on `P0`, so the camera sits at Marble's viewpoint. Draft worlds have no `metric_scale_factor`.
 - One Spark `objectModifier` (a raw GLSL dyno node, `inkModifier`) does three things per splat:
   - **Suction:** swirl and pull towards the core straight ahead. It runs from 1 during the breach and unwinds after arrival, so the world opens out of the singularity.
   - **Jitter:** banded horizontal shear like a bad transmission. The transmitter "crackles" every 9 to 17 s in the void, with a static burst, echoing "CRSSHKKKKK!".
   - **Ink grade:** each world's own palette and thresholds from `views.json` (`clean_worlds.py` samples ink, mid tone and paper from the world's crop and matches the crop's share of each over the front view; paper never below luminance 0.42), plus sparse warm grain in the ink and splats shrunk to 0.88 for crisper lines. Uniforms animate through `mesh.updateVersion()`.
-- Look limits come from `views.json` (yaw and pitch around the forward view that holds drawn content, never under plus or minus 60 and 40 degrees) and ease back rather than stop dead. The viewpoint drift is held within 8% of the world's radius, because a world only holds together near its viewpoint.
+- Look limits come from `views.json` (yaw and pitch around the forward view that holds drawn content, never under plus or minus 60 and 40 degrees) and ease back rather than stop dead.
+- **Moving through a world:** the camera wanders on a slow path through the middle of the world (up to 16% of its radius sideways, 5% up and down, 24% forward), and the pointer or tilt slides it up to 2 more units. A still camera at Marble's viewpoint sees a flat panorama; moving is what shows the depth. Reliefs do not wander; they drift and take stronger pointer parallax instead.
+- **Field of view in the void:** `voidFov()` widens the vertical field on portrait screens until about 70 degrees fit across (62 to 100 degrees); the breach eases into it.
 - **Review mode:** `?world=<id>` skips the page and opens a world with buttons for every world and an "Ink grade" toggle, for judging worlds side by side. Ids are those in `worlds.json` plus `bob-head-relief`.
 - **Reliefs:** `reliefs.json` lists worlds built from the page rather than by Marble. They are loaded the same way but not graded (they are the page's own ink), with tighter look limits and stronger viewpoint parallax, since parallax is what shows a relief's depth.
 
@@ -131,6 +134,7 @@ Stack: three.js 0.180.0 and Spark 2.4.0 (`@sparkjsdev/spark`), both from jsDeliv
 - The depth map is a heuristic. It reads well head-on and stretches at hard edges at large parallax.
 - The procedural void is generic. It is now only the fallback, and the breach's first 70%.
 - Marble worlds of framed art (cockpit, Bob's head) are a picture in an invented room; the grade cannot fix that. `monolith-slabs` is the weakest of the object worlds: Marble's bright brown haze between the slabs still grades pale where the crop has dark ground.
+- Draft worlds are shallow shells (see "Paul's phone test" above); moving the camera shows what depth there is, but it is modest.
 - Under SwiftShader (no GPU) 500k splats render at a frame every few seconds, so a full desktop walkthrough takes 15 to 30 minutes. Not representative of real devices, but not yet measured on one either.
 - Inside a claude.ai artifact, device motion is blocked, so tilt only works when self-hosted.
 - The whole page is one 2 MB HTML file with base64 assets. That is fine for an artifact, but on Vercel the assets should be served as files.

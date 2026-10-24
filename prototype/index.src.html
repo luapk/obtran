@@ -50,6 +50,7 @@
   #review { position: fixed; left: 14px; top: max(14px, env(safe-area-inset-top)); z-index: 4; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 120px); }
   #review .ui-btn { position: static; }
   #review .ui-btn[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
+  @media (max-width: 600px) { #review { gap: 4px; } #review .ui-btn { font-size: 0.56rem; letter-spacing: 0.1em; padding: 0.35rem 0.45rem; } }
   #ring { position: fixed; width: 96px; height: 96px; margin: -48px 0 0 -48px; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.2s; }
   #ring.on { opacity: 1; }
   #ring circle { fill: none; stroke-width: 3; }
@@ -559,7 +560,8 @@ const WORLD_SCALE = 12;
 const DEG = Math.PI / 180;
 const worlds = {
   Spark: null, ok: false, list: [], views: {}, id: null, mesh: null, loading: null,
-  limits: { yaw: [-Math.PI, Math.PI], pitch: [-1.3, 1.3] }, parallax: 0.6, offset: new THREE.Vector3(),
+  limits: { yaw: [-Math.PI, Math.PI], pitch: [-1.3, 1.3] }, parallax: 2.0, offset: new THREE.Vector3(),
+  radius: 1.2, wander: new THREE.Vector3(), wanderT: null,
   u: null, suction: 0, jitter: 0, nextCrackle: 0, drift: new THREE.Vector3(),
 };
 
@@ -650,7 +652,9 @@ function loadWorld(id) {
     if (!entry) throw new Error(`no world ${id}`);
     const view = entry.relief ? entry : worlds.views[id] || {};
     const files = view.files || entry.splats;
-    const url = (isTouch && files['100k']) || files['500k'];
+    // the 100k files are too coarse to read as anything, so phones get 500k unless memory is short
+    const lowMemory = (navigator.deviceMemory || 8) < 4;
+    const url = (lowMemory && files['100k']) || files['500k'];
     if (worlds.mesh && worlds.id === id) return worlds.mesh;
     const mesh = new worlds.Spark.SplatMesh({ url, objectModifier: inkModifier() });
     await mesh.initialized;
@@ -666,7 +670,8 @@ function loadWorld(id) {
     const g = view.grade;
     worlds.relief = !!entry.relief;
     worlds.u.grade.value = entry.relief ? 0 : 1;
-    worlds.parallax = entry.parallax || 0.6;
+    worlds.parallax = entry.parallax || 2.0;
+    worlds.radius = view.radius || 1.2;
     if (g) {
       worlds.u.lo.value = g.lo; worlds.u.hi.value = g.hi;
       worlds.u.ink.value.fromArray(g.ink); worlds.u.mid.value.fromArray(g.mid); worlds.u.paper.value.fromArray(g.paper);
@@ -813,6 +818,13 @@ const look = { yaw: 0, pitch: 0, vyaw: 0, vpitch: 0, dragging: false, lastX: 0, 
 let fitDist = 6;
 const lookTarget = new THREE.Vector3(0, 0, -0.35);
 
+// A portrait phone sees a narrow slice at a landscape lens, so widen the vertical
+// field until about 70 degrees fit across, within limits that keep distortion down.
+function voidFov() {
+  const across = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(35)) / (innerWidth / innerHeight)));
+  return clamp(across, 62, 100);
+}
+
 function fit() {
   const a = innerWidth / innerHeight, t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   fitDist = Math.max((PH / 2) * 1.16 / t, (PW / 2) * 1.12 / (t * a));
@@ -822,6 +834,7 @@ function resize() {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   if (state.stage !== 'void' && state.stage !== 'breach') fit();
+  if (state.stage === 'void') camera.fov = voidFov();
   const scale = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
   ptsMat.uniforms.uScale.value = scale;
   inflowMat.uniforms.uScale.value = scale;
@@ -889,7 +902,7 @@ function enterVoid() {
   state.stage = 'void'; state.endT = 0;
   pageMesh.visible = false; pagePts.visible = false; inflow.visible = false;
   bubbles.forEach((b) => (b.mesh.visible = false));
-  camera.position.copy(P0); camera.fov = 62; camera.updateProjectionMatrix(); resize();
+  camera.position.copy(P0); camera.fov = voidFov(); camera.updateProjectionMatrix(); resize();
   look.yaw = 0; look.pitch = 0;
   voidU.uFog.value = 0.034;
   $('black').style.opacity = 0;
@@ -1005,7 +1018,7 @@ async function startReview() {
     setHint('Loading ' + id);
     try {
       await loadWorld(id); useWorld(true); look.yaw = 0; look.pitch = 0; worlds.drift.set(0, 0, 0);
-      worlds.suction = 0.6; setHint('Drag to look around');
+      worlds.suction = 0; setHint('Drag to look around');
       history.replaceState(null, '', '?world=' + id);
     } catch (e) { setHint('Could not load ' + id); console.error(e); }
   };
@@ -1088,7 +1101,7 @@ function frame() {
       const lt = tmpV.clone().lerp(state.lookStart, 1 - smooth(0, 0.35, u));
       camera.lookAt(lt);
       camera.rotateZ(Math.sin(u * Math.PI) * 0.5);
-      camera.fov = 40 + smooth(0.3, 0.65, u) * 34 - smooth(0.8, 1, u) * 12;
+      camera.fov = lerp(40 + smooth(0.3, 0.65, u) * 34, voidFov(), smooth(0.8, 1, u));
       camera.updateProjectionMatrix();
       const sc = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
       ptsMat.uniforms.uScale.value = sc;
@@ -1125,11 +1138,17 @@ function frame() {
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
     if (worlds.ok) {
       // a world only holds together near its viewpoint, so the drift stays within a small radius
-      if (!reducedMotion) worlds.drift.addScaledVector(fwd, dt * (worlds.relief ? 0.02 : 0.06)).clampLength(0, WORLD_SCALE * 0.08);
-      // the pointer (or tilt) slides the viewpoint a little, which is what shows a relief's depth
+      if (!reducedMotion && worlds.relief) worlds.drift.addScaledVector(fwd, dt * 0.02).clampLength(0, WORLD_SCALE * 0.08);
+      // a Marble world is a shell around its viewpoint, so a still camera sees a flat panorama;
+      // a slow wander through the middle of it is what shows its depth
+      if (!worlds.relief && !reducedMotion) {
+        const T = worlds.wanderT ?? state.endT, R = worlds.radius * WORLD_SCALE;
+        worlds.wander.set(0.16 * Math.sin(T * 0.13), 0.05 * Math.sin(T * 0.09 + 1), -0.24 * (0.5 - 0.5 * Math.cos(T * 0.07))).multiplyScalar(R);
+      } else worlds.wander.set(0, 0, 0);
+      // the pointer (or tilt) slides the viewpoint a little more
       const px = reducedMotion ? 0 : clamp(parallax.tx + parallax.gx, -1.2, 1.2), py = reducedMotion ? 0 : clamp(parallax.ty + parallax.gy, -1.2, 1.2);
       worlds.offset.lerp(tmpV.set(px, -py, 0).multiplyScalar(worlds.parallax).applyQuaternion(camera.quaternion), 1 - Math.exp(-dt * 4));
-      camera.position.copy(P0).add(worlds.drift).add(worlds.offset);
+      camera.position.copy(P0).add(worlds.drift).add(worlds.wander).add(worlds.offset);
     } else if (!reducedMotion) camera.position.addScaledVector(fwd, dt * 0.25);
     if (state.endT > 3 && !tbcCard.visible && !REVIEW) {
       tbcCard.visible = true;
