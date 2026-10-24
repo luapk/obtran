@@ -127,6 +127,15 @@
   .gate-card .lead { margin: 0 0 2rem; font-size: 0.82rem; line-height: 1.7; letter-spacing: 0.06em; }
   .gate-card .err { color: #d9a27a; }
 
+  /* "Tap to enter" on the page (Paul: in the same lettering as the boxes): a small black comic panel,
+     its words cut from Smokehouse's box (tools/cut_enter_label.py), breathing gently */
+  #enterHint { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); z-index: 3; display: grid; place-items: center; width: min(62vw, 15rem); aspect-ratio: 4.2; transform: translateX(-50%) rotate(-1.5deg); pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+  #enterHint.on { opacity: 1; animation: enterBreathe 2.4s ease-in-out infinite; }
+  #enterHint svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  #enterHint polygon { fill: #050403; stroke: #efe9df; stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  #enterHint img { position: relative; width: 80%; height: auto; }
+  @keyframes enterBreathe { 0%, 100% { filter: drop-shadow(0 0 0 rgba(239,233,223,0)); } 50% { filter: drop-shadow(0 0 9px rgba(239,233,223,0.45)); } }
+  @media (prefers-reduced-motion: reduce) { #enterHint.on { animation: none; } }
   #hint { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); background: rgba(6,5,4,0.7); padding: 0.55rem 0.9rem; z-index: 3; transition: opacity 0.4s; white-space: nowrap; pointer-events: none; }
   #hint.off { opacity: 0; }
   /* on the first scene the hint points up at the card */
@@ -182,6 +191,7 @@
 </div>
 
 <div id="hint" class="off">Tap to continue</div>
+<div id="enterHint" role="status" aria-label="Tap to enter"><svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polygon points="2,7 98,2 99,34 1,38"/></svg><img alt=""></div>
 <button id="mute" class="ui-btn" type="button" aria-pressed="false">Sound on</button>
 <div id="music" hidden>
   <button id="musicTab" class="ui-btn" type="button" aria-expanded="false" aria-controls="musicList"><span class="mt-name">QNTM CTRL</span> <span id="musicCount">0/3</span></button>
@@ -225,7 +235,7 @@ const BEATS = [
   { b: 'bob1' },
   { b: 'drill', fx: 'blip' },
   { b: 'unlock', fx: 'blip', hold: true },
-  { b: 'holy', auto: 1.4 },
+  { b: 'holy', auto: 0.01, filmOnly: true },       // filmOnly: its panel shows only over its film, and the story moves on as the film ends (Paul)
   { b: 'qntm', trigger: true, auto: 1.8 },
 ];
 
@@ -1354,7 +1364,6 @@ function enterVoid() {
   worlds.drift.set(0, 0, 0);
   worlds.nextCrackle = shared.uTime.value + 6;
   if (worlds.ok) useWorld(true);
-  if (!journey.on || journey.done) setHint('Drag to look around');
 }
 
 
@@ -2339,7 +2348,10 @@ function playFilm(beat) {
       if (cue.card) showFilmCard(beat);
       flash(0.6);
       films.timers.push(setTimeout(() => stopFilm(true), (cue.len || 2.4) * 1000));
-    }).catch((e) => console.warn('film not played:', cue.clip, e && e.name));   // the line still plays
+    }).catch((e) => {
+      console.warn('film not played:', cue.clip, e && e.name);   // the line still plays
+      if (BEATS[state.beat]?.filmOnly && journey.phase === 'space') card.visible = true;   // and its panel shows in the space instead
+    });
   }, (cue.at || 0) * 1000));
 }
 function stopFilm(snap) {
@@ -2373,6 +2385,7 @@ function showStep(i, keepCard = false) {
   const beat = BEATS[STEPS[i].beat];
   state.beat = STEPS[i].beat;
   setCard(STEPS[i].beat, keepCard);
+  if (beat.filmOnly && filmCue(beat.b)) card.visible = false;   // its panel comes up over the film instead
   $('sr').textContent = bubbleById[beat.b].text;
   if (beat.fx === 'static') { sound.staticBurst(beat.cut ? beat.cut + 1.2 : undefined); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
   if (beat.fx === 'blip') sound.blip();
@@ -2504,7 +2517,10 @@ function cutTo(i) {
 
 function startJourney() {
   state.stage = 'read'; state.beat = -1;
-  setHint(`${tapWord} to enter`);
+  const eh = $('enterHint');
+  eh.querySelector('img').src = `assets/props/${isTouch ? 'tap' : 'click'}-to-enter.png`;
+  eh.setAttribute('aria-label', `${tapWord} to enter`);
+  eh.classList.add('on');
   loadWorld(STEPS[0].world).catch((e) => console.warn('world unavailable', e));
 }
 
@@ -2512,6 +2528,7 @@ function enterSpace() {
   if (journey.phase !== 'idle') return;
   journey.phase = 'enter'; journey.t = 0;
   state.stage = 'enter';
+  $('enterHint').classList.remove('on');
   state.camStart = camera.position.clone();
   setHint('');
   // the narrator's caption becomes the first card (Paul: "zoom seamlessly into the narrator panel
@@ -2567,7 +2584,6 @@ function finalBreach() {
     look.yaw = 0; look.pitch = 0;
     flash(0.5);
     state.endT = 0;
-    setHint('Drag to look around');
   }, FINAL_DUR * 0.72);
 }
 
