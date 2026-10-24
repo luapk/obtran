@@ -33,7 +33,7 @@
   #film.on { opacity: 1; pointer-events: auto; animation: filmIn 0.16s steps(3, end); }
   #film video { display: none; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.08); }
   /* the films are portrait: on a wide screen show the whole frame with ink either side */
-  @media (min-aspect-ratio: 4/5) { #film video { object-fit: contain; } }
+  @media (min-aspect-ratio: 4/5) { #film video { object-fit: contain; } #film video.land { object-fit: cover; } }
   #film video.cur { display: block; }
   /* over the films (Paul): a super fine scan line, a slow rolling band, and an alien CCTV readout */
   #film::after { content: ''; position: absolute; inset: 0; pointer-events: none; background:
@@ -253,6 +253,10 @@ function decryptCode() {
   if (!el || gate.classList.contains('ready')) { gate.classList.add('ready'); return; }
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = word; gate.classList.add('ready'); return; }
   const t0 = performance.now() + 450, settle = (i) => 380 + i * 120;        // starts as the logo collapses
+  // Paul's telemetry bleeps, cut to the decrypt's length. This is before any tap, so most phones will
+  // not let it play (browsers hold sound until the first gesture); where they do, it plays in time
+  const snd = new Audio('assets/sfx/decrypt.mp3'); snd.preload = 'auto'; snd.volume = 0.8;
+  setTimeout(() => snd.play().catch(() => {}), 450);
   const tick = () => {
     const ms = performance.now() - t0;
     el.textContent = ms < 0 ? '' : [...word].map((c, i) => ms > settle(i) ? c : ms > i * 40 ? glyphs[Math.floor(Math.random() * glyphs.length)] : ' ').join('');
@@ -2441,8 +2445,11 @@ function filmVideo(id) {
     const v = document.createElement('video');
     v.muted = true; v.playsInline = true; v.preload = 'auto';
     v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
-    const clip = films.index.clips[id];
-    v.src = 'assets/films/' + clip.file + (clip.v ? '?v=' + clip.v : '');
+    // landscape screens take a clip's 16:9 version where it has one (Paul), and fill the screen with it
+    const clip = films.index.clips[id], land = innerWidth / innerHeight >= 1.2 && clip.wide;
+    const f = land ? clip.wide : clip;
+    v.src = 'assets/films/' + f.file + (f.v ? '?v=' + f.v : '');
+    if (land) v.classList.add('land');
     // kept on the page (hidden) from the start: some phone browsers are stricter with a video
     // that is not in the document
     $('film').prepend(v);
@@ -2557,7 +2564,7 @@ function drawSuper8(dt) {
   try { gl.bindTexture(gl.TEXTURE_2D, s8.tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); }
   catch (e) { s8.ok = false; s8.el.classList.remove('on'); return; }   // a video the canvas may not read: plain video
   // portrait screens fill the frame, wide ones show the whole portrait frame (as the plain video does)
-  const ca = W / H, va = v.videoWidth / v.videoHeight, contain = innerWidth / innerHeight >= 0.8;
+  const ca = W / H, va = v.videoWidth / v.videoHeight, contain = innerWidth / innerHeight >= 0.8 && va < 1;   // a 16:9 take fills the screen
   const sx = contain ? Math.max(1, ca / va) : Math.min(1, ca / va), sy = contain ? Math.max(1, va / ca) : Math.min(1, va / ca);
   // the frame weaves in the gate, and now and then jumps
   const jump = Math.random() < 0.04 ? 0.012 : 0;
@@ -2714,9 +2721,11 @@ function primeFilms() {
 }
 function playFilm(beat) {
   stopFilm(false);
-  const cue = filmCue(beat);
+  let cue = filmCue(beat);
   if (!cue || REVIEW) return;
-  const v = filmVideo(cue.clip), box = $('film');
+  const v0 = filmVideo(cue.clip), box = $('film');
+  if (v0.classList.contains('land') && cue.wide) cue = { ...cue, ...cue.wide };   // the 16:9 take's own timings
+  const v = v0;
   films.timers.push(setTimeout(() => {
     try { v.currentTime = cue.from || 0; } catch (e) { /* not loaded yet: start from the top */ }
     v.play().then(() => {
@@ -2736,6 +2745,7 @@ function playFilm(beat) {
 // "metascanning intergalactic tumbleweed", "on loop until user interacts")
 function filmThen(then) {
   const v = filmVideo(then.clip);
+  if (v.classList.contains('land') && then.wide) then = { ...then, ...then.wide };
   v.loop = !!then.loop;
   try { v.currentTime = then.from || 0; } catch (e) { /* not loaded yet */ }
   v.play().then(() => {

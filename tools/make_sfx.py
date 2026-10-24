@@ -19,6 +19,9 @@ from their loudness over time (ffmpeg, -45 dB as silence):
   bleep.mp3       ui_confirm.wav (User_Interface_Alert_Futuristic_Technology_UI_Confirm_Tone_Bright_02): four
                   tones; the first, 0.03 to 0.9 s, very quiet (peak about -42 dB), so it is brought up to a
                   -6 dB peak. Plays when the reader taps or clicks a text box (or presses a key) to move on.
+  decrypt.mp3     telemetry.wav (Scifi_Computer_..._Telemetry_Complex_Bleeps_And_Blops_Short_Phrases_01): its first
+                  phrase, cut to exactly 1.34 s, the length of OBTRAN003 decrypting on the opening screen,
+                  with a sharp fade in (5 ms) and out (40 ms), brought up to a -6 dB peak.
   bed.mp3         intro_comic_singularity.mp3: 14 s of steady atmosphere for the comic page and the
                   singularity, rising from silence and stopping dead. Made into a loop: from 0.8 s (after
                   its fade in), with its last 2 s blended into its opening (equal power), so the page can
@@ -42,8 +45,9 @@ CUTS = {
     "whoosh-3": ("whoosh.wav", 6.32, 8.26, 0.0, 0.1),
     "power-up": ("biometric_power_up.wav", 0.0, 4.6, 0.01, 0.08),
     "bleep": ("ui_confirm.wav", 0.0, 0.85, 0.0, 0.2),
+    "decrypt": ("telemetry.wav", 0.0, 1.34, 0.005, 0.04),
 }
-NORMALISE = {"bleep": -6.0}       # peak in dB, for sounds that arrive too quiet
+NORMALISE = {"bleep": -6.0, "decrypt": -6.0}       # peak in dB, for sounds that arrive too quiet
 
 
 def main():
