@@ -103,7 +103,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
     await page.waitForFunction(() => window.__ot.journey.done && window.__ot.worlds.id === 'singularity-core', { timeout: 600000, polling: 500 })
       .catch(() => { throw new Error('the final breach did not reach the singularity'); });
-    await page.waitForFunction(() => document.getElementById('again').classList.contains('show'), { timeout: 600000 });
+    await page.waitForFunction(() => window.__ot.endReady(), { timeout: 600000 });
     await sleep(1500);
     await shot('end');
     const st = await page.evaluate(() => ({ stage: window.__ot.state.stage, again: true, world: window.__ot.worlds.id, splats: window.__ot.worlds.mesh?.numSplats ?? null }));
@@ -158,7 +158,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       .catch(() => { throw new Error('the Marble world did not load after the breach'); });
   }
   // the ending runs on wall clock time at no more than 0.25 s a frame, so wait for it rather than sleep
-  await page.waitForFunction(() => document.getElementById('again').classList.contains('show'), { timeout: 600000 });
+  await page.waitForFunction(() => window.__ot.endReady(), { timeout: 600000 });
   await sleep(1500);
   await shot('void-end');
   await page.mouse.move(W / 2, H / 2);
@@ -168,7 +168,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await sleep(1200);
   await shot('void-look');
 
-  const st = await page.evaluate(() => ({ stage: window.__ot.state.stage, again: document.getElementById('again').classList.contains('show'), world: window.__ot.worlds.id, splats: window.__ot.worlds.mesh?.numSplats ?? null }));
+  const st = await page.evaluate(() => ({ stage: window.__ot.state.stage, again: window.__ot.endReady(), world: window.__ot.worlds.id, splats: window.__ot.worlds.mesh?.numSplats ?? null }));
   await browser.close();
   console.log(JSON.stringify(st));
   if (errors.length) { console.error('page errors:\n' + errors.join('\n')); process.exit(1); }

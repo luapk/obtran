@@ -10,3 +10,4 @@ worlds/worlds/*.tmp
 .DS_Store
 dist-*/
 __pycache__/
+source/sfx/

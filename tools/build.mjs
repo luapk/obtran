@@ -68,6 +68,12 @@ if (!inline) {
     for (const f of readdirSync(VOICE).filter((f) => f === 'index.json' || f.endsWith('.mp3'))) copyFileSync(join(VOICE, f), join(DIST, 'assets', 'voice', f));
   }
   // music (assets/music/index.json): the audio files present are listed in the deployed index
+  // Paul's sound effects (tools/make_sfx.py)
+  const SFX = join(ASSETS, 'sfx');
+  if (existsSync(SFX)) {
+    mkdirSync(join(DIST, 'assets', 'sfx'), { recursive: true });
+    for (const f of readdirSync(SFX).filter((f) => /\.mp3$/.test(f)).sort()) copyFileSync(join(SFX, f), join(DIST, 'assets', 'sfx', f));
+  }
   const MUSIC = join(ASSETS, 'music');
   if (existsSync(join(MUSIC, 'index.json'))) {
     mkdirSync(join(DIST, 'assets', 'music'), { recursive: true });

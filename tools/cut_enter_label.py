@@ -1,12 +1,13 @@
-"""Cut the start button's word and the page's enter hint out of the comic's own lettering.
+"""Cut words out of the comic's own lettering (the start button used ENTER until Paul chose a
+standard modern button, 24 October; kept for any lettered label wanted later).
 
   python3 tools/cut_enter_label.py
 
 Paul, 24 October: draw the start button in the same style as the comic's black text panels, and
 write "enter" in the same font as the text blocks. The lettering is hand drawn and is never retyped
 in a font, so each word is assembled from letters in the black boxes: ENTER from "Engage Chemical
-Digital Cryptoflage!", and TAP TO ENTER and CLICK TO ENTER from Smokehouse's first call ("TO" as it
-stands in "cleared to initiate", K from "Smokehouse", C and L from "cleared", P from "pulsar").
+Digital Cryptoflage!". Smokehouse's box (S below) has every letter of TAP and CLICK TO ENTER too
+("TO" as it stands in "cleared to initiate", K from "Smokehouse"), if a page hint is wanted again.
 Each letter is cut along its own ink (its connected shape, slightly grown), not as a rectangle, so
 neighbours do not creep in, and the letters sit on a shared baseline. Writes white letters on a
 transparent ground to prototype/assets/props/<name>.png.
@@ -29,11 +30,6 @@ E = "engage"
 S = "smoke1"
 WORDS = {
     "enter": [(E, 249, 70), (E, 282, 70), (E, 294, 164), (E, 430, 70), (E, 192, 164)],
-    "tap-to-enter": [(S, 770, 172), (S, 230, 172), (S, 308, 220), None, (S, 624, 172), (S, 650, 172), None,
-                     (S, 300, 172), (S, 717, 172), (S, 843, 172), (S, 426, 172), (S, 266, 172)],
-    "click-to-enter": [(S, 355, 172), (S, 392, 172), (S, 697, 172), (S, 718, 220), (S, 243, 78), None,
-                       (S, 624, 172), (S, 650, 172), None,
-                       (S, 300, 172), (S, 717, 172), (S, 843, 172), (S, 426, 172), (S, 266, 172)],
 }
 
 

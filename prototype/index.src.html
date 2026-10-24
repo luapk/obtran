@@ -26,9 +26,10 @@
   .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%); }
   .grain { position: fixed; inset: -50%; pointer-events: none; opacity: 0.09; mix-blend-mode: screen; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); animation: grain 0.6s steps(4) infinite; }
   @keyframes grain { 0%{transform:translate(0,0)} 25%{transform:translate(-3%,2%)} 50%{transform:translate(2%,-3%)} 75%{transform:translate(-2%,-1%)} 100%{transform:translate(0,0)} }
-  .flash { position: fixed; inset: 0; pointer-events: none; background: var(--paper); opacity: 0; mix-blend-mode: overlay; }
+  .flash { position: fixed; inset: 0; z-index: 3; pointer-events: none; background: var(--paper); opacity: 0; mix-blend-mode: overlay; }
   /* a short film of Bob that cuts in full screen as he speaks (assets/films) */
-  #film { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+  /* over the touch pad (Paul: the Holy smokes panel comes up over the bio scanner as it fades) */
+  #film { position: fixed; inset: 0; z-index: 3; background: #000; opacity: 0; pointer-events: none; }
   #film.on { opacity: 1; pointer-events: auto; animation: filmIn 0.16s steps(3, end); }
   #film video { display: none; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.08); }
   /* the films are portrait: on a wide screen show the whole frame with ink either side */
@@ -44,7 +45,7 @@
      layer drawn where the thumb is, and the line's lettering */
   /* the pad floats over Bob's space (Paul: "add Gaussian splatter behind touchscreen"): the world shows
      round it through a dark veil, and the film's edges feather into it */
-  #pad { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(5,4,3,0.45); opacity: 0; pointer-events: none; transition: opacity 0.45s; touch-action: none; }
+  #pad { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; background: rgba(5,4,3,0.45); opacity: 0; pointer-events: none; transition: opacity 0.45s; touch-action: none; }
   #pad.on { opacity: 1; pointer-events: auto; }
   /* a long press must reach the pad, not the video: on a video Android Chrome opens its own menu
      (download, picture in picture) and cancels the hold */
@@ -90,6 +91,12 @@
   #music { position: fixed; z-index: 4; right: 14px; top: calc(max(14px, env(safe-area-inset-top)) + 46px); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
   #music .ui-btn { position: static; }
   #musicTab.unlocked { animation: tabFlash 1.2s steps(6, end); }
+  /* on an unlock the tab scrolls the track's name through itself, twice, then shows the count again */
+  #musicTab.marquee { position: relative; overflow: hidden; white-space: nowrap; }
+  #musicTab.marquee > :not(.mt-marquee) { visibility: hidden; }
+  .mt-marquee { position: absolute; top: 50%; left: 100%; transform: translate(0, -50%); white-space: nowrap; animation: marquee var(--d, 4s) linear 2 forwards; }
+  @keyframes marquee { from { left: 100%; transform: translate(0, -50%); } to { left: 0; transform: translate(-100%, -50%); } }
+  @media (prefers-reduced-motion: reduce) { .mt-marquee { animation: none; left: 50%; transform: translate(-50%, -50%); } }
   @keyframes tabFlash { 0%, 33%, 66% { background: var(--paper); color: var(--ink); } 16%, 50%, 100% { background: rgba(6,5,4,0.7); color: var(--paper); } }
   #musicCount { color: var(--dim); margin-left: 0.4em; }
   #musicList { background: rgba(6,5,4,0.86); border: 1px solid rgba(239,233,223,0.25); padding: 0.7rem 0.8rem; width: min(17rem, calc(100vw - 28px)); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; }
@@ -110,12 +117,19 @@
   .gate-card { text-align: center; max-width: 22rem; }
   .gate-card h1 { font-size: 0.95rem; letter-spacing: 0.32em; font-weight: 600; margin: 0 0 0.4rem; }
   .gate-card .cat { font-size: 0.72rem; letter-spacing: 0.24em; color: var(--dim); margin: 0 0 2rem; }
-  /* the Enter button: a black panel with a thin paper rule, slightly askew, like the comic's boxes */
-  .gate-card button { position: relative; display: inline-grid; place-items: center; width: 11.5rem; height: 4.2rem; padding: 0; border: 0; background: none; cursor: pointer; transform: rotate(-2deg); transition: transform 0.2s, filter 0.2s; }
-  .gate-card button svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-  .gate-card button polygon { fill: #050403; stroke: #efe9df; stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
-  .gate-card button img { position: relative; width: 62%; height: auto; }
-  .gate-card button:hover, .gate-card button:focus-visible { transform: rotate(-2deg) scale(1.05); filter: drop-shadow(0 0 10px rgba(239,233,223,0.35)); outline: none; }
+  /* the Enter button (Paul: "a standard slick modern UI button, with animated rollover"): a thin paper
+     outline; on hover or focus the paper fills in from the left, the text turns to ink, the arrow
+     slides on and the letters open out */
+  .gate-card button { position: relative; display: inline-flex; align-items: center; gap: 0.9rem; overflow: hidden; padding: 0.95rem 1.6rem 0.95rem 1.9rem;
+    font: inherit; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.32em; color: var(--paper); background: transparent; border: 1px solid rgba(239,233,223,0.7); border-radius: 2px; cursor: pointer;
+    transition: color 0.35s cubic-bezier(.2,.8,.2,1), border-color 0.35s, letter-spacing 0.35s cubic-bezier(.2,.8,.2,1), transform 0.15s; }
+  .gate-card button::before { content: ''; position: absolute; inset: 0; background: var(--paper); transform: scaleX(0); transform-origin: left; transition: transform 0.45s cubic-bezier(.2,.8,.2,1); }
+  .gate-card button .lbl, .gate-card button .arr { position: relative; }
+  .gate-card button .arr { width: 1.3rem; height: 0.65rem; fill: none; stroke: currentColor; stroke-width: 1.5; transition: transform 0.35s cubic-bezier(.2,.8,.2,1); }
+  .gate-card button:hover, .gate-card button:focus-visible { color: var(--ink); border-color: var(--paper); letter-spacing: 0.4em; outline: none; }
+  .gate-card button:hover::before, .gate-card button:focus-visible::before { transform: scaleX(1); }
+  .gate-card button:hover .arr, .gate-card button:focus-visible .arr { transform: translateX(0.35rem); }
+  .gate-card button:active { transform: scale(0.97); }
   /* OBTRAN003 decrypts, then the sentence and the button come in */
   .gate-card .code { margin: 0 0 1.6rem; font-size: 1.05rem; letter-spacing: 0.42em; padding-left: 0.42em; min-height: 1.4em; white-space: pre; }
   .gate-card .lead, .gate-card button { opacity: 0; pointer-events: none; }
@@ -127,15 +141,6 @@
   .gate-card .lead { margin: 0 0 2rem; font-size: 0.82rem; line-height: 1.7; letter-spacing: 0.06em; }
   .gate-card .err { color: #d9a27a; }
 
-  /* "Tap to enter" on the page (Paul: in the same lettering as the boxes): a small black comic panel,
-     its words cut from Smokehouse's box (tools/cut_enter_label.py), breathing gently */
-  #enterHint { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); z-index: 3; display: grid; place-items: center; width: min(62vw, 15rem); aspect-ratio: 4.2; transform: translateX(-50%) rotate(-1.5deg); pointer-events: none; opacity: 0; transition: opacity 0.5s; }
-  #enterHint.on { opacity: 1; animation: enterBreathe 2.4s ease-in-out infinite; }
-  #enterHint svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-  #enterHint polygon { fill: #050403; stroke: #efe9df; stroke-width: 1.4; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
-  #enterHint img { position: relative; width: 80%; height: auto; }
-  @keyframes enterBreathe { 0%, 100% { filter: drop-shadow(0 0 0 rgba(239,233,223,0)); } 50% { filter: drop-shadow(0 0 9px rgba(239,233,223,0.45)); } }
-  @media (prefers-reduced-motion: reduce) { #enterHint.on { animation: none; } }
   #hint { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); background: rgba(6,5,4,0.7); padding: 0.55rem 0.9rem; z-index: 3; transition: opacity 0.4s; white-space: nowrap; pointer-events: none; }
   #hint.off { opacity: 0; }
   /* on the first scene the hint points up at the card */
@@ -147,8 +152,6 @@
 
   .ui-btn { position: fixed; z-index: 4; font: inherit; font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--paper); background: rgba(6,5,4,0.7); border: 1px solid rgba(239,233,223,0.25); padding: 0.5rem 0.7rem; cursor: pointer; }
   #mute { top: max(14px, env(safe-area-inset-top)); right: 14px; }
-  #again { left: 50%; bottom: max(70px, calc(env(safe-area-inset-bottom) + 56px)); transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity 0.8s; }
-  #again.show { opacity: 1; pointer-events: auto; }
 
   #review { position: fixed; left: 14px; top: max(14px, env(safe-area-inset-top)); z-index: 4; display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 120px); }
   #review .ui-btn { position: static; }
@@ -157,7 +160,7 @@
   #ring { position: fixed; width: 96px; height: 96px; margin: -48px 0 0 -48px; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.2s; }
   #ring.on { opacity: 1; }
   #ring { --p: 0; transition: opacity 0.2s, transform 0.08s; filter: drop-shadow(0 0 calc(4px + 14px * var(--p)) rgba(239, 233, 223, calc(0.35 + 0.6 * var(--p)))); }
-  #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #fx { position: fixed; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }   /* over the pad and films, as they are raised */
   #ring circle { fill: none; stroke-width: 4; }
   #ring .track { stroke: rgba(239,233,223,0.2); }
   #ring .prog { stroke: var(--paper); stroke-linecap: square; transform: rotate(-90deg); transform-origin: 50% 50%; }
@@ -186,12 +189,11 @@
          comic's own lettering (tools/cut_enter_label.py) -->
     <p class="code" id="code" aria-hidden="true">OBTRAN003</p>
     <p class="lead" id="note">Turn your sound on and follow Bob's story through the page, exploring to unlock tracks.</p>
-    <button id="start" type="button" aria-label="Enter"><svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polygon points="3,6 97,1.5 98.5,33 1.5,38.5"/></svg><img src="assets/props/enter.png" alt=""></button>
+    <button id="start" type="button"><span class="lbl">ENTER</span><svg class="arr" viewBox="0 0 24 12" aria-hidden="true"><path d="M0 6h21M16 1l5 5-5 5"/></svg></button>
   </div>
 </div>
 
 <div id="hint" class="off">Tap to continue</div>
-<div id="enterHint" role="status" aria-label="Tap to enter"><svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polygon points="2,7 98,2 99,34 1,38"/></svg><img alt=""></div>
 <button id="mute" class="ui-btn" type="button" aria-pressed="false">Sound on</button>
 <div id="music" hidden>
   <button id="musicTab" class="ui-btn" type="button" aria-expanded="false" aria-controls="musicList"><span class="mt-name">QNTM CTRL</span> <span id="musicCount">0/3</span></button>
@@ -202,7 +204,6 @@
   </div>
 </div>
 <div id="toast" aria-live="polite"></div>
-<button id="again" class="ui-btn" type="button">Read again</button>
 <svg id="ring" viewBox="0 0 96 96" aria-hidden="true"><circle class="track" cx="48" cy="48" r="40"/><circle class="prog" id="ringProg" cx="48" cy="48" r="40" stroke-dasharray="251.3" stroke-dashoffset="251.3"/></svg>
 <div class="sr" aria-live="polite" id="sr"></div>
 
@@ -737,6 +738,40 @@ tbcCard.material.depthTest = false;
 tbcCard.renderOrder = 10;
 tbcCard.visible = false;
 camera.add(tbcCard);
+{
+  // a generous invisible target round it, as on the page
+  const gp = tbc.mesh.geometry.parameters;
+  tbcCard.add(new THREE.Mesh(new THREE.PlaneGeometry(gp.width * 1.3, gp.height * 2), new THREE.MeshBasicMaterial({ visible: false })));
+}
+// The end (Paul, 24 October: "lose Read again, use slice panel as nav, with timeout shake nudge"):
+// the "To be continued..." panel itself takes the reader back to the start, by a tap or click on
+// it, or Enter or Space. Left 6 s without a touch, click or key, it shakes with a flash of glow,
+// and again every 6 s until it is used.
+const endNav = { shake: -1, since: 0, going: false };
+function endReady() { return tbcCard.visible && state.endT > 9 && !REVIEW; }
+function hitTbc(x, y) {
+  ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  return ray.intersectObject(tbcCard, true).length > 0;
+}
+function readAgain() {
+  if (endNav.going) return;
+  endNav.going = true;
+  flash(0.6); sound.staticBurst(0.35);
+  setTimeout(() => location.reload(), 280);
+}
+function updateEndNav(rawDt) {
+  if (!endReady()) return;
+  const now = performance.now();
+  if (!endNav.since) { endNav.since = now; $('sr').textContent = 'To be continued... Select the panel to read it again.'; }
+  if (endNav.shake < 0 && !reducedMotion && now - Math.max(lastInput, endNav.since) > 6000) endNav.shake = 0;
+  if (endNav.shake < 0) return;
+  endNav.shake += rawDt;
+  const k = Math.min(1, endNav.shake / 0.75), a = Math.sin(k * Math.PI * 7) * (1 - k);
+  tbcCard.rotation.z = 0.07 * a; tbcCard.position.x = 0.06 * a;
+  tbcCard.material.uniforms.uGlow.value = 0.7 * Math.sin(Math.PI * k);
+  if (k >= 1) { endNav.shake = -1; endNav.since = now; tbcCard.rotation.z = 0; tbcCard.position.x = 0; tbcCard.material.uniforms.uGlow.value = 0; }
+}
 
 
 /* ---------- Marble worlds (Spark) ---------- */
@@ -1033,6 +1068,7 @@ class Sound {
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
     this.master.connect(comp).connect(ctx.destination);
     this.noise = this.makeNoise(2);
+    this.loadSfx();
     // cabin: muffled hum plus tape hiss
     this.cabinLP = ctx.createBiquadFilter(); this.cabinLP.type = 'lowpass'; this.cabinLP.frequency.value = 320; this.cabinLP.Q.value = 0.7;
     this.cabin = ctx.createGain(); this.cabin.gain.value = 0;
@@ -1070,15 +1106,65 @@ class Sound {
       o.connect(bp).connect(g).connect(this.master); o.start(t + dt); o.stop(t + dt + 0.2);
     });
   }
+  // Paul's sound effects (assets/sfx, tools/make_sfx.py), decoded once on the Start tap. Each has its
+  // own level, as they arrive at different loudness. Where one is missing the synthesised sound stays.
+  loadSfx() {
+    this.sfx = {};
+    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'whoosh-3', 'power-up'])
+      fetch(`assets/sfx/${n}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b))
+        .then((buf) => { this.sfx[n] = buf; }).catch(() => {});
+  }
+  sfxPlay(name, { gain = 1, rate = 1 } = {}) {
+    const buf = this.ok && this.sfx?.[name];
+    if (!buf) return null;
+    const t = this.now(), src = this.ctx.createBufferSource(), g = this.ctx.createGain();
+    src.buffer = buf; src.playbackRate.value = rate; g.gain.value = gain;
+    src.connect(g).connect(this.master); src.start(t);
+    return { src, g };
+  }
+  sfxFade(h, secs) {
+    if (!h) return; const t = this.now();
+    h.g.gain.cancelScheduledValues(t); h.g.gain.setValueAtTime(h.g.gain.value, t); h.g.gain.linearRampToValueAtTime(0, t + secs);
+    h.src.stop(t + secs + 0.05);
+  }
+  // CRSSHKKKKK! (Paul: "starts when radio crackle comes in and runs under first Smokehouse line before
+  // fade"): the static starts on the beat and runs on through the cut; under the next line it drops
+  // back, then fades away as that line ends
+  crackleStart() {
+    this.crackleStop(0.05);
+    this.crackle = this.sfxPlay('crackle', { gain: 0.9 });
+    return !!this.crackle;
+  }
+  crackleUnder(beat) {
+    const h = this.crackle;
+    if (!h) return;
+    if (h.under) { this.crackleStop(0.8); return; }   // a later line: let it go
+    h.under = true;
+    const t = this.now();
+    h.g.gain.cancelScheduledValues(t); h.g.gain.setValueAtTime(h.g.gain.value, t); h.g.gain.linearRampToValueAtTime(0.42, t + 0.5);
+    this.voiceBuffer(beat).then((buf) => {
+      const end = buf ? (buf.speechEnd || buf.duration) : 5;
+      clearTimeout(h.timer); h.timer = setTimeout(() => { if (this.crackle === h) this.crackleStop(1.6); }, end * 1000);
+    }).catch(() => {});
+  }
+  crackleStop(secs = 0.6) { if (this.crackle) { clearTimeout(this.crackle.timer); this.sfxFade(this.crackle, secs); this.crackle = null; } }
   holdStart() {
     if (!this.ok) return; const ctx = this.ctx, t = this.now();
     const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(760, t + 1.4);
     const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.08, t + 0.15);
     o.connect(g).connect(this.master); o.start(t); this.holdOsc = { o, g };
+    const p = this.sfxPlay('power-up', { gain: 0.95 });
+    if (p) {
+      g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.025, t + 0.4);   // the tone only under it
+      p.src.playbackRate.setValueAtTime(1, t); p.src.playbackRate.linearRampToValueAtTime(1.45, t + HOLD_DUR);
+      this.holdOsc.sfx = p;
+    }
   }
   holdStop(success) {
     if (!this.ok || !this.holdOsc) return; const t = this.now();
-    this.holdOsc.g.gain.setTargetAtTime(0, t, 0.03); this.holdOsc.o.stop(t + 0.3); this.holdOsc = null;
+    this.holdOsc.g.gain.setTargetAtTime(0, t, 0.03); this.holdOsc.o.stop(t + 0.3);
+    this.sfxFade(this.holdOsc.sfx, success ? 0.35 : 0.08);
+    this.holdOsc = null;
     if (success) [880, 1320].forEach((f, i) => { const o = this.ctx.createOscillator(); o.frequency.value = f; const g = this.ctx.createGain(); g.gain.setValueAtTime(0.07, t + i * 0.08); g.gain.setTargetAtTime(0, t + i * 0.08 + 0.05, 0.04); o.connect(g).connect(this.master); o.start(t + i * 0.08); o.stop(t + i * 0.08 + 0.4); });
   }
   breach(dur) {
@@ -2073,6 +2159,21 @@ function musicRender() {
     ol.append(li);
   });
 }
+// Paul: "when user unlocks new track, have the indicator flash and scroll track name"
+function tabMarquee(text) {
+  const tab = $('musicTab');
+  tab.querySelector('.mt-marquee')?.remove();
+  tab.style.width = tab.offsetWidth + 'px';
+  tab.classList.add('marquee');
+  const m = document.createElement('span');
+  m.className = 'mt-marquee'; m.textContent = text;
+  m.style.setProperty('--d', (2.2 + text.length * 0.09).toFixed(2) + 's');
+  tab.append(m);
+  $('sr').textContent = text;
+  const done = () => { m.remove(); tab.classList.remove('marquee'); tab.style.width = ''; };
+  m.addEventListener('animationend', done);
+  if (reducedMotion) setTimeout(done, 3500);
+}
 function toast(text) {
   const el = $('toast'); el.textContent = text; el.classList.add('show');
   clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600);
@@ -2084,7 +2185,8 @@ function musicBeat(beat) {
     if (t.unlockAt !== beat || music.unlocked.has(t.id)) continue;
     music.unlocked.add(t.id); musicStore(true); musicRender();
     const n = music.unlocked.size, all = music.index.tracks.length;
-    toast(n === all ? `All ${all} tracks unlocked` : `Track unlocked: ${t.title}`);
+    tabMarquee(n === all ? `All ${all} tracks unlocked` : `Track unlocked: ${t.title}`);
+    sound.sfxPlay('unlock', { gain: 0.8 });
     const tab = $('musicTab'); tab.classList.remove('unlocked'); void tab.offsetWidth; tab.classList.add('unlocked');   // not 'flash': that is the white flash overlay's class
     if (sound.ok) sound.blip();
   }
@@ -2403,7 +2505,8 @@ function showStep(i, keepCard = false) {
   setCard(STEPS[i].beat, keepCard);
   if (beat.filmOnly && filmCue(beat.b)) card.visible = false;   // its panel comes up over the film instead
   $('sr').textContent = bubbleById[beat.b].text;
-  if (beat.fx === 'static') { sound.staticBurst(beat.cut ? beat.cut + 1.2 : undefined); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
+  if (beat.fx === 'static') { if (!sound.crackleStart()) sound.staticBurst(beat.cut ? beat.cut + 1.2 : undefined); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
+  if (beat.fx !== 'static') sound.crackleUnder(beat.b);
   if (beat.fx === 'blip') sound.blip();
   sound.playVoice(beat.b);
   playFilm(beat.b);
@@ -2431,7 +2534,7 @@ function arrive(i, how) {
   useWorld(true);
   worlds.suction = how === 'cut' ? 0 : 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.55;
   look.yaw = 0; look.pitch = 0; look.vyaw = 0; look.vpitch = 0;
-  if (how === 'cut') { worlds.jitter = 1; sound.staticBurst(0.4); flash(0.45); }
+  if (how === 'cut') { worlds.jitter = 1; if (!sound.crackle) sound.staticBurst(0.4); flash(0.45); }
   else if (how !== 'carried') flash(0.3);
   showStep(i, how === 'carried');
 }
@@ -2477,7 +2580,7 @@ function startHop(i) {
   journey.hop = { i, A, B, C: W.clone().multiplyScalar(2).sub(A.to.clone().add(B.to).multiplyScalar(0.5)), swapped: false,
     load: loadWorld(STEPS[i].world).catch((e) => console.warn('world unavailable', e)) };
   journey.phase = 'hop'; journey.t = 0;
-  sound.blip();
+  if (!sound.sfxPlay('whoosh-2', { gain: 0.6 })) sound.blip();   // the camera across the page
 }
 function updateHop() {
   const H = journey.hop, u = clamp(journey.t / HOP_DUR, 0, 1), e = ease(u), r = 1 - e;
@@ -2503,7 +2606,7 @@ function startPull() {
   const A = toPage('qntm');
   journey.pull = { A, to: new THREE.Vector3(0, 0, pageDist(PAGE_FOV)), load: loadWorld(FINAL_WORLD).catch((e) => console.warn('world unavailable', e)) };
   journey.phase = 'pull'; journey.t = 0;
-  sound.blip();
+  if (!sound.sfxPlay('whoosh-3', { gain: 0.6 })) sound.blip();   // back to the whole page
 }
 function updatePull() {
   const P = journey.pull, u = clamp(journey.t / PULL_DUR, 0, 1), e = ease(u);
@@ -2533,10 +2636,8 @@ function cutTo(i) {
 
 function startJourney() {
   state.stage = 'read'; state.beat = -1;
-  const eh = $('enterHint');
-  eh.querySelector('img').src = `assets/props/${isTouch ? 'tap' : 'click'}-to-enter.png`;
-  eh.setAttribute('aria-label', `${tapWord} to enter`);
-  eh.classList.add('on');
+  // no words on the page (Paul): the glow round Bob's panel is the cue; screen readers are told
+  $('sr').textContent = `${tapWord} the page to enter.`;
   loadWorld(STEPS[0].world).catch((e) => console.warn('world unavailable', e));
 }
 
@@ -2544,7 +2645,6 @@ function enterSpace() {
   if (journey.phase !== 'idle') return;
   journey.phase = 'enter'; journey.t = 0;
   state.stage = 'enter';
-  $('enterHint').classList.remove('on');
   state.camStart = camera.position.clone();
   setHint('');
   // the narrator's caption becomes the first card (Paul: "zoom seamlessly into the narrator panel
@@ -2556,7 +2656,7 @@ function enterSpace() {
   const P = boxPose(BEATS[STEPS[0].beat].b);
   layCard(P);
   journey.enter = { from: camera.position.clone(), q: camera.quaternion.clone(), fov0: camera.fov, fov1: P.fov, to: P.to };
-  sound.blip();
+  if (!sound.sfxPlay('whoosh-1', { gain: 0.6 })) sound.blip();   // the zoom into the caption
   if (sound.ok) { sound.cabin.gain.setTargetAtTime(0.25, sound.now(), 0.8); sound.startSpace(); }
 }
 
@@ -2579,7 +2679,8 @@ function leave(nextWorld, then, dur = OUT_DUR, keepCard = false) {
   journey.autoAt = null;
   padHide();
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
-  sound.stopVoice();
+  sound.stopVoice(); sound.crackleStop();
+  sound.sfxPlay('transition', { gain: 0.5 });       // the hit as the space collapses (Paul's transition)
   stopFilm(false);
   if (!keepCard) cardState.target = 0;
   setHint('');
@@ -2683,6 +2784,7 @@ canvas.addEventListener('pointermove', (e) => {
     parallax.tx = (e.clientX / innerWidth - 0.5) * 2; parallax.ty = (e.clientY / innerHeight - 0.5) * 2;
   }
   if (state.holding) { ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px'; state.holdX = e.clientX; state.holdY = e.clientY; }
+  if (e.pointerType === 'mouse') canvas.style.cursor = state.stage === 'void' && endReady() && hitTbc(e.clientX, e.clientY) ? 'pointer' : '';
   if (state.stage === 'void' && look.dragging) {
     const dx = e.clientX - look.lastX, dy = e.clientY - look.lastY;
     look.lastX = e.clientX; look.lastY = e.clientY;
@@ -2697,6 +2799,11 @@ canvas.addEventListener('pointermove', (e) => {
 });
 function pointerEnd(e) {
   if (state.holding) endHold(false);
+  // the end: a tap or click on the panel reads it again
+  if (state.stage === 'void' && endReady() && down) {
+    const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t;
+    if (moved <= 14 && dt <= 600 && hitTbc(e.clientX, e.clientY)) { down = null; look.dragging = false; readAgain(); return; }
+  }
   if (state.stage === 'void' && !journey.on) { look.dragging = false; return; }
   look.dragging = false;
   if (!down) return;
@@ -2729,6 +2836,7 @@ addEventListener('keydown', () => { lastInput = performance.now(); }, { capture:
 addEventListener('keydown', (e) => {
   // a key during a film cuts it short and does nothing else
   if (films.on) { e.preventDefault(); if (!e.repeat) stopFilm(true); return; }
+  if (state.stage === 'void' && endReady() && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); readAgain(); return; }
   if (journey.on) {
     if (!(e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'ArrowDown')) return;
     e.preventDefault();
@@ -2845,7 +2953,6 @@ async function startReview() {
 }
 if (REVIEW) $('note').textContent = 'Review mode: opens the Marble worlds directly.';
 $('mute').addEventListener('click', () => { const m = !sound.muted; sound.setMuted(m); $('mute').textContent = m ? 'Sound off' : 'Sound on'; $('mute').setAttribute('aria-pressed', String(m)); });
-$('again').addEventListener('click', () => location.reload());
 
 /* ---------- loop ---------- */
 const clock = new THREE.Clock();
@@ -2988,11 +3095,11 @@ function frame() {
       tbcCard.scale.setScalar(s);
       tbcCard.position.set(0, -0.62, -2.4);
     }
+    updateEndNav(rawDt);
     if (tbcCard.visible) {
       tbcCard.material.uniforms.uOpacity.value = smooth(3, 4.5, state.endT);
       tbcCard.material.uniforms.uFlick.value = state.endT < 3.6 ? 1 : 0;
     }
-    if (state.endT > 10 && !REVIEW && (!journey.on || journey.done)) $('again').classList.add('show');
     if (state.endT > 6 && look.idle < 1 && (!journey.on || journey.done)) setHint('');
   }
 
@@ -3021,7 +3128,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst, endReady };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

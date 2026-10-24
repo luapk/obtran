@@ -84,6 +84,13 @@ def main():
             for f in sorted(voice.iterdir()):
                 if f.name == "index.json" or f.suffix == ".mp3":
                     shutil.copyfile(f, DIST / "assets" / "voice" / f.name)
+        # Paul's sound effects (tools/make_sfx.py)
+        sfx = ASSETS / "sfx"
+        if sfx.exists():
+            (DIST / "assets" / "sfx").mkdir()
+            for f in sorted(sfx.iterdir()):
+                if f.suffix == ".mp3":
+                    shutil.copyfile(f, DIST / "assets" / "sfx" / f.name)
         # music (assets/music/index.json): the audio files present are listed in the deployed index
         music = ASSETS / "music"
         if (music / "index.json").exists():
