@@ -1120,13 +1120,43 @@ class Sound {
       fetch(`assets/sfx/${n}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b))
         .then((buf) => { this.sfx[n] = buf; }).catch(() => {});
   }
-  sfxPlay(name, { gain = 1, rate = 1 } = {}) {
+  sfxPlay(name, { gain = 1, rate = 1, verb = 0, echo = 0 } = {}) {
     const buf = this.ok && this.sfx?.[name];
     if (!buf) return null;
     const t = this.now(), src = this.ctx.createBufferSource(), g = this.ctx.createGain();
     src.buffer = buf; src.playbackRate.value = rate; g.gain.value = gain;
     src.connect(g).connect(this.master); src.start(t);
+    if (verb) { const s = this.ctx.createGain(); s.gain.value = verb; g.connect(s).connect(this.longVerbSend()); }
+    if (echo) { const s = this.ctx.createGain(); s.gain.value = echo; g.connect(s).connect(this.echoSend()); }
     return { src, g };
+  }
+  // the wide 5 s reverb (Smokehouse's, and the whooshes and transition hit): 35 ms pre-delay, decorrelated
+  // stereo, kept between 280 Hz and 5.2 kHz, ringing on into the master
+  longVerbSend() {
+    if (!this.longVerbIn) {
+      const ctx = this.ctx;
+      this.longVerb = ctx.createConvolver(); this.longVerb.buffer = this.makeIR(5);
+      const vhp = ctx.createBiquadFilter(); vhp.type = 'highpass'; vhp.frequency.value = 280;
+      const vlp = ctx.createBiquadFilter(); vlp.type = 'lowpass'; vlp.frequency.value = 5200;
+      this.longVerbIn = ctx.createDelay(0.1); this.longVerbIn.delayTime.value = 0.035;
+      this.longVerbIn.connect(vhp).connect(this.longVerb).connect(vlp).connect(this.master);
+    }
+    return this.longVerbIn;
+  }
+  // a slight eighth-note delay (Paul, on the whooshes and transition): 0.25 s, an eighth at 120 bpm,
+  // with light feedback, each repeat darker than the last, and some of it into the reverb too
+  echoSend() {
+    if (!this.echoIn) {
+      const ctx = this.ctx;
+      this.echoIn = ctx.createGain();
+      const d = ctx.createDelay(1); d.delayTime.value = 0.25;
+      const fb = ctx.createGain(); fb.gain.value = 0.32;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+      this.echoIn.connect(d); d.connect(lp).connect(fb).connect(d);
+      lp.connect(this.master);
+      const v = ctx.createGain(); v.gain.value = 0.3; lp.connect(v).connect(this.longVerbSend());
+    }
+    return this.echoIn;
   }
   sfxFade(h, secs) {
     if (!h) return; const t = this.now();
@@ -1336,16 +1366,7 @@ class Sound {
       lvl.connect(hp).connect(mid).connect(lp).connect(drive).connect(g).connect(lim).connect(out);
       // a wide, subtle reverb with a long tail (Paul: Smokehouse, 5 s), after the radio, kept out of the
       // lows; it rings on to the master after the line ends
-      if (rc.reverb) {
-        if (!this.longVerb) {
-          this.longVerb = ctx.createConvolver(); this.longVerb.buffer = this.makeIR(5);
-          const vhp = ctx.createBiquadFilter(); vhp.type = 'highpass'; vhp.frequency.value = 280;
-          const vlp = ctx.createBiquadFilter(); vlp.type = 'lowpass'; vlp.frequency.value = 5200;
-          this.longVerbIn = ctx.createDelay(0.1); this.longVerbIn.delayTime.value = 0.035;
-          this.longVerbIn.connect(vhp).connect(this.longVerb).connect(vlp).connect(this.master);
-        }
-        const send = ctx.createGain(); send.gain.value = rc.reverb; lim.connect(send).connect(this.longVerbIn);
-      }
+      if (rc.reverb) { const send = ctx.createGain(); send.gain.value = rc.reverb; lim.connect(send).connect(this.longVerbSend()); }
       // squelch as the mic keys, then the voice
       const key = 0.16, end = key + len;
       const sq = ctx.createBufferSource(); sq.buffer = this.noise;
@@ -2840,7 +2861,7 @@ function startHop(i) {
   journey.hop = { i, A, B, C: W.clone().multiplyScalar(2).sub(A.to.clone().add(B.to).multiplyScalar(0.5)), swapped: false,
     load: loadWorld(STEPS[i].world).catch((e) => console.warn('world unavailable', e)) };
   journey.phase = 'hop'; journey.t = 0;
-  if (!sound.sfxPlay('whoosh-2', { gain: 0.6 })) sound.blip();   // the camera across the page
+  if (!sound.sfxPlay('whoosh-2', { gain: 0.6, verb: 0.35, echo: 0.22 })) sound.blip();   // the camera across the page
 }
 function updateHop() {
   const H = journey.hop, u = clamp(journey.t / HOP_DUR, 0, 1), e = ease(u), r = 1 - e;
@@ -2889,7 +2910,7 @@ function enterSpace() {
   const P = boxPose(BEATS[STEPS[0].beat].b);
   layCard(P);
   journey.enter = { from: camera.position.clone(), q: camera.quaternion.clone(), fov0: camera.fov, fov1: P.fov, to: P.to };
-  if (!sound.sfxPlay('whoosh-1', { gain: 0.6 })) sound.blip();   // the zoom into the caption
+  if (!sound.sfxPlay('whoosh-1', { gain: 0.6, verb: 0.35, echo: 0.22 })) sound.blip();   // the zoom into the caption
   if (sound.ok) { sound.cabin.gain.setTargetAtTime(0.25, sound.now(), 0.8); sound.startSpace(); }
 }
 
@@ -2913,7 +2934,7 @@ function leave(nextWorld, then, dur = OUT_DUR, keepCard = false) {
   padHide();
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
   sound.stopVoice(); sound.crackleStop();
-  sound.sfxPlay('transition', { gain: 0.5 });       // the hit as the space collapses (Paul's transition)
+  sound.sfxPlay('transition', { gain: 0.5, verb: 0.35, echo: 0.22 });   // the hit as the space collapses (Paul's transition), in the long reverb with an eighth-note delay
   stopFilm(false);
   if (!keepCard) cardState.target = 0;
   setHint('');

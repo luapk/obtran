@@ -22,7 +22,11 @@ from scipy.ndimage import gaussian_filter
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "source" / "page_rgb.png"
 OUT = ROOT / "prototype" / "assets" / "props"
-SCALE = 0.6                              # of the full resolution scan
+SCALE = 0.6                              # of the full resolution scan, when there is no upscale
+# Paul, 24 October: the slice was small and soft, so it is now cut from the panel upscaled on Higgsfield
+# (films/stills/panel-upscaled.jpg: the full resolution crop, 4k), at this width
+UPSCALED = ROOT / "films" / "stills" / "panel-upscaled.jpg"
+WIDTH = 1800
 
 PANEL = [(0, 262), (185, 197), (440, 280), (312, 352), (312, 700), (215, 745), (0, 745)]
 FIGURE = [(148.5, 266.5), (211.5, 232.8), (288.0, 253.0), (324.0, 307.0), (315.0, 370.0), (288.0, 401.5), (310.5, 442.0),
@@ -50,7 +54,12 @@ def main():
     xs, ys = [p[0] for p in PANEL], [p[1] for p in PANEL]
     box = (int(min(xs) * s), int(min(ys) * s), int(max(xs) * s), int(max(ys) * s))
     crop = page.crop(box)
-    w, h = int(crop.width * SCALE), int(crop.height * SCALE)
+    global SCALE
+    if UPSCALED.exists():
+        up = Image.open(UPSCALED).convert("RGB")
+        SCALE = WIDTH / crop.width
+        crop = up
+    w, h = int((box[2] - box[0]) * SCALE), int((box[3] - box[1]) * SCALE)
     crop = crop.resize((w, h), Image.LANCZOS)
     rgb = np.asarray(crop).astype(np.float32) / 255
 
