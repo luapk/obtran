@@ -1,3 +1,109 @@
 {
-  "lines": {}
+  "lines": {
+    "caption": {
+      "file": "caption.mp3",
+      "hash": "df43ba31bb9b5468",
+      "bytes": 194394,
+      "speaker": "narrator",
+      "radio": false
+    },
+    "smoke1": {
+      "file": "smoke1.mp3",
+      "hash": "0c291130b58c829b",
+      "bytes": 149672,
+      "speaker": "smokehouse",
+      "radio": {
+        "low": 420,
+        "high": 2900,
+        "lift": 7,
+        "drive": 3.2,
+        "static": 0.035
+      }
+    },
+    "engage": {
+      "file": "engage.mp3",
+      "hash": "e41423f2ad394c6b",
+      "bytes": 51034,
+      "speaker": "smokehouse",
+      "radio": {
+        "low": 420,
+        "high": 2900,
+        "lift": 7,
+        "drive": 3.2,
+        "static": 0.035
+      }
+    },
+    "bob1": {
+      "file": "bob1.mp3",
+      "hash": "cde7d222e183bf91",
+      "bytes": 147164,
+      "speaker": "bob",
+      "radio": {
+        "low": 300,
+        "high": 3300,
+        "lift": 4,
+        "drive": 2,
+        "static": 0.022
+      }
+    },
+    "drill": {
+      "file": "drill.mp3",
+      "hash": "10bfa2a2b9681052",
+      "bytes": 111220,
+      "speaker": "smokehouse",
+      "radio": {
+        "low": 420,
+        "high": 2900,
+        "lift": 7,
+        "drive": 3.2,
+        "static": 0.035
+      }
+    },
+    "unlock": {
+      "file": "unlock.mp3",
+      "hash": "0d095cb8bf304d28",
+      "bytes": 49780,
+      "speaker": "smokehouse",
+      "radio": {
+        "low": 420,
+        "high": 2900,
+        "lift": 7,
+        "drive": 3.2,
+        "static": 0.035
+      }
+    },
+    "holy": {
+      "file": "holy.mp3",
+      "hash": "b3250422fa484c46",
+      "bytes": 43510,
+      "speaker": "bob",
+      "radio": {
+        "low": 300,
+        "high": 3300,
+        "lift": 4,
+        "drive": 2,
+        "static": 0.022
+      }
+    },
+    "qntm": {
+      "file": "qntm.mp3",
+      "hash": "043d88076e93b09b",
+      "bytes": 52287,
+      "speaker": "bob",
+      "radio": {
+        "low": 300,
+        "high": 3300,
+        "lift": 4,
+        "drive": 2,
+        "static": 0.022
+      }
+    },
+    "tbc": {
+      "file": "tbc.mp3",
+      "hash": "2ccf0b7a9f808759",
+      "bytes": 35569,
+      "speaker": "narrator",
+      "radio": false
+    }
+  }
 }
