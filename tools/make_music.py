@@ -9,7 +9,7 @@ decays and ends at full level, mid build, so as it stands the loop would cut dea
 the last FADE seconds fade out, a slight reverb (a synthetic decaying stereo tail, TAIL seconds, mixed
 at WET) is laid over the end, and the part of the reverb that rings past the end is folded back onto
 the start, so it rings on under the opening hit as the loop comes round. The loop keeps the excerpt's
-length, so it holds its tempo, and plays with no seam. Writes prototype/assets/music/<name>.loop.mp3.
+length, so it holds its tempo, and plays with no seam. pulsar_forest.mp3 (32.7 s, 25 October) is made the same way. Writes prototype/assets/music/<name>.loop.mp3.
 """
 import subprocess
 from pathlib import Path
@@ -20,11 +20,12 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "source" / "music"
 OUT = ROOT / "prototype" / "assets" / "music"
 SR = 44100
-LOOPS = {"smokehouse-shift": "smokehouse_shift.mp3"}   # track id (assets/music/index.json): source file
+LOOPS = {"smokehouse-shift": "smokehouse_shift.mp3", "pulsar-forest": "pulsar_forest.mp3"}   # track id (assets/music/index.json): source file
 FADE = 2.5        # the end fades out over this long
 TAIL = 3.0        # the reverb's length
 WET = 0.28        # how much reverb
 VERB_IN = 5.0     # the reverb hears this much of the end
+LEVEL = -22.0     # loudness of every loop (RMS, dB full scale)
 
 
 def reverb_ir(n, rng):
@@ -56,6 +57,8 @@ def make(track, src):
     y[v0:] += wet[: n - v0]
     rest = wet[n - v0:]                                                      # rings past the end: fold onto the start
     y[: len(rest)] += rest
+    # every loop to the same loudness (Paul's excerpts arrived 17 dB apart), with peaks kept under full scale
+    y *= 10 ** (LEVEL / 20) / np.sqrt(np.mean(y ** 2))
     peak = np.abs(y).max()
     if peak > 0.98: y *= 0.98 / peak
     out = OUT / f"{track}.loop.mp3"

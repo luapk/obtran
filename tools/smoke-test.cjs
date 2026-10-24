@@ -136,7 +136,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     .catch(() => { throw new Error('hold did not unlock the next beat'); });
   await page.keyboard.up('Space');
   await sleep(400);
-  await shot('beat-holy');
+  await shot('beat-after-hold');
 
   await page.keyboard.press('ArrowRight');
   await sleep(1200);
