@@ -1,9 +1,11 @@
 {
   "quality": "full",
   "only": [
-    "ribbon-loops"
+    "singularity-core",
+    "hull-machinery",
+    "monolith-slabs"
   ],
   "force": false,
   "refresh": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. Full quality test of one world (marble-1.1, about 1,580 credits) to see whether it is deeper than the draft, approved by Paul on 24 October 2026."
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. Full quality backdrops for the singularity, hull machinery and monolith slabs (marble-1.1, about 4,740 credits), approved by Paul on 24 October 2026."
 }
