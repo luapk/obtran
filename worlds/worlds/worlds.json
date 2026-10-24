@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-23T21:31:59.324Z",
+  "updated": "2026-10-24T06:04:15.464Z",
   "worlds": [
     {
       "id": "bob-cockpit",
@@ -99,15 +99,15 @@
     {
       "id": "ribbon-loops",
       "title": "Ribbon loops",
-      "model": "marble-1.0-draft",
-      "world_id": "a083e2ca-792a-420c-a516-eefeb1b524dc",
-      "marble_url": "https://marble.worldlabs.ai/world/a083e2ca-792a-420c-a516-eefeb1b524dc",
+      "model": "marble-1.1",
+      "world_id": "a0769c19-7e1f-4d97-a8cd-93e48bcada83",
+      "marble_url": "https://marble.worldlabs.ai/world/a0769c19-7e1f-4d97-a8cd-93e48bcada83",
       "splats": {
         "500k": "worlds/ribbon-loops.spz",
         "100k": "worlds/ribbon-loops.100k.spz"
       },
       "pano": "worlds/ribbon-loops.pano.png",
-      "metric_scale_factor": null,
+      "metric_scale_factor": 0.4928536,
       "crop_uv": [
         0.4300029472443265,
         0.6449433304272014,

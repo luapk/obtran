@@ -91,21 +91,21 @@
   },
   "ribbon-loops": {
     "status": "done",
-    "model": "marble-1.0-draft",
-    "media_asset_id": "ce69d01e-248e-4d00-b681-57cfb1688381",
-    "operation_id": "0fcca820-e53a-4f62-b39c-0a12047d3694",
-    "started_at": "2026-10-23T21:20:03.095Z",
-    "world_id": "a083e2ca-792a-420c-a516-eefeb1b524dc",
-    "finished_at": "2026-10-23T21:20:33.926Z",
-    "marble_url": "https://marble.worldlabs.ai/world/a083e2ca-792a-420c-a516-eefeb1b524dc",
-    "metric_scale_factor": null,
-    "caption": "The scene is a hand-drawn illustration, rendered in a high-contrast style using black ink, white chalk lines, and a dusty sepia wash, creating a stark and intricate visual. The overall tone is industrial and abstract, evoking a sense of complex inner workings and dynamic movement. Long white ribbons, like chalk lines drawn in the air, loop and knot through the dark space, casting faint shadows as they twist over each other in large, slow curves. Beneath these ribbons, a sprawl of machinery extends, characterized by dense cross-hatching and scratchy lines that define its form and shading. Rectangular and block-like components of the machinery are outlined in white chalk, creating a layered effect against the deep black background. The ribbons interact with the machinery, sometimes appearing to weave through its components, sometimes floating above it. The intricate details of the machinery suggest complex gears, levers, and interconnected parts, all rendered with a tactile, drawn quality. The white lines of the ribbons contrast sharply with the dark machinery and sepia-toned background, drawing the eye along their sweeping paths. The overall composition suggests a vast, interconnected system, where the elegant curves of the ribbons provide a counterpoint to the rigid, functional shapes of the machines. The 360 scene is faultless.",
+    "model": "marble-1.1",
+    "media_asset_id": "f9ee66b4-151a-4c4a-869f-16bc87065654",
+    "operation_id": "f7db7dad-bc6d-4fa6-805d-fec952ce3d13",
+    "started_at": "2026-10-24T05:59:11.073Z",
+    "world_id": "a0769c19-7e1f-4d97-a8cd-93e48bcada83",
+    "finished_at": "2026-10-24T06:04:15.455Z",
+    "marble_url": "https://marble.worldlabs.ai/world/a0769c19-7e1f-4d97-a8cd-93e48bcada83",
+    "metric_scale_factor": 0.4928536,
+    "caption": "The scene is a hand-drawn illustration rendered in a high-contrast comic ink style, presenting a dynamic and somewhat abstract industrial landscape. The overall tone is dramatic and energetic, characterized by sharp contrasts and intricate linework. Long white ribbons loop and knot through a dark, expansive space, resembling chalk lines drawn in the air. These ribbons cast faint shadows and twist over each other in large, slow curves, creating a sense of fluid motion amidst the static elements. Below these ethereal ribbons, a sprawling arrangement of machinery is depicted with black ink and white chalk lines on a deep black background, accented by a dusty sepia wash. The machinery itself is detailed with cross-hatching and scratchy hatching for shading, giving it a textured and robust appearance. The drawn line quality is consistently maintained, emphasizing the artistic medium rather than a photographic representation. The environment around the visible machinery likely extends with more intricate mechanical components and shadowed areas, continuing the theme of complex industrial forms. The interplay of light and shadow, created by the white lines on the dark ground, adds depth and dimension to the entire composition. The 360 scene is faultless.",
     "files": {
-      "ribbon-loops.spz": 4595414,
-      "ribbon-loops.100k.spz": 972708,
-      "ribbon-loops.pano.png": 4779892
+      "ribbon-loops.spz": 7160693,
+      "ribbon-loops.100k.spz": 1240770,
+      "ribbon-loops.pano.png": 13454137
     },
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata:},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}"
   },
   "monolith-slabs": {
     "status": "done",

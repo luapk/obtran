@@ -38,6 +38,21 @@
       "100k": "worlds/bob-cockpit.100k.clean.spz"
     }
   },
+  "bob-head-relief": {
+    "yaw": [
+      -60,
+      60
+    ],
+    "pitch": [
+      -40,
+      40
+    ],
+    "radius": 1.809376835823059,
+    "files": {
+      "500k": "worlds/bob-head-relief.clean.spz",
+      "100k": "worlds/bob-head-relief.100k.clean.spz"
+    }
+  },
   "bob-head": {
     "yaw": [
       -170.0,
@@ -196,16 +211,16 @@
   },
   "ribbon-loops": {
     "yaw": [
-      -110.0,
-      100.0
+      -115.0,
+      80.0
     ],
     "pitch": [
-      -40,
+      -45.0,
       80
     ],
-    "radius": 1.180310845375061,
+    "radius": 1.2752264738082886,
     "grade": {
-      "lo": 0.2432,
+      "lo": 0.2102,
       "hi": 0.42,
       "ink": [
         0.037,
