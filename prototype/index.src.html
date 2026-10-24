@@ -269,7 +269,7 @@ const bubbles = META.bubbles.map((b, i) => {
   scene.add(mesh);
   const hit = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.5, h * 2.2), new THREE.MeshBasicMaterial({ visible: false }));
   mesh.add(hit);
-  return { ...b, i, mesh, mat, hit, base: c, lift: 0, target: 0, flickT: 0 };
+  return { ...b, i, mesh, mat, hit, base: c, lift: 0, vel: 0, target: 0, flickT: 0, tilt: (Math.random() - 0.5) * 0.07 };
 });
 const bubbleById = Object.fromEntries(bubbles.map((b) => [b.id, b]));
 
@@ -1121,13 +1121,20 @@ function frame() {
   // bubble lift and flicker
   bubbles.forEach((b) => {
     if (b.id === 'tbc' && state.stage !== 'read') return;
-    b.lift = lerp(b.lift, b.target, 1 - Math.exp(-dt * 7));
-    if (b.lift < 0.002 && b.target === 0) b.lift = 0;
-    lifts[b.i] = b.lift;
+    // a sprung jump towards the reader: quick, with a small overshoot and settle
+    b.vel += ((b.target - b.lift) * 95 - b.vel * 12) * dt;
+    b.lift += b.vel * dt;
+    if (b.target === 0 && b.lift < 0.002 && Math.abs(b.vel) < 0.01) { b.lift = 0; b.vel = 0; }
+    lifts[b.i] = clamp(b.lift, 0, 1);
     b.flickT = Math.max(0, b.flickT - dt);
     b.mesh.visible = b.lift > 0.001 && (state.stage === 'read' || state.stage === 'breach');
-    b.mesh.position.z = bubbleZ + b.lift * (reducedMotion ? 0.12 : 0.42);
-    b.mesh.scale.setScalar(1 + b.lift * 0.04);
+    // comes well forward and grows, but stays over its place on the page, so boxes near the edge stay on screen
+    const rise = Math.max(0, b.lift) * (reducedMotion ? 0.12 : 1.6);
+    const keep = (fitDist - bubbleZ - rise) / (fitDist - bubbleZ);
+    const cx = state.stage === 'read' ? camera.position.x : 0, cy = state.stage === 'read' ? camera.position.y : 0;
+    b.mesh.position.set(b.base.x * keep + cx * (1 - keep), b.base.y * keep + cy * (1 - keep), bubbleZ + rise);
+    b.mesh.scale.setScalar(1 + Math.max(0, b.lift) * (reducedMotion ? 0.04 : 0.12));
+    b.mesh.rotation.z = reducedMotion ? 0 : b.lift * b.tilt;
     b.mat.uniforms.uFlick.value = b.flickT > 0 ? 1 : 0;
     const isTrigger = state.stage === 'read' && BEATS[state.beat]?.trigger && b.id === 'qntm';
     b.mat.uniforms.uGlow.value = isTrigger ? 0.35 + 0.35 * Math.sin(t * 5) : 0;

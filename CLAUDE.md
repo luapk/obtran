@@ -98,7 +98,7 @@ Stack: three.js 0.180.0 and Spark 2.4.0 (`@sparkjsdev/spark`), both from jsDeliv
 
 1. **`gate`:** Start button. One tap starts audio and asks for iOS motion permission.
 2. **`read`:** the page is a displaced plane, 320 x 433 segments. Depth comes from `depth.png`: a radial tunnel that recedes at the singularity, with Bob's panel and the boxes raised flat. Pointer or tilt moves the camera for parallax.
-   - Beats lift one box at a time, with a scanline flicker and a shadow left in the base.
+   - Beats lift one box at a time, with a scanline flicker and a shadow left in the base. The box jumps on a spring (slight overshoot) 1.6 units towards the reader and grows 12% with a small random tilt, held over its place on the page so edge boxes stay on screen (Paul asked for more jump, 24 October). Reduced motion keeps the old small lift.
    - "Unlock your biometric key" needs a 1.4 s press and hold (or holding Space).
    - The breach starts only when the reader taps the "INITIATING QNTM CTRL..." box itself.
    - The core pulses and inflow particles spiral in harder with each beat (`uAgit`).
