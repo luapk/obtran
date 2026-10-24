@@ -59,6 +59,24 @@
       "job": "4778f86d-7347-480e-9ec0-ab03a13980ff",
       "model": "seedance_2_5",
       "story": "Alien Bob, the same eye: lights flash, it darts left and right, an inner eyelid slides across. Spare, for elsewhere in the story (Paul). Still bob3-eyes-1."
+    },
+    "bob-wide-16x9": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_190210_19a240d6-e1fb-4448-b11c-72b50f1dd5a5.mp4",
+      "job": "19a240d6-e1fb-4448-b11c-72b50f1dd5a5",
+      "model": "seedance_2_5",
+      "story": "16:9 for landscape screens: the wide with a slow push in (outpainted still 86615797)"
+    },
+    "bob-close-16x9": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_190210_f68196fe-dd4c-4de8-8fbd-c808ef4044a1.mp4",
+      "job": "f68196fe-dd4c-4de8-8fbd-c808ef4044a1",
+      "model": "seedance_2_5",
+      "story": "16:9: the eye and the tear (outpainted still b1eae903)"
+    },
+    "bob-eyes-16x9": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_190209_dc780e46-1b40-4f44-be75-a0364f7b7281.mp4",
+      "job": "dc780e46-1b40-4f44-be75-a0364f7b7281",
+      "model": "seedance_2_5",
+      "story": "16:9: the darting eye, the inner eyelid (outpainted still b1eae903)"
     }
   },
   "stills": {
