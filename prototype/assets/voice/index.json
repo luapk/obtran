@@ -35,16 +35,10 @@
     },
     "bob1": {
       "file": "bob1.mp3",
-      "hash": "9509499a1824d492",
-      "bytes": 125430,
+      "hash": "deep-wet-1-f9d973efef",
+      "bytes": 140896,
       "speaker": "bob",
-      "radio": {
-        "low": 300,
-        "high": 3300,
-        "lift": 4,
-        "drive": 2,
-        "static": 0.022
-      }
+      "radio": false
     },
     "drill": {
       "file": "drill.mp3",
@@ -74,29 +68,17 @@
     },
     "holy": {
       "file": "holy.mp3",
-      "hash": "c9bce103006e5200",
-      "bytes": 52287,
+      "hash": "deep-wet-1-229c952164",
+      "bytes": 76948,
       "speaker": "bob",
-      "radio": {
-        "low": 300,
-        "high": 3300,
-        "lift": 4,
-        "drive": 2,
-        "static": 0.022
-      }
+      "radio": false
     },
     "qntm": {
       "file": "qntm.mp3",
-      "hash": "972c907e12b91a62",
-      "bytes": 39331,
+      "hash": "deep-wet-1-b7829b5c1f",
+      "bytes": 51871,
       "speaker": "bob",
-      "radio": {
-        "low": 300,
-        "high": 3300,
-        "lift": 4,
-        "drive": 2,
-        "static": 0.022
-      }
+      "radio": false
     },
     "tbc": {
       "file": "tbc.mp3",

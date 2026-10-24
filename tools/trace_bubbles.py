@@ -45,6 +45,27 @@ OUTLINE_PAD = 5      # pixels kept outside a black box's outline line (its half 
 WHITE_PAD = 2        # pixels kept outside a white box's edge
 
 
+# boxes shortened for the experience (Paul, 24 October: lose "Are you winding..." from Bob's line):
+# id: (v where the outline is cut off, v below which the lettering is painted out with the box's white),
+# in page UV. The cut leaves a margin under the last kept line to match the top one; the blank line
+# sits in the gap between the lines, as the gap is too narrow to cut the box there.
+TRIM = {"bob1": (0.3006, 0.2925)}
+
+
+def clip_below(poly, v):
+    """The polygon clipped to the part above v (Sutherland-Hodgman against one horizontal line)."""
+    out = []
+    for i in range(len(poly)):
+        a, b = poly[i - 1], poly[i]
+        ina, inb = a[1] <= v, b[1] <= v
+        if ina != inb:
+            k = (v - a[1]) / (b[1] - a[1])
+            out.append([round(a[0] + k * (b[0] - a[0]), 5), round(v, 5)])
+        if inb:
+            out.append(b)
+    return out
+
+
 def edge_points(lum, a, b, kind, s):
     """Points on the real edge near the rough edge a to b (full resolution pixels)."""
     a, b = np.array(a) * s, np.array(b) * s
@@ -142,6 +163,10 @@ def main():
             if np.linalg.norm(c - np.array(rough[i]) * s) > SEARCH * s * 1.5:
                 corners[i] = np.array(rough[i]) * s
         pu = [[round(float(x) / W, 5), round(float(y) / H, 5)] for x, y in corners]
+        if b["id"] in TRIM:
+            cut, blank = TRIM[b["id"]]
+            pu = clip_below(pu, cut)
+            b["blank"] = blank
         b["poly"] = pu
         us, vs = [p[0] for p in pu], [p[1] for p in pu]
         b["uv"] = [round(max(0, min(us) - PAD), 5), round(max(0, min(vs) - PAD * W / H), 5),

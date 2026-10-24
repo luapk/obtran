@@ -428,18 +428,19 @@ const bubbles = META.bubbles.map((b, i) => {
   const poly = polyUniform(b.poly);
   const mat = new THREE.ShaderMaterial({
     uniforms: { uPage: shared.uPage, uRect: { value: new THREE.Vector4(u0, v0, u1, v1) }, uFlick: { value: 0 }, uTime: shared.uTime, uOpacity: { value: 1 }, uGlow: { value: 0 },
-      uPoly: { value: poly.pts }, uPolyN: { value: poly.n }, uAspect: { value: META.aspect } },
+      uPoly: { value: poly.pts }, uPolyN: { value: poly.n }, uAspect: { value: META.aspect }, uBlank: { value: b.blank ?? 2 } },
     transparent: true,
     depthWrite: false,
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
-      uniform sampler2D uPage; uniform vec4 uRect; uniform float uFlick; uniform float uTime; uniform float uOpacity; uniform float uGlow;
+      uniform sampler2D uPage; uniform vec4 uRect; uniform float uFlick; uniform float uTime; uniform float uOpacity; uniform float uGlow; uniform float uBlank;
       varying vec2 vUv;
       ${POLY_GLSL}
       void main(){
         vec2 p = mix(uRect.xy, uRect.zw, vec2(vUv.x, 1.0 - vUv.y));
         float inside = smoothstep(-0.0005, 0.0004, polyInside(vec2(p.x, p.y * uAspect)));
         vec3 col = texture2D(uPage, p).rgb;
+        if (p.y > uBlank) col = vec3(1.0);   // lettering cut from the line (meta.json blank): the box's white over it
         float scan = 0.82 + 0.18 * sin(gl_FragCoord.y * 1.7 + uTime * 30.0);
         float jitter = 0.75 + 0.5 * fract(sin(floor(uTime * 24.0) * 12.9898) * 43758.5453);
         col *= mix(1.0, scan * jitter, uFlick);
@@ -1907,6 +1908,7 @@ function setCard(beatIndex, keep = false) {
   cardMat.uniforms.uRect.value.set(u0, v0, u1, v1);
   cardMat.uniforms.uPoly.value = b.mat.uniforms.uPoly.value;
   cardMat.uniforms.uPolyN.value = b.mat.uniforms.uPolyN.value;
+  cardMat.uniforms.uBlank.value = b.mat.uniforms.uBlank.value;
   const gm = GLOW_M, gv = GLOW_M / META.aspect;
   glowMat.uniforms.uRect.value.set(u0 - gm, v0 - gv, u1 + gm, v1 + gv);
   glowMat.uniforms.uPoly.value = b.mat.uniforms.uPoly.value;
@@ -2181,6 +2183,7 @@ function showFilmCard(beat, el = $('filmCard')) {
   (b.poly || [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]).forEach(([u, v], i) => { const x = (u - u0) * W * k, y = (v - v0) * H * k; i ? c.lineTo(x, y) : c.moveTo(x, y); });
   c.closePath(); c.clip();
   c.drawImage(img, u0 * W, v0 * H, sw, sh, 0, 0, el.width, el.height);
+  if (b.blank != null) { c.fillStyle = '#fff'; c.fillRect(0, (b.blank - v0) * H * k, el.width, el.height); }   // lettering cut from the line
   c.restore();
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
 }

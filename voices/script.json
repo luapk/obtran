@@ -19,17 +19,12 @@
     },
     "bob": {
       "id": "IvUJKFyjVb5hItY9dJAT",
-      "radio": {
-        "low": 300,
-        "high": 3300,
-        "lift": 4,
-        "drive": 2.0,
-        "static": 0.022
-      },
+      "radio": false,
       "settings": {
         "stability": 0.45,
         "similarity_boost": 0.75
-      }
+      },
+      "note": "Bob is the alien voice Paul chose (deep-wet-1, ElevenLabs Voice Design, 24 October), heard dry. His lines are cut from that take by tools/cut_bob_voice.py (each has a source), so render-voices.mjs leaves them alone; the id here is his old human voice until the designed one is saved (voices/alien-tests/results.json, adopted)."
     },
     "narrator": {
       "id": "tiLGT9eftokjCKvXtgmt",
@@ -65,7 +60,8 @@
     {
       "beat": "bob1",
       "speaker": "bob",
-      "text": "[stammering, incredulous] W-what the hell Smokehouse? I've been out here for like, 3 kalpas metascanning intergalactic tumbleweed. Are you winding..."
+      "text": "[stammering, incredulous] W-what the hell Smokehouse? I've been out here for like, 3 kalpas metascanning intergalactic tumbleweed.",
+      "source": "voices/alien-tests/deep-wet-1.mp3"
     },
     {
       "beat": "drill",
@@ -82,12 +78,14 @@
     {
       "beat": "holy",
       "speaker": "bob",
-      "text": "[startled] Holy smokes! Er, ok."
+      "text": "[startled] Holy smokes! Er, ok.",
+      "source": "voices/alien-tests/deep-wet-1.mp3"
     },
     {
       "beat": "qntm",
       "speaker": "bob",
-      "text": "[nervous, under his breath] Initiating quantum control..."
+      "text": "[nervous, under his breath] Initiating quantum control...",
+      "source": "voices/alien-tests/deep-wet-1.mp3"
     },
     {
       "beat": "tbc",

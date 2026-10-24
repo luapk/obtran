@@ -1,5 +1,5 @@
 {
-  "note": "Alien voice tests for Bob (Paul, 24 October: \"deep, clicky, weird and wet\"). Each test asks ElevenLabs Voice Design for new voices from its description, speaking Bob's three lines; it returns three takes, saved as voices/alien-tests/<id>-<n>.mp3, and their generated_voice_id in results.json, so the chosen one can be made into a voice. Run by the Alien voice tests workflow when this file changes on main; a test renders again only when its description or text changes. The last test garbles the words, for meaning that half comes through.",
+  "note": "Alien voice tests for Bob (Paul, 24 October: \"deep, clicky, weird and wet\"). Each test asks ElevenLabs Voice Design for new voices from its description, speaking Bob's three lines; it returns three takes, saved as voices/alien-tests/<id>-<n>.mp3, and their generated_voice_id in results.json, so the chosen one can be made into a voice. Run by the Alien voice tests workflow when this file changes on main; a test renders again only when its description or text changes. The last test garbles the words, for meaning that half comes through. adopt saves the chosen take as a voice in the ElevenLabs account (POST /v1/text-to-voice), once; its voice_id goes into results.json.",
   "model": "eleven_ttv_v3",
   "fallback_model": "eleven_multilingual_ttv_v2",
   "tests": [
@@ -23,5 +23,9 @@
       "description": "A deep, wet alien voice, very low, gurgling and clicking, struggling to form human words, which come out half garbled with alien sounds in between. Frightened.",
       "text": "[stammering] W-w-whhat thhe hhell, Smmok-hhouss-ss? Kkt. I've bbeen out hhhere for... kk-kalpass, metta-sskanning... intergalak-k-tik tumbbl-weed. Arr you wwinding... [startled] Hholy ssmokes! Errk, ok. [nervous, under his breath] Inn-nitiating qquantum c-c-control..."
     }
-  ]
+  ],
+  "adopt": {
+    "take": "deep-wet-1",
+    "name": "Bob (OBTRAN 003, alien)"
+  }
 }

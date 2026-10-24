@@ -63,5 +63,25 @@ for (const test of script.tests) {
   results.tests[test.id] = { hash, model, description: test.description, takes };
   console.log(`  ${test.id.padEnd(9)} ${takes.length} take(s) with ${model}: ${takes.map((t) => `${t.file} ${t.seconds ?? '?'}s`).join(', ')}`);
 }
+// save the chosen take as a voice (once), so future lines can be voiced with it
+if (script.adopt && !results.adopted) {
+  const [, id, n] = script.adopt.take.match(/^(.*)-(\d+)$/) || [];
+  const take = results.tests[id]?.takes?.[Number(n) - 1];
+  if (!take) { console.error(`adopt: no take ${script.adopt.take}`); failed = true; }
+  else {
+    const res = await fetch(`${BASE}/v1/text-to-voice`, {
+      method: 'POST',
+      headers: { 'xi-api-key': KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({ voice_name: script.adopt.name, voice_description: results.tests[id].description, generated_voice_id: take.generated_voice_id }),
+    });
+    const body = await res.text();
+    if (!res.ok) { console.error(`adopt: HTTP ${res.status}: ${body.slice(0, 300)}`); failed = true; }
+    else {
+      const voiceId = JSON.parse(body).voice_id;
+      results.adopted = { take: script.adopt.take, name: script.adopt.name, voice_id: voiceId };
+      console.log(`adopted ${script.adopt.take} as "${script.adopt.name}": ${voiceId}`);
+    }
+  }
+}
 writeFileSync(RESULTS, JSON.stringify(results, null, 2) + '\n');
 if (failed) process.exit(1);

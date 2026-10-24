@@ -39,6 +39,8 @@ for (const line of script.lines) {
   const voice = script.voices[line.speaker];
   if (!voice) throw new Error(`line ${line.beat}: no voice "${line.speaker}" in the script`);
   if (!voice.id) { console.log(`  ${line.beat.padEnd(8)} skip: no voice id for ${line.speaker} yet`); continue; }
+  // cut from a recorded take (tools/cut_bob_voice.py): not rendered here
+  if (line.source) { console.log(`  ${line.beat.padEnd(8)} cut from ${line.source}`); continue; }
   const body = { text: line.text, model_id: line.model || script.model, voice_settings: { ...voice.settings, ...(line.settings || {}) } };
   // take: a number on a line that asks for a fresh render of the same words (absent, it leaves the hash as it was)
   const hash = createHash('sha256').update(JSON.stringify({ body, voice: voice.id, format: script.output_format, take: line.take })).digest('hex').slice(0, 16);

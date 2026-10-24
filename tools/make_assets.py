@@ -42,7 +42,7 @@ BOXES = [
      "Smokehouse Shift for Bob, this is Smokehouse Shift for Bob. You are cleared to initiate your Pulsar Protocol."),
     ("engage", "smokehouse", 745, 268, 947, 332, "Engage Chemical Digital Cryptoflage!"),
     ("bob1", "bob", 343, 328, 662, 422,
-     "W-what the hell Smokehouse? I've been out here for like, 3 kalpas metascanning intergalactic tumbleweed. Are you winding..."),
+     "W-what the hell Smokehouse? I've been out here for like, 3 kalpas metascanning intergalactic tumbleweed."),
     ("drill", "smokehouse", 700, 673, 962, 777,
      "This is not a drill, Bob. Engage the Spomenik Transfer Protocol. Just like you were trained to do."),
     ("unlock", "smokehouse", 578, 828, 907, 867, "Unlock your biometric key, Bob."),
