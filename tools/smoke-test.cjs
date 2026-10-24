@@ -83,7 +83,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       await sleep(2500);
       await shot(`step${i}-${steps[i].world}`);
       // a key during one of Bob's films only cuts the film, so let it finish first
-      await page.waitForFunction(() => !window.__ot.films?.on, { timeout: 60000, polling: 200 });
+      await page.waitForFunction(() => !window.__ot.films?.on || window.__ot.films.looping, { timeout: 60000, polling: 200 });   // a looping film waits for the key below, which also moves on
       const beat = await page.evaluate((b) => window.__ot.BEATS[b], steps[i].beat);
       if (beat.auto) {
         // this beat moves on by itself once its line (and film) end: wait for it rather than pressing

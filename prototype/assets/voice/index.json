@@ -16,8 +16,9 @@
         "low": 420,
         "high": 2900,
         "lift": 7,
-        "drive": 3.2,
-        "static": 0.035
+        "drive": 1.8,
+        "static": 0.035,
+        "reverb": 0.22
       }
     },
     "engage": {
@@ -29,8 +30,9 @@
         "low": 420,
         "high": 2900,
         "lift": 7,
-        "drive": 3.2,
-        "static": 0.035
+        "drive": 1.8,
+        "static": 0.035,
+        "reverb": 0.22
       }
     },
     "bob1": {
@@ -49,8 +51,9 @@
         "low": 420,
         "high": 2900,
         "lift": 7,
-        "drive": 3.2,
-        "static": 0.035
+        "drive": 1.8,
+        "static": 0.035,
+        "reverb": 0.22
       }
     },
     "unlock": {
@@ -62,8 +65,9 @@
         "low": 420,
         "high": 2900,
         "lift": 7,
-        "drive": 3.2,
-        "static": 0.035
+        "drive": 1.8,
+        "static": 0.035,
+        "reverb": 0.22
       }
     },
     "holy": {

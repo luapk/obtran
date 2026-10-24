@@ -1040,7 +1040,9 @@ function useWorld(on) {
 function updateWorld(dt, t) {
   if (!worlds.mesh || !worlds.u) return;
   const u = worlds.u;
-  if (state.stage === 'void' && !REVIEW && (!journey.on || journey.done) && t > worlds.nextCrackle) {
+  // none from just before "To be continued..." until a few seconds after its line (Paul: no static over it)
+  const tbcQuiet = state.endT > 6 && state.endT < 14;
+  if (state.stage === 'void' && !REVIEW && (!journey.on || journey.done) && t > worlds.nextCrackle && !tbcQuiet) {
     // the transmitter still crackles: a burst of static shears the world for a moment
     worlds.nextCrackle = t + 9 + Math.random() * 8;
     worlds.jitter = 1; sound.staticBurst();
@@ -1110,7 +1112,7 @@ class Sound {
   // own level, as they arrive at different loudness. Where one is missing the synthesised sound stays.
   loadSfx() {
     this.sfx = {};
-    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'whoosh-3', 'power-up'])
+    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'whoosh-3', 'power-up', 'bed'])
       fetch(`assets/sfx/${n}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b))
         .then((buf) => { this.sfx[n] = buf; }).catch(() => {});
   }
@@ -1146,6 +1148,21 @@ class Sound {
       const end = buf ? (buf.speechEnd || buf.duration) : 5;
       clearTimeout(h.timer); h.timer = setTimeout(() => { if (this.crackle === h) this.crackleStop(1.6); }, end * 1000);
     }).catch(() => {});
+  }
+  // Paul's atmosphere (bed, a seamless loop): under the comic page and in the singularity at the end,
+  // fading in and out over a second or two as the reader moves between them
+  bedTo(level) {
+    if (!this.ok) return;
+    if (level > 0 && !this.bed && this.sfx?.bed) {
+      const src = this.ctx.createBufferSource(), g = this.ctx.createGain();
+      src.buffer = this.sfx.bed; src.loop = true; src.loopStart = 0.03; src.loopEnd = this.sfx.bed.duration - 0.03;
+      g.gain.value = 0; src.connect(g).connect(this.master); src.start();
+      this.bed = { src, g, level: 0 };
+    }
+    if (!this.bed || this.bed.level === level) return;
+    this.bed.level = level;
+    const t = this.now();
+    this.bed.g.gain.cancelScheduledValues(t); this.bed.g.gain.setTargetAtTime(level, t, level > 0 ? 0.9 : 0.5);
   }
   crackleStop(secs = 0.6) { if (this.crackle) { clearTimeout(this.crackle.timer); this.sfxFade(this.crackle, secs); this.crackle = null; } }
   holdStart() {
@@ -1276,7 +1293,7 @@ class Sound {
         for (let i = 0; i <= last; i++) { if (Math.abs(d[i]) > 0.02) { sum += d[i] * d[i]; n++; } }
         const rms = n ? Math.sqrt(sum / n) : 0.1;
         buf.speechEnd = Math.min(buf.duration, (last + 1) / buf.sampleRate + 0.12);
-        buf.level = Math.min(2.2, Math.max(0.6, 0.2 / rms));
+        buf.level = Math.min(2.2, Math.max(0.5, 0.15 / rms));   // 0.15: a little under the radio's overdrive, so shouted peaks do not rasp (Paul)
         return buf;
       }).catch(() => null);
     }
@@ -1308,8 +1325,23 @@ class Sound {
       const curve = new Float32Array(1024);
       for (let i = 0; i < curve.length; i++) { const x = (i / 1023) * 2 - 1; curve[i] = Math.tanh(x * rc.drive) / Math.tanh(rc.drive); }
       drive.curve = curve; drive.oversample = '2x';
-      const g = ctx.createGain(); g.gain.value = 0.85;
-      lvl.connect(hp).connect(mid).connect(lp).connect(drive).connect(g).connect(out);
+      const g = ctx.createGain(); g.gain.value = 1.0;
+      // a limiter after the radio, so no line jumps out of the mix (Paul: "check levels, limit")
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -16; lim.knee.value = 4; lim.ratio.value = 14; lim.attack.value = 0.002; lim.release.value = 0.12;
+      lvl.connect(hp).connect(mid).connect(lp).connect(drive).connect(g).connect(lim).connect(out);
+      // a wide, subtle reverb with a long tail (Paul: Smokehouse, 5 s), after the radio, kept out of the
+      // lows; it rings on to the master after the line ends
+      if (rc.reverb) {
+        if (!this.longVerb) {
+          this.longVerb = ctx.createConvolver(); this.longVerb.buffer = this.makeIR(5);
+          const vhp = ctx.createBiquadFilter(); vhp.type = 'highpass'; vhp.frequency.value = 280;
+          const vlp = ctx.createBiquadFilter(); vlp.type = 'lowpass'; vlp.frequency.value = 5200;
+          this.longVerbIn = ctx.createDelay(0.1); this.longVerbIn.delayTime.value = 0.035;
+          this.longVerbIn.connect(vhp).connect(this.longVerb).connect(vlp).connect(this.master);
+        }
+        const send = ctx.createGain(); send.gain.value = rc.reverb; lim.connect(send).connect(this.longVerbIn);
+      }
       // squelch as the mic keys, then the voice
       const key = 0.16, end = key + len;
       const sq = ctx.createBufferSource(); sq.buffer = this.noise;
@@ -1798,7 +1830,7 @@ function strobeBurst(pattern) {
   strobe.t0 = performance.now();
 }
 function updateStrobe(rawDt) {
-  const here = strobe.on && !REVIEW && state.stage === 'void' && worlds.ok && worlds.id === STORY_WORLD && worlds.suction < 0.5;
+  const here = strobe.on && !REVIEW && state.stage === 'void' && worlds.ok && worlds.id === STORY_WORLD && worlds.suction < 0.5 && !(state.endT > 6 && state.endT < 14);
   let inv = false;
   if (here) {
     strobe.next -= rawDt;
@@ -2486,24 +2518,46 @@ function playFilm(beat) {
       box.classList.add('on'); films.on = true; cctv.t0 = 0;
       if (cue.card) showFilmCard(beat);
       flash(0.6);
-      films.timers.push(setTimeout(() => stopFilm(true), (cue.len || 2.4) * 1000));
+      films.timers.push(setTimeout(() => (cue.then ? filmThen(cue.then) : stopFilm(true)), (cue.len || 2.4) * 1000));
     }).catch((e) => {
       console.warn('film not played:', cue.clip, e && e.name);   // the line still plays
       if (BEATS[state.beat]?.filmOnly && journey.phase === 'space') card.visible = true;   // and its panel shows in the space instead
     });
   }, (cue.at || 0) * 1000));
 }
+// a cue's then: the film cuts straight into another clip, which can loop until the reader taps or
+// presses a key, and that moves the story on (Paul: the eye close-up after Bob's wide shot, under
+// "metascanning intergalactic tumbleweed", "on loop until user interacts")
+function filmThen(then) {
+  const v = filmVideo(then.clip);
+  v.loop = !!then.loop;
+  try { v.currentTime = then.from || 0; } catch (e) { /* not loaded yet */ }
+  v.play().then(() => {
+    if (!films.on) { v.pause(); return; }
+    for (const o of Object.values(films.videos)) { o.classList.toggle('cur', o === v); if (o !== v) o.pause(); }
+    flash(0.35);
+    films.looping = !!then.loop;
+    if (!then.loop) films.timers.push(setTimeout(() => stopFilm(true), (then.len || 2.4) * 1000));
+  }).catch(() => stopFilm(true));
+}
+// a tap or key on a film: cut it short; if it was looping, waiting for the reader, move on too
+function filmInteract() {
+  const waiting = films.looping;
+  stopFilm(true);
+  if (waiting && journey.on && journey.phase === 'space') journeyNext();
+}
 function stopFilm(snap) {
   films.timers.forEach(clearTimeout); films.timers = [];
+  films.looping = false;
   const box = $('film');
   if (films.on) {
     box.classList.remove('on'); films.on = false;
     if (snap) { flash(0.45); if (!reducedMotion) worlds.jitter = Math.max(worlds.jitter, 0.7); }
   }
-  for (const v of Object.values(films.videos)) { v.pause(); v.classList.remove('cur'); }
+  for (const v of Object.values(films.videos)) { v.pause(); v.loop = false; v.classList.remove('cur'); }
   $('filmCard').classList.remove('show');
 }
-$('film').addEventListener('pointerdown', (e) => { e.stopPropagation(); stopFilm(true); });
+$('film').addEventListener('pointerdown', (e) => { e.stopPropagation(); filmInteract(); });
 
 // Some beats move on by themselves (Paul: no tap between Smokehouse's first two lines, and none after
 // the biometric key, at a filmic pace): once the line and any film on it have ended, plus the beat's
@@ -2856,7 +2910,7 @@ addEventListener('pointerdown', () => { lastInput = performance.now(); }, { capt
 addEventListener('keydown', () => { lastInput = performance.now(); }, { capture: true });
 addEventListener('keydown', (e) => {
   // a key during a film cuts it short and does nothing else
-  if (films.on) { e.preventDefault(); if (!e.repeat) stopFilm(true); return; }
+  if (films.on) { e.preventDefault(); if (!e.repeat) filmInteract(); return; }
   if (state.stage === 'void' && endReady() && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); readAgain(); return; }
   if (journey.on) {
     if (!(e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'ArrowDown')) return;
@@ -3105,6 +3159,13 @@ function frame() {
       const px = reducedMotion ? 0 : clamp(parallax.tx + parallax.gx, -1.2, 1.2), py = reducedMotion ? 0 : clamp(parallax.ty + parallax.gy, -1.2, 1.2);
       worlds.offset.lerp(tmpV.set(px, -py, 0).multiplyScalar(worlds.parallax).applyQuaternion(camera.quaternion), 1 - Math.exp(-dt * 4));
       camera.position.copy(P0).add(worlds.drift).add(worlds.wander).add(worlds.offset);
+      // the singularity draws back (Paul, 24 October: "a slow zoom out until it appears like a nebula
+      // filling half the screen"): from a few seconds after it has opened the camera eases straight
+      // back over about 45 s, to where the world's shell spans half the screen's height, and stays
+      if (worlds.id === STORY_WORLD && !REVIEW && (!journey.on || journey.done) && !reducedMotion && params.get('zoomout') !== '0') {
+        const R = worlds.radius * WORLD_SCALE, D = R / Math.tan(THREE.MathUtils.degToRad(camera.fov / 4));
+        camera.position.z += D * smooth(4, 50, state.endT);
+      }
     } else if (!reducedMotion) camera.position.addScaledVector(fwd, dt * 0.25);
     // To be continued... comes 8 s into the ending (Paul: five seconds later than it was)
     if (state.endT > 8 && !tbcCard.visible && !REVIEW && (!journey.on || journey.done)) {
@@ -3133,6 +3194,7 @@ function frame() {
   updateNucleus(dt);
   updateSlab(dt, rawDt);
   updateStrobe(rawDt);
+  sound.bedTo(state.stage === 'read' || (state.stage === 'void' && worlds.id === STORY_WORLD && (!journey.on || journey.done) && !REVIEW) ? 0.55 : 0);
   updatePanelFloat(dt);
   if (films.on) drawCCTV(rawDt);
   if (pad.on) drawPad(rawDt);
