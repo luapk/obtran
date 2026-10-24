@@ -1,7 +1,9 @@
 {
-  "quality": "draft",
-  "only": [],
+  "quality": "full",
+  "only": [
+    "ribbon-loops"
+  ],
   "force": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. Refresh only: re-read the seven draft worlds for panoramas and scale, no generation (23 October 2026).",
-  "refresh": true
+  "refresh": false,
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. Full quality test of one world (marble-1.1, about 1,580 credits) to see whether it is deeper than the draft, approved by Paul on 24 October 2026."
 }
