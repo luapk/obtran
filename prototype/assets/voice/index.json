@@ -2,15 +2,15 @@
   "lines": {
     "caption": {
       "file": "caption.mp3",
-      "hash": "e931551654928a05",
-      "bytes": 214874,
+      "hash": "d93854e56fd63747",
+      "bytes": 160957,
       "speaker": "narrator",
       "radio": false
     },
     "smoke1": {
       "file": "smoke1.mp3",
-      "hash": "f17b984775c505c0",
-      "bytes": 134207,
+      "hash": "53ef9b16e77776a6",
+      "bytes": 103278,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -22,8 +22,8 @@
     },
     "engage": {
       "file": "engage.mp3",
-      "hash": "a60317d3402ae042",
-      "bytes": 57303,
+      "hash": "21e1c6c9cf3740b9",
+      "bytes": 49780,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -35,8 +35,8 @@
     },
     "bob1": {
       "file": "bob1.mp3",
-      "hash": "cde7d222e183bf91",
-      "bytes": 147164,
+      "hash": "9509499a1824d492",
+      "bytes": 125430,
       "speaker": "bob",
       "radio": {
         "low": 300,
@@ -48,8 +48,8 @@
     },
     "drill": {
       "file": "drill.mp3",
-      "hash": "19874c064512b161",
-      "bytes": 116235,
+      "hash": "002e5debc928a903",
+      "bytes": 106204,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -61,8 +61,8 @@
     },
     "unlock": {
       "file": "unlock.mp3",
-      "hash": "408f9cbb7f4b6896",
-      "bytes": 44764,
+      "hash": "8c930274f0b666ce",
+      "bytes": 40585,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -74,8 +74,8 @@
     },
     "holy": {
       "file": "holy.mp3",
-      "hash": "b3250422fa484c46",
-      "bytes": 43510,
+      "hash": "c9bce103006e5200",
+      "bytes": 52287,
       "speaker": "bob",
       "radio": {
         "low": 300,
@@ -87,8 +87,8 @@
     },
     "qntm": {
       "file": "qntm.mp3",
-      "hash": "3a31262ab56a996e",
-      "bytes": 40585,
+      "hash": "972c907e12b91a62",
+      "bytes": 39331,
       "speaker": "bob",
       "radio": {
         "low": 300,
@@ -100,8 +100,8 @@
     },
     "tbc": {
       "file": "tbc.mp3",
-      "hash": "a5bb10f723cd788d",
-      "bytes": 66498,
+      "hash": "bd4f68cfa9d33466",
+      "bytes": 28046,
       "speaker": "narrator",
       "radio": false
     }
