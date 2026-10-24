@@ -43,7 +43,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  page.on('requestfailed', (r) => errors.push(`request failed ${r.url()}`));
+  // a browser abandons a video's download when it is paused (ERR_ABORTED): not a failure
+  page.on('requestfailed', (r) => { if (/\.mp4/.test(r.url()) && /ABORTED/.test(r.failure()?.errorText || '')) return; errors.push(`request failed ${r.url()} ${r.failure()?.errorText || ''}`); });
 
   let n = 0;
   const shot = async (name) => {
