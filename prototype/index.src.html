@@ -61,10 +61,25 @@
   /* the OT logo, white out of black (Paul), flashes up first: a couple of glitched frames (one inverted), a hold, then it cuts away */
   #intro { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #050403; color: #efe9df; animation: introIn 0.9s linear both; }
   #intro svg { width: min(78vw, 66vh); height: auto; }
-  #intro.out { animation: introOut 0.4s steps(4, end) forwards; pointer-events: none; }
+  /* scan lines and a slow rolling band over the logo, as over the films */
+  #intro::after { content: ''; position: absolute; inset: 0; pointer-events: none; background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.42) 0 1px, rgba(0,0,0,0) 1px 3px),
+    linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.06) 48%, rgba(255,255,255,0) 52%);
+    background-size: 100% 3px, 100% 300%; animation: scanRoll 5s linear infinite; }
+  /* it glitches out (Paul): sheared slices, an inverted frame, then a collapse to a bright line like a set switching off */
+  #intro.out { animation: introOut 0.75s steps(1, end) forwards; pointer-events: none; }
+  #intro.out svg { animation: introSlice 0.75s steps(1, end) forwards; }
   @keyframes introIn { 0% { opacity: 0; } 5% { opacity: 1; filter: invert(1); } 10% { opacity: 0; } 15% { opacity: 1; filter: none; transform: translateX(-2.5%) scaleY(1.03); } 19% { transform: none; } 100% { opacity: 1; } }
-  @keyframes introOut { 0% { opacity: 1; } 30% { opacity: 1; filter: invert(1); } 60% { opacity: 0.4; transform: translateX(3%); } 100% { opacity: 0; visibility: hidden; } }
-  @media (prefers-reduced-motion: reduce) { #intro { animation: none; } #intro.out { animation: none; opacity: 0; visibility: hidden; transition: opacity 0.4s; } }
+  @keyframes introOut { 0% { opacity: 1; } 12% { filter: invert(1); } 18% { filter: none; } 34% { filter: invert(1); } 40% { filter: none; transform: none; }
+    62% { transform: scaleY(0.04); filter: brightness(3); } 74% { transform: scale(0.6, 0.006); filter: brightness(4); } 86% { transform: scale(0.02, 0.006); } 100% { opacity: 0; visibility: hidden; } }
+  @keyframes introSlice { 0% { clip-path: none; transform: none; }
+    6% { clip-path: polygon(0 0, 100% 0, 100% 38%, 0 38%, 0 46%, 100% 46%, 100% 100%, 0 100%); transform: translateX(-4%); }
+    12% { clip-path: none; transform: translateX(3%) skewX(-6deg); }
+    18% { clip-path: polygon(0 20%, 100% 20%, 100% 58%, 0 58%); transform: translateX(-7%); }
+    26% { clip-path: polygon(0 0, 100% 0, 100% 64%, 0 64%, 0 71%, 100% 71%, 100% 100%, 0 100%); transform: translateX(5%) scaleY(1.06); }
+    34% { clip-path: none; transform: translateX(-2%); }
+    40% { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #intro { animation: none; } #intro.out, #intro.out svg { animation: none; } #intro.out { opacity: 0; visibility: hidden; transition: opacity 0.4s; } }
   /* the music counter: a tab at the side, opening to the three tracks (assets/music/index.json) */
   #music[hidden] { display: none; }
   #music { position: fixed; z-index: 4; right: 14px; top: calc(max(14px, env(safe-area-inset-top)) + 46px); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -85,14 +100,15 @@
   #toast.show { opacity: 1; }
   .black { position: fixed; inset: 0; pointer-events: none; background: #000; opacity: 0; transition: opacity 0.5s; }
 
-  #gate { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(6,5,4,0.72); z-index: 5; transition: opacity 0.6s; padding: 16px; }
+  #gate { position: fixed; inset: 0; display: grid; place-items: center; background: #050403; z-index: 5; transition: opacity 0.6s; padding: 16px; }
   #gate.hide { opacity: 0; pointer-events: none; }
   .gate-card { text-align: center; max-width: 22rem; }
   .gate-card h1 { font-size: 0.95rem; letter-spacing: 0.32em; font-weight: 600; margin: 0 0 0.4rem; }
   .gate-card .cat { font-size: 0.72rem; letter-spacing: 0.24em; color: var(--dim); margin: 0 0 2rem; }
   .gate-card button { font: inherit; font-size: 0.85rem; letter-spacing: 0.2em; color: var(--ink); background: var(--paper); border: 0; padding: 0.95rem 2.2rem; cursor: pointer; clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); }
   .gate-card button:focus-visible { outline: 2px solid var(--sepia); outline-offset: 4px; }
-  .gate-card .note { margin-top: 1.4rem; font-size: 0.7rem; line-height: 1.6; color: var(--dim); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .gate-card .lead { margin: 0 0 2rem; font-size: 0.82rem; line-height: 1.7; letter-spacing: 0.06em; }
   .gate-card .err { color: #d9a27a; }
 
   #hint { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); background: rgba(6,5,4,0.7); padding: 0.55rem 0.9rem; z-index: 3; transition: opacity 0.4s; white-space: nowrap; pointer-events: none; }
@@ -138,10 +154,10 @@
 
 <div id="gate" role="dialog" aria-label="Start">
   <div class="gate-card">
-    <h1>OBLIVIOUS TRANSFER</h1>
-    <p class="cat">OBTRAN 003</p>
+    <h1 class="sr-only">Oblivious Transfer: OBTRAN 003</h1>
+    <!-- one sentence after the logo, then the comic (Paul, 24 October) -->
+    <p class="lead" id="note">Turn your sound on and follow Bob's story through the page, exploring to unlock tracks.</p>
     <button id="start" type="button">START</button>
-    <p class="note" id="note">Sound on. Tap or click to advance the page.<br>Move the pointer, or drag on a phone, to shift the layers.</p>
   </div>
 </div>
 
