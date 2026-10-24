@@ -64,7 +64,7 @@
      decoding a hidden one); without WebGL it stays hidden and the plain video shows */
   #s8 { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; background: #000; }
   #s8.on { display: block; }
-  #filmCard, #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); height: auto; pointer-events: none; display: none; }
+  #filmCard, #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--aw, 3)); height: auto; pointer-events: none; display: none; }
   #filmCard.show, #padCard.show { display: block; animation: filmCardIn 0.45s cubic-bezier(.2,1.6,.4,1) both; }
   #padCard.show.out { animation: padCardOut 0.35s ease-in both; }
   @keyframes padCardOut { 0% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.94); } }
@@ -2221,9 +2221,12 @@ function setCard(beatIndex, keep = false) {
 
 // where the card rests in front of the camera at a given field of view: as wide as fits, never
 // taller than a quarter of the view, low in the frame
+// long one-line boxes are held to the width of the others (Paul: "reduce width of holy smokes and unlock your key
+// panels to match width of the other text panels"): the width is worked out as if no box were wider than CARD_ASPECT
+const CARD_ASPECT = 3.9;                    // Smokehouse's first line; trims holy, unlock and qntm, and a little crsh and tbc
 function cardPose(fov, aspect = cardState.aspect) {
   const dist = 2.4, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)), visW = visH * camera.aspect;
-  const w = Math.min(visW * 0.86, visH * 0.26 * aspect);
+  const w = Math.min(visW * 0.86, visH * 0.26 * Math.min(aspect, CARD_ASPECT));
   return { dist, w, h: w / aspect, y: -visH / 2 + w / aspect / 2 + visH * 0.13 };
 }
 
@@ -2565,6 +2568,7 @@ function showFilmCard(beat, el = $('filmCard')) {
   const sw = (u1 - u0) * W, sh = (v1 - v0) * H, k = Math.min(1, 1400 / sw);
   el.width = Math.round(sw * k); el.height = Math.round(sh * k);
   el.style.setProperty('--a', (sw / sh).toFixed(3));
+  el.style.setProperty('--aw', Math.min(sw / sh, CARD_ASPECT).toFixed(3));   // held to the others' width, as the 3D card is
   const c = el.getContext('2d');
   c.clearRect(0, 0, el.width, el.height);
   c.save(); c.beginPath();
