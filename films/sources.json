@@ -2,12 +2,28 @@
   "note": "Short films of Bob, fetched into prototype/assets/films/<id>.mp4 by the Fetch films workflow. Changing a url fetches that film again. Rendered on Higgsfield (Seedance 2.5, 5 s, 720p, 9:16, no audio) from the start frames in prototype/assets/films/<id>.jpg.",
   "films": {
     "bob-wide": {
-      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_124014_33fa067c-f55b-4282-80d1-4fc519d0a44e.mp4",
-      "job": "33fa067c-f55b-4282-80d1-4fc519d0a44e"
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_124639_70ea62c7-1ef0-4304-b3a0-7b8577c2394a.mp4",
+      "job": "70ea62c7-1ef0-4304-b3a0-7b8577c2394a",
+      "story": "Holy smokes! Er, ok.: startled by the order to unlock his key, he sets down his OT coffee and reaches for the dials; the halo starts to pull inwards",
+      "previous": [
+        {
+          "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_124014_33fa067c-f55b-4282-80d1-4fc519d0a44e.mp4",
+          "job": "33fa067c-f55b-4282-80d1-4fc519d0a44e",
+          "note": "first take, general prompt"
+        }
+      ]
     },
     "bob-close": {
-      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_124017_bba6fa39-45a5-4c2f-9c67-d6a78d274d69.mp4",
-      "job": "bba6fa39-45a5-4c2f-9c67-d6a78d274d69"
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_124635_c20e2718-50be-440f-8e72-dde13b263d42.mp4",
+      "job": "c20e2718-50be-440f-8e72-dde13b263d42",
+      "story": "W-what the hell Smokehouse?: woken from a long dull watch by the shouting radio, he recoils, stares, then leans in, stammering",
+      "previous": [
+        {
+          "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_124017_bba6fa39-45a5-4c2f-9c67-d6a78d274d69.mp4",
+          "job": "bba6fa39-45a5-4c2f-9c67-d6a78d274d69",
+          "note": "first take, general prompt"
+        }
+      ]
     }
   }
 }
