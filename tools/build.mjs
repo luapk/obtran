@@ -67,6 +67,12 @@ if (!inline) {
     mkdirSync(join(DIST, 'assets', 'voice'), { recursive: true });
     for (const f of readdirSync(VOICE).filter((f) => f === 'index.json' || f.endsWith('.mp3'))) copyFileSync(join(VOICE, f), join(DIST, 'assets', 'voice', f));
   }
+  // short films of Bob (films/README.md): start frames and approved clips
+  const FILMS = join(ASSETS, 'films');
+  if (existsSync(FILMS)) {
+    mkdirSync(join(DIST, 'assets', 'films'), { recursive: true });
+    for (const f of readdirSync(FILMS).filter((f) => /\.(json|jpg|mp4|webm)$/.test(f))) copyFileSync(join(FILMS, f), join(DIST, 'assets', 'films', f));
+  }
   mkdirSync(join(DIST, 'assets', 'voice'), { recursive: true });
   if (!existsSync(join(DIST, 'assets', 'voice', 'index.json'))) writeFileSync(join(DIST, 'assets', 'voice', 'index.json'), JSON.stringify({ lines: {} }) + '\n');
   mkdirSync(join(DIST, 'worlds'), { recursive: true });

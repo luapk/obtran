@@ -84,6 +84,13 @@ def main():
             for f in sorted(voice.iterdir()):
                 if f.name == "index.json" or f.suffix == ".mp3":
                     shutil.copyfile(f, DIST / "assets" / "voice" / f.name)
+        # short films of Bob (films/README.md): start frames and approved clips
+        films = ASSETS / "films"
+        if films.exists():
+            (DIST / "assets" / "films").mkdir()
+            for f in sorted(films.iterdir()):
+                if f.suffix in (".json", ".jpg", ".mp4", ".webm"):
+                    shutil.copyfile(f, DIST / "assets" / "films" / f.name)
         (DIST / "assets" / "voice").mkdir(exist_ok=True)
         if not (DIST / "assets" / "voice" / "index.json").exists():
             (DIST / "assets" / "voice" / "index.json").write_text(json.dumps({"lines": {}}, separators=(",", ":")) + "\n")
