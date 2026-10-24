@@ -913,9 +913,10 @@ class Sound {
       if (v.pan.positionX) { v.pan.positionX.value = x; v.pan.positionY.value = y; v.pan.positionZ.value = z; } else v.pan.setPosition(x, y, z);
     });
   }
-  // Voice lines (tools/render-voices.mjs). Smokehouse plays through a walkie-talkie: a
+  // Voice lines (tools/render-voices.mjs). Both voices play through a walkie-talkie: a
   // narrow radio band, a little overdrive, a squelch burst as the mic keys, a static bed
-  // under the voice, and a click and beep as it unkeys. Bob is dry, with a touch of room.
+  // under the voice, and a click and beep as it unkeys. Each voice's radio is set in
+  // voices/script.json; a voice without one plays dry, with a touch of room.
   async loadVoices() {
     try { const r = await fetch('assets/voice/index.json'); this.voiceIndex = r.ok ? (await r.json()).lines || {} : {}; }
     catch (e) { this.voiceIndex = {}; }
@@ -943,12 +944,14 @@ class Sound {
     out.connect(this.master);
     const parts = [src, out];
     if (entry.radio) {
-      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 420; hp.Q.value = 0.9;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2900; lp.Q.value = 1.1;
-      const mid = ctx.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = 1700; mid.gain.value = 7; mid.Q.value = 1.2;
+      // each voice has its own radio (voices/script.json): Smokehouse harsher, Bob a little cleaner
+      const rc = { low: 420, high: 2900, lift: 7, drive: 3.2, static: 0.035, ...(typeof entry.radio === 'object' ? entry.radio : {}) };
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = rc.low; hp.Q.value = 0.9;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = rc.high; lp.Q.value = 1.1;
+      const mid = ctx.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = 1700; mid.gain.value = rc.lift; mid.Q.value = 1.2;
       const drive = ctx.createWaveShaper();
       const curve = new Float32Array(1024);
-      for (let i = 0; i < curve.length; i++) { const x = (i / 1023) * 2 - 1; curve[i] = Math.tanh(x * 3.2) / Math.tanh(3.2); }
+      for (let i = 0; i < curve.length; i++) { const x = (i / 1023) * 2 - 1; curve[i] = Math.tanh(x * rc.drive) / Math.tanh(rc.drive); }
       drive.curve = curve; drive.oversample = '2x';
       const g = ctx.createGain(); g.gain.value = 0.85;
       src.connect(hp).connect(mid).connect(lp).connect(drive).connect(g).connect(out);
@@ -961,7 +964,7 @@ class Sound {
       // a static bed under the voice
       const bed = ctx.createBufferSource(); bed.buffer = this.noise; bed.loop = true;
       const bedf = ctx.createBiquadFilter(); bedf.type = 'bandpass'; bedf.frequency.value = 1800; bedf.Q.value = 0.5;
-      const bedg = ctx.createGain(); bedg.gain.setValueAtTime(0, t); bedg.gain.linearRampToValueAtTime(0.035, t + key); bedg.gain.setTargetAtTime(0, t + end, 0.03);
+      const bedg = ctx.createGain(); bedg.gain.setValueAtTime(0, t); bedg.gain.linearRampToValueAtTime(rc.static, t + key); bedg.gain.setTargetAtTime(0, t + end, 0.03);
       bed.connect(bedf).connect(bedg).connect(out); bed.start(t); bed.stop(t + end + 0.5);
       // unkey: a click and a short beep
       const beep = ctx.createOscillator(); beep.type = 'square'; beep.frequency.value = 1250;

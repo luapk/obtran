@@ -56,7 +56,8 @@ function writeIndex() {
   // the page reads this: which lines exist, who speaks them, and which play through the radio
   for (const line of script.lines) {
     const entry = index.lines[line.beat];
-    if (entry) Object.assign(entry, { speaker: line.speaker, radio: !!script.voices[line.speaker]?.radio });
+    // radio is false, or the walkie-talkie settings for that voice (band, mid lift, drive, static)
+    if (entry) Object.assign(entry, { speaker: line.speaker, radio: script.voices[line.speaker]?.radio || false });
   }
   const tmp = INDEX + '.tmp';
   writeFileSync(tmp, JSON.stringify(index, null, 2) + '\n');

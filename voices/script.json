@@ -5,7 +5,13 @@
   "voices": {
     "smokehouse": {
       "id": "SF9uvIlY93SJRMdV5jeP",
-      "radio": true,
+      "radio": {
+        "low": 420,
+        "high": 2900,
+        "lift": 7,
+        "drive": 3.2,
+        "static": 0.035
+      },
       "settings": {
         "stability": 0.35,
         "similarity_boost": 0.75,
@@ -14,8 +20,14 @@
       }
     },
     "bob": {
-      "id": null,
-      "radio": false,
+      "id": "IvUJKFyjVb5hItY9dJAT",
+      "radio": {
+        "low": 300,
+        "high": 3300,
+        "lift": 4,
+        "drive": 2.0,
+        "static": 0.022
+      },
       "settings": {
         "stability": 0.45,
         "similarity_boost": 0.75,
