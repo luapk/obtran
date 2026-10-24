@@ -2591,6 +2591,65 @@ function drawSuper8(dt) {
   el.classList.add('on');
 }
 
+// ---------- glyph field behind "Initiating QNTM CTRL..." (Paul, 24 October) ----------
+// The space goes to black behind the card, then scrambling alien glyphs (the CCTV readout's strokes) fill
+// the screen from the centre outwards in rings, the front of the ring brightest. When the breach begins
+// they drain back into the centre with the collapse, and the field fades as the singularity unwinds.
+// Drawn on a canvas used as a texture on a plane just behind the card, so the card stays on top.
+const glyphField = { canvas: document.createElement('canvas'), ctx: null, tex: null, mesh: null, mode: 'off', t: 0, dur: 1, next: 0, cells: null, opacity: 0 };
+{
+  glyphField.ctx = glyphField.canvas.getContext('2d');
+  glyphField.tex = new THREE.CanvasTexture(glyphField.canvas);
+  glyphField.tex.colorSpace = THREE.SRGBColorSpace;
+  glyphField.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: glyphField.tex, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }));
+  glyphField.mesh.renderOrder = 8.5;          // over the world, under the card's glow (9) and the card (10)
+  glyphField.mesh.visible = false;
+  camera.add(glyphField.mesh);
+}
+function glyphFieldStart() { glyphField.mode = 'fill'; glyphField.t = 0; glyphField.cells = null; glyphField.mesh.visible = true; }
+function glyphFieldCollapse(dur) { if (glyphField.mode === 'off') return; glyphField.mode = 'drain'; glyphField.t = 0; glyphField.dur = dur; }
+function glyphFieldEnd() { if (glyphField.mode !== 'off') { glyphField.mode = 'fade'; glyphField.t = 0; } }
+function updateGlyphField(dt) {
+  const G = glyphField;
+  if (G.mode === 'off') return;
+  G.t += dt;
+  // fill the view at its distance
+  const d = 3, h = 2 * d * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  G.mesh.position.set(0, 0, -d); G.mesh.scale.set(h * camera.aspect, h, 1);
+  G.opacity = G.mode === 'fade' ? Math.max(0, 1 - G.t / 0.8) : Math.min(1, G.opacity + dt / 0.3);
+  G.mesh.material.opacity = G.opacity;
+  if (G.mode === 'fade' && G.t > 0.8) { G.mode = 'off'; G.mesh.visible = false; return; }
+  if (G.t < G.next) return;                  // redrawn about 20 times a second
+  G.next = G.t + 0.05;
+  const scale = 0.6, W = Math.round(innerWidth * scale), H = Math.round(innerHeight * scale), cs = 15;
+  if (G.canvas.width !== W || G.canvas.height !== H) { G.canvas.width = W; G.canvas.height = H; G.cells = null; }
+  const cols = Math.ceil(W / cs), rows = Math.ceil(H / cs), maxD = Math.hypot(W, H) / 2;
+  if (!G.cells) G.cells = Array.from({ length: cols * rows }, (_, i) => {
+    const x = (i % cols + 0.5) * cs, y = (Math.floor(i / cols) + 0.5) * cs;
+    return { x, y, r: Math.hypot(x - W / 2, y - H / 2) / maxD, g: Math.floor(Math.random() * cctv.glyphs.length), b: 0.3 + 0.6 * Math.random() };
+  });
+  const c = G.ctx;
+  c.fillStyle = '#050403'; c.fillRect(0, 0, W, H);
+  c.lineWidth = 1.2; c.lineCap = 'round';
+  // how far out the field reaches now: filling over 1.6 s, then (draining) shrinking back with the collapse
+  const front = G.mode === 'fill' ? Math.min(1.08, (G.t - 0.25) / 1.6) : G.mode === 'drain' ? 1.08 * (1 - G.t / G.dur) : 1.08;
+  const s = cs * 0.7 / 3;
+  for (const cell of G.cells) {
+    if (cell.r > front) continue;
+    if (Math.random() < 0.25) cell.g = Math.floor(Math.random() * cctv.glyphs.length);   // scrambling
+    if (Math.random() < 0.15) cell.b = 0.3 + 0.6 * Math.random();
+    const edge = Math.max(0, 1 - Math.abs(front - cell.r) / 0.08);                     // the front of the ring
+    const a = Math.min(1, cell.b * (0.55 + 0.45 * (1 - cell.r)) + edge * 0.8);
+    c.strokeStyle = `rgba(239,233,223,${a.toFixed(2)})`; c.fillStyle = c.strokeStyle;
+    const g = cctv.glyphs[cell.g], gx = cell.x - cs * 0.35, gy = cell.y - cs * 0.4;
+    c.beginPath();
+    for (const [a0, b0, d0, e0] of g.strokes) { c.moveTo(gx + a0 * s, gy + b0 * s * 0.8); c.lineTo(gx + d0 * s, gy + e0 * s * 0.8); }
+    c.stroke();
+    if (g.dot) c.fillRect(gx + g.dot[0] * s - 1, gy + g.dot[1] * s * 0.8 - 1, 2, 2);
+  }
+  G.tex.needsUpdate = true;
+}
+
 function drawCCTV(dt) {
   const el = cctv.el, dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
   if (el.width !== Math.round(W * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
@@ -2810,6 +2869,7 @@ function showStep(i, keepCard = false) {
   $('sr').textContent = bubbleById[beat.b].text;
   if (beat.fx === 'static') { if (!sound.crackleStart()) sound.staticBurst(beat.cut ? beat.cut + 1.2 : undefined); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
   if (beat.fx !== 'static') sound.crackleUnder(beat.b);
+  if (beat.trigger) glyphFieldStart(); else if (glyphField.mode !== 'off') glyphFieldEnd();
   if (beat.fx === 'blip') sound.blip();
   sound.playVoice(beat.b);
   playFilm(beat.b);
@@ -2968,8 +3028,10 @@ function finalBreach() {
   $('sr').textContent = 'Initiating QNTM CTRL. The space breaks apart and you fall through the singularity.';
   sound.breach(FINAL_DUR);
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
+  glyphFieldCollapse(FINAL_DUR * 0.72);
   leave(FINAL_WORLD, () => {
     journey.phase = 'end'; journey.done = true;
+    glyphFieldEnd();
     enterVoid();
     useWorld(true);
     worlds.suction = 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.3;
@@ -3405,6 +3467,7 @@ function frame() {
   updateStrobe(rawDt);
   sound.bedTo(state.stage === 'read' || (state.stage === 'void' && worlds.id === STORY_WORLD && (!journey.on || journey.done) && !REVIEW) ? 0.55 : 0);
   updatePanelFloat(dt);
+  updateGlyphField(rawDt);
   if (films.on) { drawSuper8(rawDt); drawCCTV(rawDt); } else if (s8.el.classList.contains('on')) s8.el.classList.remove('on');
   if (pad.on) drawPad(rawDt);
   updateRibbons(dt, rawDt);
@@ -3420,7 +3483,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

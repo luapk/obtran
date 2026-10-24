@@ -45,9 +45,9 @@
     "bob1": {
       "clip": "bob-wide",
       "at": 0.1,
-      "from": 0.6,
-      "len": 4.4,
-      "note": "W-what the hell Smokehouse? Alien Bob sips, the transmitter hits, the mug drops (about 1.3 s into the clip), he freezes; then the eye close-up (bob-eyes) loops under \"metascanning intergalactic tumbleweed\" until the reader taps or presses a key, which moves the story on (Paul)",
+      "from": 1.0,
+      "len": 4.0,
+      "note": "W-what the hell Smokehouse? Alien Bob sips, the transmitter hits and he is startled (about 1.4 s into the portrait clip, 2.7 s into the 16:9 one), the mug drops, he freezes. Each starts about half a second before the startle (Paul: \"start the wide shot a moment before he gets startled\"). Then the eye close-up (bob-eyes) loops under \"metascanning intergalactic tumbleweed\" until the reader taps or presses a key, which moves the story on (Paul)",
       "card": true,
       "then": {
         "clip": "bob-eyes",
@@ -55,8 +55,8 @@
         "from": 0
       },
       "wide": {
-        "from": 0.3,
-        "len": 4.7
+        "from": 2.2,
+        "len": 2.8
       }
     },
     "holy": {
