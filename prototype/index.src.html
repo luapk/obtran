@@ -239,7 +239,7 @@ const BEATS = [
   { b: 'smoke1', fx: 'blip', auto: 1.1 },          // auto: moves on by itself this many seconds after its line (and film) end
   { b: 'engage', fx: 'blip' },
   { b: 'bob1' },
-  { b: 'drill', fx: 'blip' },
+  { b: 'drill', fx: 'blip', invert: true },     // invert: the card flashes negative while its line plays (Paul)
   { b: 'unlock', fx: 'blip', hold: true },
   { b: 'holy', auto: 0.01, filmOnly: true },       // filmOnly: its panel shows only over its film, and the story moves on as the film ends (Paul)
   { b: 'qntm', trigger: true, auto: 1.8 },
@@ -438,12 +438,12 @@ const bubbles = META.bubbles.map((b, i) => {
   const poly = polyUniform(b.poly);
   const mat = new THREE.ShaderMaterial({
     uniforms: { uPage: shared.uPage, uRect: { value: new THREE.Vector4(u0, v0, u1, v1) }, uFlick: { value: 0 }, uTime: shared.uTime, uOpacity: { value: 1 }, uGlow: { value: 0 },
-      uPoly: { value: poly.pts }, uPolyN: { value: poly.n }, uAspect: { value: META.aspect }, uBlank: { value: b.blank ?? 2 } },
+      uPoly: { value: poly.pts }, uPolyN: { value: poly.n }, uAspect: { value: META.aspect }, uBlank: { value: b.blank ?? 2 }, uInvert: { value: 0 } },
     transparent: true,
     depthWrite: false,
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
-      uniform sampler2D uPage; uniform vec4 uRect; uniform float uFlick; uniform float uTime; uniform float uOpacity; uniform float uGlow; uniform float uBlank;
+      uniform sampler2D uPage; uniform vec4 uRect; uniform float uFlick; uniform float uTime; uniform float uOpacity; uniform float uGlow; uniform float uBlank; uniform float uInvert;
       varying vec2 vUv;
       ${POLY_GLSL}
       void main(){
@@ -451,6 +451,7 @@ const bubbles = META.bubbles.map((b, i) => {
         float inside = smoothstep(-0.0005, 0.0004, polyInside(vec2(p.x, p.y * uAspect)));
         vec3 col = texture2D(uPage, p).rgb;
         if (p.y > uBlank) col = vec3(1.0);   // lettering cut from the line (meta.json blank): the box's white over it
+        col = mix(col, vec3(1.0) - col, uInvert);   // negative: black type out of white (a beat's invert)
         float scan = 0.82 + 0.18 * sin(gl_FragCoord.y * 1.7 + uTime * 30.0);
         float jitter = 0.75 + 0.5 * fract(sin(floor(uTime * 24.0) * 12.9898) * 43758.5453);
         col *= mix(1.0, scan * jitter, uFlick);
@@ -1389,12 +1390,14 @@ class Sound {
       const bg = ctx.createGain(); bg.gain.setValueAtTime(0, t + end + 0.04); bg.gain.linearRampToValueAtTime(0.05, t + end + 0.045); bg.gain.setTargetAtTime(0, t + end + 0.16, 0.015);
       beep.connect(bf).connect(bg).connect(out); beep.start(t + end + 0.03); beep.stop(t + end + 0.4);
       src.start(t + key, 0, len);
+      this.voiceSpan = { beat, t0: t + key, t1: t + end };
       musicDuck(t, t + end + 0.3);
       parts.push(sq, bed, beep);
     } else {
       lvl.connect(out);
       const wet = ctx.createGain(); wet.gain.value = 0.12; lvl.connect(wet).connect(this.reverb);
       src.start(t, 0, len);
+      this.voiceSpan = { beat, t0: t, t1: t + len };
       musicDuck(t, t + len + 0.3);
     }
     this.voiceParts = parts;
@@ -1404,6 +1407,7 @@ class Sound {
     const [src, out] = this.voiceParts;
     try { out.gain.setTargetAtTime(0, this.now(), 0.03); } catch (e) { /* already gone */ }
     musicUnduck();
+    this.voiceSpan = null;
     for (const n of this.voiceParts.slice(2).concat([src])) { try { n.stop(this.now() + 0.15); } catch (e) { /* not started or already stopped */ } }
     this.voiceParts = null;
   }
@@ -2245,6 +2249,11 @@ function updateCard(dt) {
   const beat = BEATS[STEPS[journey.step]?.beat];
   const act = journey.phase === 'space' && (beat?.trigger || beat?.hold);
   cardMat.uniforms.uGlow.value = Math.max(beat?.trigger && act ? 0.3 + 0.3 * Math.sin(shared.uTime.value * 5) : 0, 0.5 * pulse);
+  // a beat's invert (Paul: "this is not a drill" flashing negative, black type out of white, while the line plays):
+  // 0.25 s negative, 0.25 s as drawn, two flashes a second (under the limit of three); steady with reduced motion
+  const vs = sound.voiceSpan, vnow = sound.ok ? sound.now() : 0;
+  const inv = !!beat?.invert && journey.phase === 'space' && vs?.beat === beat.b && vnow >= vs.t0 && vnow < vs.t1;
+  cardMat.uniforms.uInvert.value = inv ? (reducedMotion || Math.floor((vnow - vs.t0) / 0.25) % 2 === 0 ? 1 : 0) : 0;
   // the glow breathes while it waits, and builds as the hold charges
   const hp = state.holding ? clamp(state.holdT / HOLD_DUR, 0, 1) : 0;
   const glow = Math.max(act ? (state.holding ? 0.7 + 1.6 * hp : 0.42 + 0.22 * Math.sin(shared.uTime.value * 2.4)) : 0, 1.4 * pulse);
@@ -2558,9 +2567,10 @@ function cctvGlyphs(c, x, y, row, size, n) {
 // changes every frame, the frame weaving in the gate (and now and then jumping), exposure flicker, lifted
 // blacks, dust specks, a scratch that holds for a few frames, and a heavy vignette. It is fed at 18 frames
 // a second, Super 8's own rate, so movement judders like projected film. The CCTV readout stays on top.
-const s8 = { el: $('s8'), gl: null, prog: null, tex: null, u: {}, t: 0, next: 0, seed: 0, weave: [0, 0], flick: 1, scratch: -1, scratchLeft: 0, ok: false };
-{
-  const gl = s8.el.getContext('webgl', { premultipliedAlpha: false, antialias: false, preserveDrawingBuffer: false });
+// super8Init sets the pass up on a canvas (the films' own, or the opening backdrop's); super8Frame draws one frame
+function super8Init(el, preserve = false) {
+  const s8 = { el, gl: null, prog: null, tex: null, u: {}, t: 0, next: 0, seed: 0, weave: [0, 0], flick: 1, scratch: -1, scratchLeft: 0, ok: false };
+  const gl = s8.el.getContext('webgl', { premultipliedAlpha: false, antialias: false, preserveDrawingBuffer: preserve });
   if (gl && params.get('super8') !== '0') {
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
     const vs = sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 v; void main(){ v = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }');
@@ -2603,37 +2613,45 @@ const s8 = { el: $('s8'), gl: null, prog: null, tex: null, u: {}, t: 0, next: 0,
       }
     }
   }
+  return s8;
+}
+const s8 = super8Init($('s8'));
+// one frame of the pass at W x H: sx, sy and keep size the window of the video frame, about focus fx, fy
+function super8Frame(S, v, W, H, sx, sy, keep, fx, fy) {
+  const gl = S.gl;
+  try { gl.bindTexture(gl.TEXTURE_2D, S.tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); }
+  catch (e) { S.ok = false; return false; }          // a video the canvas may not read
+  // the frame weaves in the gate, and now and then jumps
+  const jump = Math.random() < 0.04 ? 0.012 : 0;
+  S.weave = [S.weave[0] * 0.5 + (Math.random() - 0.5) * 0.004, S.weave[1] * 0.5 + (Math.random() - 0.5) * 0.006 + jump];
+  S.flick = 0.9 + Math.random() * 0.14;
+  if (S.scratchLeft > 0) S.scratchLeft--; else S.scratch = Math.random() < 0.06 ? (S.scratchLeft = 4 + Math.floor(Math.random() * 14), 0.15 + Math.random() * 0.7) : -1;
+  S.seed = Math.random() * 1000;
+  gl.viewport(0, 0, W, H);
+  // a crop: a smaller window of the frame about its focus, kept inside the frame
+  const hx = sx * keep / 2, hy = sy * keep / 2;
+  const cx = clamp(fx, Math.min(hx, 0.5), Math.max(1 - hx, 0.5)), cy = clamp(fy, Math.min(hy, 0.5), Math.max(1 - hy, 0.5));
+  gl.uniform2f(S.u.uScale, sx * keep, sy * keep); gl.uniform2f(S.u.uFocus, cx, cy);
+  gl.uniform2f(S.u.uWeave, S.weave[0], S.weave[1]); gl.uniform2f(S.u.uRes, W, H);
+  gl.uniform1f(S.u.uSeed, S.seed); gl.uniform1f(S.u.uFlick, S.flick); gl.uniform1f(S.u.uScratch, S.scratch);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  return true;
 }
 function drawSuper8(dt) {
   if (!s8.ok) return;
   const v = Object.values(films.videos).find((o) => o.classList.contains('cur'));
   if (!v || v.readyState < 2 || !v.videoWidth) return;
-  const gl = s8.gl, el = s8.el, dpr = Math.min(devicePixelRatio || 1, 1.5);
+  const el = s8.el, dpr = Math.min(devicePixelRatio || 1, 1.5);
   const W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
   if (el.width !== W || el.height !== H) { el.width = W; el.height = H; }
   s8.t += dt;
   if (s8.t < s8.next) return;                         // 18 frames a second
   s8.next = s8.t + 1 / 18;
-  try { gl.bindTexture(gl.TEXTURE_2D, s8.tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); }
-  catch (e) { s8.ok = false; s8.el.classList.remove('on'); return; }   // a video the canvas may not read: plain video
   // portrait screens fill the frame, wide ones show the whole portrait frame (as the plain video does)
   const ca = W / H, va = v.videoWidth / v.videoHeight, contain = innerWidth / innerHeight >= 0.8 && va < 1;   // a 16:9 take fills the screen
   const sx = contain ? Math.max(1, ca / va) : Math.min(1, ca / va), sy = contain ? Math.max(1, va / ca) : Math.min(1, va / ca);
-  // the frame weaves in the gate, and now and then jumps
-  const jump = Math.random() < 0.04 ? 0.012 : 0;
-  s8.weave = [s8.weave[0] * 0.5 + (Math.random() - 0.5) * 0.004, s8.weave[1] * 0.5 + (Math.random() - 0.5) * 0.006 + jump];
-  s8.flick = 0.9 + Math.random() * 0.14;
-  if (s8.scratchLeft > 0) s8.scratchLeft--; else s8.scratch = Math.random() < 0.06 ? (s8.scratchLeft = 4 + Math.floor(Math.random() * 14), 0.15 + Math.random() * 0.7) : -1;
-  s8.seed = Math.random() * 1000;
-  gl.viewport(0, 0, W, H);
-  // a clip's crop: a smaller window of the frame about its focus, kept inside the frame
   const keep = 1 - (+v.dataset.crop || 0), [fx, fy] = (v.dataset.focus || '0.5,0.5').split(',').map(Number);
-  const hx = sx * keep / 2, hy = sy * keep / 2;
-  const cx = clamp(fx, Math.min(hx, 0.5), Math.max(1 - hx, 0.5)), cy = clamp(fy, Math.min(hy, 0.5), Math.max(1 - hy, 0.5));
-  gl.uniform2f(s8.u.uScale, sx * keep, sy * keep); gl.uniform2f(s8.u.uFocus, cx, cy);
-  gl.uniform2f(s8.u.uWeave, s8.weave[0], s8.weave[1]); gl.uniform2f(s8.u.uRes, W, H);
-  gl.uniform1f(s8.u.uSeed, s8.seed); gl.uniform1f(s8.u.uFlick, s8.flick); gl.uniform1f(s8.u.uScratch, s8.scratch);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  if (!super8Frame(s8, v, W, H, sx, sy, keep, fx, fy)) { s8.el.classList.remove('on'); return; }   // plain video
   el.classList.add('on');
 }
 
@@ -2703,8 +2721,12 @@ function updateGlyphField(dt) {
 function drawCCTV(dt) {
   const el = cctv.el, dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
   if (el.width !== Math.round(W * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
-  const c = cctv.ctx, t = (cctv.t0 += dt);
+  const c = cctv.ctx;
   c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  cctvPaint(c, W, H, (cctv.t0 += dt), dt);
+}
+// the readout itself, on any 2D context W x H (the films' overlay, or the opening backdrop's texture)
+function cctvPaint(c, W, H, t, dt) {
   const ink = 'rgba(239,233,223,0.82)', m = 18, L = 26;
   c.strokeStyle = ink; c.fillStyle = ink; c.lineWidth = 1.5;
   // corner brackets
@@ -2738,6 +2760,98 @@ function drawCCTV(dt) {
   c.globalAlpha = 1;
   // the odd glitch line
   if (Math.random() < dt * 2.5) { c.fillStyle = 'rgba(239,233,223,0.18)'; c.fillRect(0, Math.random() * H, W, 1 + Math.random() * 3); }
+}
+
+// ---------- the opening backdrop (Paul, 24 October: the hand and mug loop "under the opening panel of
+// illustrated bob during narrator intro, b&w with alien cctv as per the others") ----------
+// films/index.json "backdrops" maps a beat to a looping clip that plays on a screen behind Bob's floating
+// panel: through its own Super 8 pass and the CCTV readout, drawn into a texture on a plane set further
+// back than the panel's layers (so it parts from them as the camera wanders), its edges feathered into the
+// world. It comes up with the panel and goes as the beat changes (CRSSHKKKKK! shears it away).
+const BACKDROP_D = 9.5, BACKDROP_TEX = [1280, 720], BACKDROP_HUD = 560;   // distance ahead; texture size; the readout's width in its own px
+const backdrop = { on: params.get('films') !== '0' && !REVIEW, video: null, beat: null, level: 0, want: false, t: 0, next: 0, s8: null, comp: null, cctvT: 0, tex: null, mesh: null };
+{
+  const [TW, TH] = BACKDROP_TEX;
+  const s8c = document.createElement('canvas'); s8c.width = 960; s8c.height = 540;
+  backdrop.s8 = super8Init(s8c, true);                // kept after drawing, so the composite can read it
+  backdrop.comp = document.createElement('canvas'); backdrop.comp.width = TW; backdrop.comp.height = TH;
+  backdrop.tex = new THREE.CanvasTexture(backdrop.comp); backdrop.tex.colorSpace = THREE.SRGBColorSpace;
+  // feathered edges: wide on the sides, narrower top and bottom
+  const fe = document.createElement('canvas'); fe.width = 256; fe.height = 144;
+  const fc = fe.getContext('2d'), img = fc.createImageData(256, 144);
+  for (let y = 0; y < 144; y++) for (let x = 0; x < 256; x++) {
+    const u = (x + 0.5) / 256, v = (y + 0.5) / 144;
+    const a = smooth(0, 0.16, u) * smooth(0, 0.16, 1 - u) * smooth(0, 0.14, v) * smooth(0, 0.14, 1 - v);
+    const i = (y * 256 + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = Math.round(255 * a); img.data[i + 3] = 255;
+  }
+  fc.putImageData(img, 0, 0);
+  const alphaMap = new THREE.CanvasTexture(fe);
+  backdrop.mesh = new THREE.Mesh(new THREE.PlaneGeometry(TW / TH, 1),
+    new THREE.MeshBasicMaterial({ map: backdrop.tex, alphaMap, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }));
+  backdrop.mesh.renderOrder = 5.5;                    // over the world, under the panel's layers (6 to 8)
+  backdrop.mesh.visible = false;
+  panelFloat.group.add(backdrop.mesh);
+}
+function backdropClip(beat) { const c = films.index?.backdrops?.[beat]; return c?.file ? c : null; }
+function backdropVideo(beat) {
+  const clip = backdropClip(beat);
+  if (!clip) return null;
+  if (backdrop.beat !== beat) {
+    if (!backdrop.video) {
+      const v = document.createElement('video');
+      v.muted = true; v.playsInline = true; v.loop = true; v.preload = 'auto';
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+      // on the page but out of sight: some phone browsers will not decode a video that is not shown
+      v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none;';
+      document.body.append(v);
+      backdrop.video = v;
+    }
+    backdrop.video.src = 'assets/films/' + clip.file + (clip.v ? '?v=' + clip.v : '');
+    backdrop.beat = beat;
+  }
+  return backdrop.video;
+}
+// the Start tap plays and stops it inside the reader's gesture, as primeFilms does for the films
+function primeBackdrops() {
+  if (!backdrop.on || !films.index?.backdrops) return;
+  const beat = Object.keys(films.index.backdrops)[0], v = beat && backdropVideo(beat);
+  v?.play().then(() => { if (!backdrop.want) v.pause(); }).catch(() => { /* tried again when it is wanted */ });
+}
+function updateBackdrop(dt) {
+  const beat = BEATS[state.beat]?.b, clip = backdrop.on && backdropClip(beat);
+  const want = !!clip && panelFloat.group.visible && journey.on && (journey.phase === 'space' || journey.phase === 'enter');
+  if (want && !backdrop.want) { const v = backdropVideo(beat); v?.play().catch((e) => console.warn('backdrop not played:', e && e.name)); }
+  backdrop.want = want;
+  // up with the panel, gone quickly when the beat moves on
+  backdrop.level += ((want ? panelFloat.level : 0) - backdrop.level) * (1 - Math.exp(-dt * (want ? 3 : 7)));
+  const v = backdrop.video;
+  backdrop.mesh.visible = backdrop.level > 0.01 && !!v && v.readyState >= 2 && v.videoWidth > 0;
+  if (!backdrop.mesh.visible) { if (!want && v && !v.paused && backdrop.level < 0.01) v.pause(); return; }
+  // sized to the view at its distance: most of the width on wide screens, half the height at least on tall ones
+  const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), viewH = 2 * BACKDROP_D * tanH, viewW = viewH * camera.aspect;
+  const aspect = BACKDROP_TEX[0] / BACKDROP_TEX[1];
+  const h = Math.max(Math.min(viewH * 0.8, viewW * 0.96 / aspect), viewH * 0.5);
+  const shear = worlds.jitter > 0 ? (Math.random() - 0.5) * worlds.jitter * 0.6 : 0;
+  backdrop.mesh.scale.set(h, h, 1);
+  backdrop.mesh.position.set(shear, viewH * 0.1, -BACKDROP_D);
+  backdrop.mesh.material.opacity = backdrop.level * (clip?.level ?? 0.9);
+  // the frame: Super 8 at 18 frames a second, then the readout over it
+  backdrop.t += dt; backdrop.cctvT += dt;
+  if (backdrop.t < backdrop.next) return;
+  const step = backdrop.t - (backdrop.next - 1 / 18);
+  backdrop.next = backdrop.t + 1 / 18;
+  const [TW, TH] = BACKDROP_TEX, c = backdrop.comp.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  const S = backdrop.s8;
+  if (S.ok && super8Frame(S, v, S.el.width, S.el.height, 1, 1, 1, 0.5, 0.5)) c.drawImage(S.el, 0, 0, TW, TH);
+  else { c.filter = 'grayscale(1) contrast(1.08)'; c.drawImage(v, 0, 0, TW, TH); c.filter = 'none'; }   // no WebGL: the plain film, in black and white
+  // the scan lines the films have over them
+  c.fillStyle = 'rgba(0,0,0,0.22)';
+  for (let y = 0; y < TH; y += 3) c.fillRect(0, y, TW, 1);
+  const k = TW / BACKDROP_HUD;
+  c.setTransform(k, 0, 0, k, 0, 0);
+  cctvPaint(c, BACKDROP_HUD, TH / k, backdrop.cctvT, Math.min(step, 0.25));
+  backdrop.tex.needsUpdate = true;
 }
 
 // ---------- the biometric touch screen (Paul, 24 October) ----------
@@ -3259,7 +3373,7 @@ function onOrient(e) {
 $('start').addEventListener('click', async () => {
   sound.start();
   if (music.index?.tracks?.length && !REVIEW) $('music').hidden = false;
-  primeFilms();
+  primeFilms(); primeBackdrops();
   try {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       const r = await DeviceOrientationEvent.requestPermission();
@@ -3519,6 +3633,7 @@ function frame() {
   updateStrobe(rawDt);
   sound.bedTo(state.stage === 'read' || (state.stage === 'void' && worlds.id === STORY_WORLD && (!journey.on || journey.done) && !REVIEW) ? 0.55 : 0);
   updatePanelFloat(dt);
+  updateBackdrop(rawDt);
   updateGlyphField(rawDt);
   if (films.on) { drawSuper8(rawDt); drawCCTV(rawDt); } else if (s8.el.classList.contains('on')) s8.el.classList.remove('on');
   if (pad.on) drawPad(rawDt);
@@ -3535,7 +3650,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

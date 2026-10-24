@@ -12,7 +12,7 @@ name: Fetch films
 
 on:
   push:
-    branches: [main, ccr-f7c462d2-dx11rj]
+    branches: [main, ccr-f7c462d2-dx11rj, claude/laughing-cori-e4cfvm]
     paths: [films/sources.json, .github/workflows/fetch-films.yml]
   workflow_dispatch:
 

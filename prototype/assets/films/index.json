@@ -1,5 +1,5 @@
 {
-  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Alien Bob takes (Paul's character, 24 October; earlier takes in films/sources.json); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film. then: the film runs straight on into another clip, looped when loop is set, until the reader taps or presses a key, which also moves the story on. wide: a clip's 16:9 take for landscape screens. crop (and focus): crop in by that much about that point (Paul: \"on one of the close ups, crop in 40%\").",
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Alien Bob takes (Paul's character, 24 October; earlier takes in films/sources.json); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film. then: the film runs straight on into another clip, looped when loop is set, until the reader taps or presses a key, which also moves the story on. wide: a clip's 16:9 take for landscape screens. crop (and focus): crop in by that much about that point (Paul: \"on one of the close ups, crop in 40%\"). backdrops: a beat to a looping clip played on a screen behind Bob's floating panel (Super 8 and the CCTV readout, feathered into the world), while that beat shows; level is its opacity.",
   "clips": {
     "bob-wide": {
       "file": "bob-wide.mp4",
@@ -83,6 +83,14 @@
       "len": 4.5,
       "note": "Holy smokes! Er, ok. Extreme close-up of his eye behind the dirty visor, the tear rolling; his panel comes up over it (Paul)",
       "card": true
+    }
+  },
+  "backdrops": {
+    "caption": {
+      "file": "bob-hand-cup.mp4",
+      "v": "e67b5b0b",
+      "level": 0.9,
+      "note": "Alien Bob's spindly hand round the OT mug, steam rising, skull ring: a 5 s seamless loop (start and end frame the same, still hand-cup-2) behind the opening panel during the narrator's caption (Paul)"
     }
   }
 }
