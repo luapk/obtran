@@ -1,0 +1,47 @@
+name: Alien voice tests
+
+# Designs alien voices for Bob with ElevenLabs Voice Design (tools/alien-voices.mjs) from
+# voices/alien-tests.json and commits the takes to voices/alien-tests/ for listening. Only
+# tests whose description or text changed are rendered. Main only, so a test is paid for once.
+#
+# Needs the repository secret ELEVENLABS_API_KEY. Never put the key in code or logs.
+
+on:
+  push:
+    branches: [main]
+    paths: [voices/alien-tests.json, tools/alien-voices.mjs, .github/workflows/alien-voices.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: alien-voices
+  cancel-in-progress: false
+
+jobs:
+  design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Design
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: node tools/alien-voices.mjs
+      - name: Commit results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          [ -d voices/alien-tests ] || { echo "Nothing rendered."; exit 0; }
+          git add voices/alien-tests
+          if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
+          git commit -m "Alien voice tests"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

@@ -40,7 +40,8 @@ for (const line of script.lines) {
   if (!voice) throw new Error(`line ${line.beat}: no voice "${line.speaker}" in the script`);
   if (!voice.id) { console.log(`  ${line.beat.padEnd(8)} skip: no voice id for ${line.speaker} yet`); continue; }
   const body = { text: line.text, model_id: line.model || script.model, voice_settings: { ...voice.settings, ...(line.settings || {}) } };
-  const hash = createHash('sha256').update(JSON.stringify({ body, voice: voice.id, format: script.output_format })).digest('hex').slice(0, 16);
+  // take: a number on a line that asks for a fresh render of the same words (absent, it leaves the hash as it was)
+  const hash = createHash('sha256').update(JSON.stringify({ body, voice: voice.id, format: script.output_format, take: line.take })).digest('hex').slice(0, 16);
   const file = `${line.beat}.mp3`;
   const current = index.lines[line.beat]?.hash === hash && existsSync(join(OUT, file));
   if (current && !force) { console.log(`  ${line.beat.padEnd(8)} up to date`); continue; }
