@@ -38,6 +38,16 @@
     linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 48%, rgba(255,255,255,0) 52%);
     background-size: 100% 2px, 100% 300%; animation: scanRoll 6s linear infinite; }
   @keyframes scanRoll { from { background-position: 0 0, 0 0%; } to { background-position: 0 0, 0 -300%; } }
+  /* the biometric touch screen for the hold: a looping top-down film of an alien touch pad, a code
+     layer drawn where the thumb is, and the line's lettering */
+  #pad { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.45s; touch-action: none; }
+  #pad.on { opacity: 1; pointer-events: auto; }
+  #pad video { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.05); }
+  @media (min-aspect-ratio: 4/5) { #pad video { object-fit: contain; } }
+  #pad::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0 1px, rgba(0,0,0,0) 1px 2px); }
+  #padUI { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #padCard { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); pointer-events: none; }
+  body.padOn #ring { display: none; }
   #cctv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #filmCard { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); height: auto; pointer-events: none; display: none; }
   #filmCard.show { display: block; animation: filmCardIn 0.45s cubic-bezier(.2,1.6,.4,1) both; }
@@ -114,6 +124,7 @@
 <div id="intro"><svg viewBox="0 0 467 490" role="img" aria-label="Oblivious Transfer"><g fill="none" stroke="currentColor" stroke-width="22"><rect x="62" y="73" width="62" height="116" rx="31"/><path d="M212 131 H330 A100 100 0 0 1 430 231 V246"/><path d="M108 246 V255 A100 100 0 0 0 208 355 H296"/><path d="M330 304 H440 M385 304 V428"/></g></svg></div>
 <script>window.__introT0 = performance.now(); setTimeout(() => document.getElementById('intro')?.classList.add('out'), 10000);</script>
 <div id="film" aria-hidden="true"><canvas id="cctv"></canvas><canvas id="filmCard"></canvas></div>
+<div id="pad" aria-hidden="true"><video muted playsinline loop preload="auto"></video><canvas id="padUI"></canvas><canvas id="padCard"></canvas></div>
 <div class="vignette"></div>
 <div class="grain"></div>
 <div class="flash" id="flash"></div>
@@ -1989,8 +2000,8 @@ function filmVideo(id) {
 }
 // the line's own lettering over the film (Paul: bring Bob's "what the hell" panel up over the video,
 // timed to his line): the box cut from the page along its outline, where the card sits in a space
-function showFilmCard(beat) {
-  const b = bubbleById[beat], img = shared.uPage.value?.image, el = $('filmCard');
+function showFilmCard(beat, el = $('filmCard')) {
+  const b = bubbleById[beat], img = shared.uPage.value?.image;
   if (!b || !img) return;
   const [u0, v0, u1, v1] = b.uv, W = img.width, H = img.height;
   const sw = (u1 - u0) * W, sh = (v1 - v0) * H, k = Math.min(1, 1400 / sw);
@@ -2069,6 +2080,95 @@ function drawCCTV(dt) {
   if (Math.random() < dt * 2.5) { c.fillStyle = 'rgba(239,233,223,0.18)'; c.fillRect(0, Math.random() * H, W, 1 + Math.random() * 3); }
 }
 
+// ---------- the biometric touch screen (Paul, 24 October) ----------
+// For the press and hold: a top-down film of an alien touch pad (films/index.json clip "touchpad",
+// a seamless loop) fills the view, so the reader's own thumb completes the picture as Bob's. A code
+// layer in the photo's style answers the touch where it lands: crosshair lines to the screen's edges
+// with coordinate readouts, counter-turning segmented rings, a scan line sweeping a bracket that
+// tightens with the charge, glyph columns streaming, and the charge arc; on unlock the rings burst and
+// ACCESS flashes. Before the touch, target rings breathe at the centre, where the photo's pad is.
+// Without the film the layer still works, over black.
+const pad = { el: $('pad'), ui: $('padUI'), ctx: null, on: false, t: 0, burst: -1, video: null };
+pad.ctx = pad.ui.getContext('2d');
+pad.video = pad.el.querySelector('video');
+function padShow(beat) {
+  const clip = films.index?.clips?.touchpad;
+  if (clip && !pad.video.src) pad.video.src = 'assets/films/' + clip.file + (clip.v ? '?v=' + clip.v : '');
+  pad.video.play?.().catch(() => {});
+  pad.on = true; pad.t = 0; pad.burst = -1;
+  pad.el.classList.add('on'); document.body.classList.add('padOn');
+  showFilmCard(beat, $('padCard'));
+}
+function padHide(delay = 0) {
+  if (!pad.on) return;
+  setTimeout(() => { pad.on = false; pad.el.classList.remove('on'); document.body.classList.remove('padOn'); setTimeout(() => pad.video.pause(), 500); }, delay);
+}
+pad.el.addEventListener('pointerdown', (e) => { e.stopPropagation(); lastInput = performance.now(); if (!state.holding && pad.burst < 0) startHold(e.clientX, e.clientY); });
+pad.el.addEventListener('pointermove', (e) => { if (state.holding) { state.holdX = e.clientX; state.holdY = e.clientY; } });
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) pad.el.addEventListener(ev, () => { if (state.holding) endHold(false); });
+function drawPad(dt) {
+  const el = pad.ui, dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+  if (el.width !== Math.round(W * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
+  const c = pad.ctx, t = (pad.t += dt), R = Math.min(W, H);
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const ink = (a) => `rgba(239,233,223,${a})`;
+  c.lineCap = 'round';
+  // before the touch: target rings breathing at the centre
+  if (!state.holding && pad.burst < 0) {
+    const r0 = R * 0.16 * (1 + 0.04 * Math.sin(t * 2.4));
+    c.strokeStyle = ink(0.35 + 0.2 * Math.sin(t * 2.4)); c.lineWidth = 1.2;
+    for (const k of [1, 1.35, 1.75]) { c.beginPath(); c.arc(W / 2, H / 2, r0 * k, 0, 6.283); c.stroke(); }
+  }
+  // on unlock: rings burst out and ACCESS flashes
+  if (pad.burst >= 0) {
+    pad.burst += dt;
+    const b = pad.burst, x = state.holdX, y = state.holdY;
+    c.strokeStyle = ink(Math.max(0, 1 - b * 1.6)); c.lineWidth = 2;
+    for (const k of [0, 0.12, 0.24]) { const rr = (b - k) * R * 1.4; if (rr > 0) { c.beginPath(); c.arc(x, y, rr, 0, 6.283); c.stroke(); } }
+    if (Math.floor(b * 10) % 2 === 0 && b < 0.9) {
+      c.font = '600 14px "IBM Plex Mono", ui-monospace, monospace'; c.textAlign = 'center'; c.fillStyle = ink(0.95);
+      c.fillText('ACCESS', x, y - R * 0.24); c.lineWidth = 1.2; c.strokeStyle = ink(0.9);
+      cctvGlyphs(c, x - 40, y + R * 0.2, cctv.rows[0] || [1, 2, 3, 4, 5, 6], 9, 7); c.textAlign = 'left';
+    }
+    return;
+  }
+  if (!state.holding) return;
+  const x = state.holdX, y = state.holdY, p = clamp(state.holdT / HOLD_DUR, 0, 1);
+  // crosshair lines to the screen's edges, with coordinate readouts
+  c.strokeStyle = ink(0.4); c.lineWidth = 1;
+  c.setLineDash([4, 6]);
+  c.beginPath(); c.moveTo(0, y); c.lineTo(x - R * 0.2, y); c.moveTo(x + R * 0.2, y); c.lineTo(W, y); c.moveTo(x, 0); c.lineTo(x, y - R * 0.2); c.moveTo(x, y + R * 0.2); c.lineTo(x, H); c.stroke();
+  c.setLineDash([]);
+  c.font = '600 10px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = ink(0.85);
+  c.fillText(`X ${(x / W).toFixed(3)}`, 14, y - 6); c.fillText(`Y ${(y / H).toFixed(3)}`, x + 6, 22);
+  c.fillText(`${Math.round(p * 100).toString().padStart(3, '0')} %`, x + R * 0.22, y + R * 0.2 + 4);
+  // counter-turning segmented rings
+  c.strokeStyle = ink(0.75); c.lineWidth = 2;
+  [[0.11, 1.4, 6], [0.15, -0.9, 10], [0.2, 0.5, 18]].forEach(([rr, sp, n]) => {
+    const r = R * rr * (1 - 0.15 * p), a0 = t * sp;
+    for (let k = 0; k < n; k++) { const a = a0 + (k / n) * 6.283; c.beginPath(); c.arc(x, y, r, a, a + (6.283 / n) * 0.55); c.stroke(); }
+  });
+  // the charge arc
+  c.strokeStyle = ink(0.95); c.lineWidth = 4;
+  c.beginPath(); c.arc(x, y, R * 0.24, -1.5708, -1.5708 + p * 6.283); c.stroke();
+  // a bracket tightening with the charge, swept by a scan line
+  const bs = R * (0.17 - 0.06 * p), L = bs * 0.35;
+  c.lineWidth = 1.5; c.strokeStyle = ink(0.85); c.beginPath();
+  for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const cx = x + sx * bs, cy = y + sy * bs; c.moveTo(cx, cy - sy * L); c.lineTo(cx, cy); c.lineTo(cx - sx * L, cy); }
+  c.stroke();
+  const sy = y - bs + ((t * 1.8) % 1) * bs * 2;
+  c.fillStyle = ink(0.5); c.fillRect(x - bs, sy, bs * 2, 1.5);
+  // glyph columns streaming up beside the thumb
+  c.lineWidth = 1; c.strokeStyle = ink(0.6);
+  for (let col = 0; col < 2; col++) {
+    const gx = x + (col ? 1 : -1) * R * 0.3 - (col ? 0 : 10);
+    for (let k = 0; k < 6; k++) {
+      const gy = y + R * 0.18 - ((t * 40 + k * 22) % 132);
+      cctvGlyphs(c, gx, gy, [(k * 5 + col * 3 + Math.floor(t * 6)) % 28], 9, 1);
+    }
+  }
+}
+
 function prefetchFilm(beat) { const cue = filmCue(beat); if (cue) filmVideo(cue.clip).load(); }
 // called from the Start tap: starting and stopping each film inside the reader's own gesture
 // lets phones that block a page's own video playback (data saver, low power) play them later
@@ -2134,7 +2234,7 @@ function showStep(i, keepCard = false) {
   // the tap hint only on the first scene, pointing at the card, so the story's way through is clear
   // from the start (Paul); after that only the hold, a gesture nobody would guess, is named, and
   // a card left waiting 10 s pulses once instead
-  if (beat.hold) setHint('Press and hold to unlock');
+  if (beat.hold) { setHint('Press and hold to unlock'); padShow(beat.b); }
   else if (i === 0) setHint(`${tapWord} to continue`, true);
   else setHint('');
   journey.stepAt = performance.now(); journey.pulsed = false;
@@ -2200,6 +2300,7 @@ function journeyNext() {
 // collapse the current space into its core, then load and unwind the next
 function leave(nextWorld, then, dur = OUT_DUR) {
   journey.autoAt = null;
+  padHide();
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
   sound.stopVoice();
   stopFilm(false);
@@ -2283,6 +2384,7 @@ function endHold(success) {
   ring.style.transform = ''; ring.style.setProperty('--p', '0');
   sound.holdStop(success);
   if (success) {
+    if (pad.on) { pad.burst = 0; padHide(900); }
     fxEmit(reducedMotion ? 60 : 340, state.holdX, state.holdY, 1100);
     flash(0.7);
     if (navigator.vibrate) navigator.vibrate(40);
@@ -2624,6 +2726,7 @@ function frame() {
   updateSlab(dt, rawDt);
   updatePanelFloat(dt);
   if (films.on) drawCCTV(rawDt);
+  if (pad.on) drawPad(rawDt);
   updateRibbons(dt, rawDt);
   if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey);
   sound.update(dt, camera);
@@ -2637,7 +2740,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => $('intro').classList.add('out'), Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

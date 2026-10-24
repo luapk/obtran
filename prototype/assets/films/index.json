@@ -10,6 +10,10 @@
       "file": "bob-close.mp4",
       "frame": "bob-close.jpg",
       "v": "6bf46a50"
+    },
+    "touchpad": {
+      "file": "touchpad.mp4",
+      "v": "a19159ae"
     }
   },
   "cues": {
