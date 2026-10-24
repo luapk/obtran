@@ -3243,11 +3243,19 @@ function frame() {
       worlds.offset.lerp(tmpV.set(px, -py, 0).multiplyScalar(worlds.parallax).applyQuaternion(camera.quaternion), 1 - Math.exp(-dt * 4));
       camera.position.copy(P0).add(worlds.drift).add(worlds.wander).add(worlds.offset);
       // the singularity draws back (Paul, 24 October: "a slow zoom out until it appears like a nebula
-      // filling half the screen"): from a few seconds after it has opened the camera eases straight
-      // back over about 45 s, to where the world's shell spans half the screen's height, and stays
+      // filling half the screen", then "faster"): from a few seconds after it has opened the camera eases
+      // straight back over about 18 s, to where the world's shell spans half the screen's height, and stays
       if (worlds.id === STORY_WORLD && !REVIEW && (!journey.on || journey.done) && !reducedMotion && params.get('zoomout') !== '0') {
         const R = worlds.radius * WORLD_SCALE, D = R / Math.tan(THREE.MathUtils.degToRad(camera.fov / 4));
-        camera.position.z += D * smooth(4, 50, state.endT);
+        camera.position.z += D * smooth(3, 21, state.endT);
+      }
+      // camera moves through two of the spaces (Paul): a slow lateral truck across Bob's floating panel,
+      // so the panel and its layers drift against the world behind, and a slow diagonal drift through the
+      // ribbons, which sway after it. Each starts from the viewpoint, so arrivals stay seamless.
+      if (journey.on && !journey.done && !reducedMotion) {
+        const T = state.endT;
+        if (worlds.id === PANEL_WORLD) camera.position.x += 1.8 * Math.sin(T * 0.09);
+        if (worlds.id === RIBBON_WORLD) { const k = Math.sin(T * 0.08); camera.position.x += 1.6 * k; camera.position.y += 1.0 * k; }
       }
     } else if (!reducedMotion) camera.position.addScaledVector(fwd, dt * 0.25);
     // To be continued... comes 8 s into the ending (Paul: five seconds later than it was)
