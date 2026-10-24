@@ -67,6 +67,22 @@ if (!inline) {
     mkdirSync(join(DIST, 'assets', 'voice'), { recursive: true });
     for (const f of readdirSync(VOICE).filter((f) => f === 'index.json' || f.endsWith('.mp3'))) copyFileSync(join(VOICE, f), join(DIST, 'assets', 'voice', f));
   }
+  // music (assets/music/index.json): the audio files present are listed in the deployed index
+  const MUSIC = join(ASSETS, 'music');
+  if (existsSync(join(MUSIC, 'index.json'))) {
+    mkdirSync(join(DIST, 'assets', 'music'), { recursive: true });
+    const audio = readdirSync(MUSIC).filter((f) => /\.(mp3|m4a|ogg|wav)$/.test(f)).sort();
+    for (const f of audio) copyFileSync(join(MUSIC, f), join(DIST, 'assets', 'music', f));
+    const idx = JSON.parse(readFileSync(join(MUSIC, 'index.json'), 'utf8'));
+    idx.present = audio;
+    writeFileSync(join(DIST, 'assets', 'music', 'index.json'), JSON.stringify(idx, null, 2) + '\n');
+  }
+  // props cut from the worlds (tools/cut_slab.py)
+  const PROPS = join(ASSETS, 'props');
+  if (existsSync(PROPS)) {
+    mkdirSync(join(DIST, 'assets', 'props'), { recursive: true });
+    for (const f of readdirSync(PROPS).filter((f) => /\.(png|jpg|webp|json)$/.test(f))) copyFileSync(join(PROPS, f), join(DIST, 'assets', 'props', f));
+  }
   // short films of Bob (films/README.md): start frames and approved clips
   const FILMS = join(ASSETS, 'films');
   if (existsSync(FILMS)) {

@@ -84,6 +84,23 @@ def main():
             for f in sorted(voice.iterdir()):
                 if f.name == "index.json" or f.suffix == ".mp3":
                     shutil.copyfile(f, DIST / "assets" / "voice" / f.name)
+        # music (assets/music/index.json): the audio files present are listed in the deployed index
+        music = ASSETS / "music"
+        if (music / "index.json").exists():
+            (DIST / "assets" / "music").mkdir()
+            audio = sorted(f.name for f in music.iterdir() if f.suffix in (".mp3", ".m4a", ".ogg", ".wav"))
+            for name in audio:
+                shutil.copyfile(music / name, DIST / "assets" / "music" / name)
+            idx = json.loads((music / "index.json").read_text())
+            idx["present"] = audio
+            (DIST / "assets" / "music" / "index.json").write_text(json.dumps(idx, indent=2, ensure_ascii=False) + "\n")
+        # props cut from the worlds (tools/cut_slab.py)
+        props = ASSETS / "props"
+        if props.exists():
+            (DIST / "assets" / "props").mkdir()
+            for f in sorted(props.iterdir()):
+                if f.suffix in (".png", ".jpg", ".webp", ".json"):
+                    shutil.copyfile(f, DIST / "assets" / "props" / f.name)
         # short films of Bob (films/README.md): start frames and approved clips
         films = ASSETS / "films"
         if films.exists():

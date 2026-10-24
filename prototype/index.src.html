@@ -33,6 +33,31 @@
   @media (min-aspect-ratio: 4/5) { #film video { object-fit: contain; } }
   #film video.cur { display: block; }
   @keyframes filmIn { 0% { transform: translateX(-3%) scaleY(1.04); filter: brightness(2.2); } 60% { transform: translateX(1.5%); } 100% { transform: none; filter: none; } }
+  /* the OT logo flashes up first: a couple of glitched frames (one inverted), a hold, then it cuts away */
+  #intro { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #ddd6c6; color: #050403; animation: introIn 0.9s linear both; }
+  #intro svg { width: min(78vw, 66vh); height: auto; }
+  #intro.out { animation: introOut 0.4s steps(4, end) forwards; pointer-events: none; }
+  @keyframes introIn { 0% { opacity: 0; } 5% { opacity: 1; filter: invert(1); } 10% { opacity: 0; } 15% { opacity: 1; filter: none; transform: translateX(-2.5%) scaleY(1.03); } 19% { transform: none; } 100% { opacity: 1; } }
+  @keyframes introOut { 0% { opacity: 1; } 30% { opacity: 1; filter: invert(1); } 60% { opacity: 0.4; transform: translateX(3%); } 100% { opacity: 0; visibility: hidden; } }
+  @media (prefers-reduced-motion: reduce) { #intro { animation: none; } #intro.out { animation: none; opacity: 0; visibility: hidden; transition: opacity 0.4s; } }
+  /* the music counter: a tab at the side, opening to the three tracks (assets/music/index.json) */
+  #music[hidden] { display: none; }
+  #music { position: fixed; z-index: 4; right: 14px; top: calc(max(14px, env(safe-area-inset-top)) + 46px); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  #music .ui-btn { position: static; }
+  #musicTab.unlocked { animation: tabFlash 1.2s steps(6, end); }
+  @keyframes tabFlash { 0%, 33%, 66% { background: var(--paper); color: var(--ink); } 16%, 50%, 100% { background: rgba(6,5,4,0.7); color: var(--paper); } }
+  #musicCount { color: var(--dim); margin-left: 0.4em; }
+  #musicList { background: rgba(6,5,4,0.86); border: 1px solid rgba(239,233,223,0.25); padding: 0.7rem 0.8rem; width: min(17rem, calc(100vw - 28px)); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; }
+  #musicList .mt-head { margin: 0 0 0.6rem; color: var(--dim); line-height: 1.5; }
+  #musicTracks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+  #musicTracks li { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+  #musicTracks li.locked { color: rgba(239,233,223,0.35); }
+  #musicTracks button { font: inherit; color: var(--ink); background: var(--paper); border: 0; padding: 0.3rem 0.5rem; cursor: pointer; }
+  #musicTracks button:disabled { background: rgba(239,233,223,0.2); color: var(--dim); cursor: default; }
+  #musicBuy[hidden] { display: none; }
+  #musicBuy { display: block; margin-top: 0.7rem; color: var(--paper); }
+  #toast { position: fixed; z-index: 5; left: 50%; top: calc(max(14px, env(safe-area-inset-top)) + 4px); transform: translateX(-50%); background: var(--paper); color: var(--ink); font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; padding: 0.5rem 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; white-space: nowrap; }
+  #toast.show { opacity: 1; }
   .black { position: fixed; inset: 0; pointer-events: none; background: #000; opacity: 0; transition: opacity 0.5s; }
 
   #gate { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(6,5,4,0.72); z-index: 5; transition: opacity 0.6s; padding: 16px; }
@@ -47,6 +72,10 @@
 
   #hint { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); background: rgba(6,5,4,0.7); padding: 0.55rem 0.9rem; z-index: 3; transition: opacity 0.4s; white-space: nowrap; pointer-events: none; }
   #hint.off { opacity: 0; }
+  /* on the first scene the hint points up at the card */
+  #hint.arrow::before { content: ''; position: absolute; left: 50%; bottom: 100%; width: 2px; height: 26px; margin-left: -1px; background: var(--paper); animation: hintArrow 1.4s ease-in-out infinite; }
+  #hint.arrow::after { content: ''; position: absolute; left: 50%; bottom: calc(100% + 22px); width: 10px; height: 10px; margin-left: -6px; border-left: 2px solid var(--paper); border-top: 2px solid var(--paper); transform: rotate(45deg); animation: hintArrow 1.4s ease-in-out infinite; }
+  @keyframes hintArrow { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
   #hint.nudge { animation: nudge 0.4s; }
   @keyframes nudge { 0%,100%{transform:translateX(-50%)} 25%{transform:translateX(calc(-50% - 6px))} 75%{transform:translateX(calc(-50% + 6px))} }
 
@@ -71,6 +100,9 @@
 </style>
 </head>
 <body>
+<!-- the OT logo, full screen, before anything else loads (Paul, 24 October); drawn from the label's logo -->
+<div id="intro"><svg viewBox="0 0 467 490" role="img" aria-label="Oblivious Transfer"><g fill="none" stroke="currentColor" stroke-width="22"><rect x="62" y="73" width="62" height="116" rx="31"/><path d="M212 131 H330 A100 100 0 0 1 430 231 V246"/><path d="M108 246 V255 A100 100 0 0 0 208 355 H296"/><path d="M330 304 H440 M385 304 V428"/></g></svg></div>
+<script>window.__introT0 = performance.now(); setTimeout(() => document.getElementById('intro')?.classList.add('out'), 10000);</script>
 <div id="film" aria-hidden="true"></div>
 <div class="vignette"></div>
 <div class="grain"></div>
@@ -89,6 +121,15 @@
 
 <div id="hint" class="off">Tap to continue</div>
 <button id="mute" class="ui-btn" type="button" aria-pressed="false">Sound on</button>
+<div id="music" hidden>
+  <button id="musicTab" class="ui-btn" type="button" aria-expanded="false" aria-controls="musicList"><span class="mt-name">QNTM CTRL</span> <span id="musicCount">0/3</span></button>
+  <div id="musicList" hidden>
+    <p class="mt-head">Smokehouse Shift EP: unlock the three tracks as the story goes on</p>
+    <ol id="musicTracks"></ol>
+    <a id="musicBuy" href="#" target="_blank" rel="noopener" hidden>The Smokehouse Shift EP on Bandcamp</a>
+  </div>
+</div>
+<div id="toast" aria-live="polite"></div>
 <button id="again" class="ui-btn" type="button">Read again</button>
 <svg id="ring" viewBox="0 0 96 96" aria-hidden="true"><circle class="track" cx="48" cy="48" r="40"/><circle class="prog" id="ringProg" cx="48" cy="48" r="40" stroke-dasharray="251.3" stroke-dashoffset="251.3"/></svg>
 <div class="sr" aria-live="polite" id="sr"></div>
@@ -616,6 +657,9 @@ const params = new URLSearchParams(location.search);
 const REVIEW = params.get('world');
 const STORY_WORLD = 'singularity-core';
 const WORLD_SCALE = 12;
+// the white slab Marble invented in the singularity, cut out to float as a card: tools/cut_slab.py
+// prints these (the card's place on the flat view it was cut from, and the box its splats fall in)
+const SLAB = {"card": {"view": [-29.3, 21.0], "offset": [-0.0658, -0.0083], "size": [0.5492, 0.8847]}, "hide": {"centre": [-30.73, 18.71], "angle": 72.58, "half": [26.36, 11.97], "dist": [1.08, 1.48]}};
 // share of the sand shown over a relief (Bob's head): enough to drift past, not enough to hide his face
 const RELIEF_SAND = 0.35;
 const DEG = Math.PI / 180;
@@ -634,12 +678,13 @@ async function loadSpark() {
   worlds.u = {
     time: dyno.dynoFloat(0), grade: dyno.dynoFloat(1), suction: dyno.dynoFloat(0), jitter: dyno.dynoFloat(0),
     lo: dyno.dynoFloat(0.15), hi: dyno.dynoFloat(0.3), grit: dyno.dynoFloat(0.04), grain: dyno.dynoFloat(0.22), size: dyno.dynoFloat(0.88),
-    extrude: dyno.dynoFloat(1), sand: dyno.dynoFloat(1),
+    extrude: dyno.dynoFloat(1), sand: dyno.dynoFloat(1), cut: dyno.dynoFloat(0),
     ink: dyno.dynoVec3(new THREE.Vector3(0.020, 0.016, 0.012)),
     mid: dyno.dynoVec3(new THREE.Vector3(0.300, 0.300, 0.270)),
     paper: dyno.dynoVec3(new THREE.Vector3(0.937, 0.914, 0.875)),
   };
   const spark = new worlds.Spark.SparkRenderer({ renderer });
+  spark.renderOrder = -10;   // splats first: the nucleus is drawn over them, the 3D shapes over that
   scene.add(spark);
   return worlds.Spark;
 }
@@ -660,7 +705,7 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
       inTypes: {
         gsplat: dyno.Gsplat, time: 'float', grade: 'float', suction: 'float', jitter: 'float', lo: 'float', hi: 'float',
         grit: 'float', grain: 'float', size: 'float', ink: 'vec3', mid: 'vec3', paper: 'vec3',
-        extrude: 'float', depth: 'float', alpha: 'float', brightOnly: 'float',
+        extrude: 'float', depth: 'float', alpha: 'float', brightOnly: 'float', cut: 'float',
       },
       outTypes: { gsplat: dyno.Gsplat },
       inputs: { gsplat, ...u },
@@ -671,6 +716,18 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
         ${o.gsplat} = ${i.gsplat};
         vec3 c = ${o.gsplat}.center;
         float id = float(${o.gsplat}.index);
+        if (${i.cut} > 0.0) {
+          // the slab cut out of the singularity to float as a card (SLAB, tools/cut_slab.py):
+          // its own splats, by direction from the viewpoint and distance, are dropped
+          float cl = length(c);
+          vec2 ang = vec2(degrees(atan(c.x, c.z)), degrees(asin(clamp(-c.y / max(cl, 1e-4), -1.0, 1.0)))) - vec2(${SLAB.hide.centre[0].toFixed(2)}, ${SLAB.hide.centre[1].toFixed(2)});
+          float ca = cos(radians(${SLAB.hide.angle.toFixed(2)})), sa = sin(radians(${SLAB.hide.angle.toFixed(2)}));
+          vec2 q = vec2(ang.x * ca + ang.y * sa, -ang.x * sa + ang.y * ca);
+          if (abs(q.x) < ${SLAB.hide.half[0].toFixed(2)} && abs(q.y) < ${SLAB.hide.half[1].toFixed(2)} && cl > ${SLAB.hide.dist[0].toFixed(2)} && cl < ${SLAB.hide.dist[1].toFixed(2)}) {
+            ${o.gsplat}.rgba.a = 0.0;
+            ${o.gsplat}.scales *= 0.0;
+          }
+        }
         if (${i.suction} > 0.0) {
           // the core sits straight ahead of the viewpoint (Marble's +z)
           vec3 core = vec3(0.0, 0.0, 1.25);
@@ -826,6 +883,7 @@ function loadWorld(id) {
     }
     worlds.mesh = mesh; worlds.echoes = echoes; worlds.sandMesh = sandMesh; worlds.id = id; worlds.ok = true;
     worlds.u.sand.value = worlds.sandOn && !reducedMotion ? (entry.relief ? RELIEF_SAND : 1) : 0;
+    worlds.u.cut.value = id === STORY_WORLD && slab.on ? 1 : 0;   // the slab floats free here, so its splats go
     // the grade measured from the world's crop by tools/clean_worlds.py; a relief is the page's own ink
     const g = view.grade;
     worlds.relief = !!entry.relief;
@@ -1135,7 +1193,8 @@ addEventListener('resize', resize);
 fit();
 camera.position.set(0, 0, fitDist);
 
-function setHint(text) {
+function setHint(text, arrow = false) {
+  hintEl.classList.toggle('arrow', arrow && !!text);
   if (!text) { hintEl.classList.add('off'); return; }
   hintEl.textContent = text; hintEl.classList.remove('off');
 }
@@ -1158,6 +1217,7 @@ function showBeat(n) {
   if (beat.fx === 'blip') sound.blip();
   sound.playVoice(beat.b);
   playFilm(beat.b);
+  musicBeat(beat.b);
   if (BEATS[n + 1]) { sound.prefetchVoice(BEATS[n + 1].b); prefetchFilm(BEATS[n + 1].b); }
   if (navigator.vibrate && beat.fx === 'static') navigator.vibrate([30, 40, 30]);
   if (beat.hold) setHint('Press and hold to unlock');
@@ -1268,7 +1328,9 @@ const shards = { group: new THREE.Group(), list: [], on: params.get('shards') !=
     const tpl = templates[i % templates.length];
     const mat = shardMat.clone(); mat.uniforms.uPage = shared.uPage;
     const mesh = new THREE.Mesh(tpl.geo, mat), rm = rimMat.clone();
-    mesh.add(new THREE.Mesh(tpl.rim, rm));
+    mesh.renderOrder = 5;
+    const rimMesh = new THREE.Mesh(tpl.rim, rm); rimMesh.renderOrder = 5;
+    mesh.add(rimMesh);
     shards.group.add(mesh);
     shards.list.push({ mesh, mat, rm, life: 0, T: 1, theta: 0, axis: new THREE.Vector3(), spin: 0, size: 1 });
   }
@@ -1296,12 +1358,13 @@ function updateShards(dt) {
   shards.group.visible = shards.level > 0.01;
   if (!shards.group.visible) return;
   shards.group.position.copy(P0);
+  shards.group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), NUC_DIR);
   const pace = reducedMotion ? 0.35 : 1;
   for (const sh of shards.list) {
     sh.life += dt * pace;
     if (sh.life > sh.T) respawnShard(sh, false);
     const ph = sh.life / sh.T;
-    const d = 13 - 11.8 * Math.pow(ph, 1.15);           // from deep in the core towards the viewer
+    const d = NUC_D - 11 * Math.pow(ph, 1.15);          // from the nucleus towards the viewer
     const r = 0.15 + 8.4 * Math.pow(ph, 1.8);           // flung outward, faster as it goes
     sh.theta += dt * pace * (0.22 + 1.5 / (1 + r));     // quick near the axis, slower out wide
     sh.mesh.position.set(r * Math.cos(sh.theta), r * Math.sin(sh.theta), -d);
@@ -1325,95 +1388,193 @@ function updateShards(dt) {
 }
 const _sv = new THREE.Vector3();
 
-/* ---------- ribbons: the ribbon loops traced from the page and built in 3D ---------- */
-// Paul, 24 October: "for the ribbon scene can you trace the shape of the ribbons and create in
-// 3D, have them animate in as the scene loads". Centrelines traced by eye from the scan (1000 wide
-// grid). Each becomes a flat strip as wide as the drawn band, paper white with inked edges,
-// coiling in depth and twisting along its length. Scaled and centred so that from the viewpoint
-// they sit over the Marble world's own ribbons, then separate from them as the camera drifts. As
-// the scene arrives each one draws itself in from its start, one after another, with a bright
-// leading tip; afterwards a slow shimmer runs along them and they sway.
+/* ---------- ribbons: two of the ribbon loops, traced from the page and built in 3D ---------- */
+// Paul, 24 October: trace the ribbons and build them in 3D, animating in as the scene loads; then
+// "only have two 3D ribbons, one of them should come right past camera in foreground. They are
+// cylindrical, not flat, and should sway gently in the space in accordance with camera movement."
+// Built as round tubes, white with dark inked silhouettes. The far one keeps to the world's own
+// ribbon; the near one leaves the world at its start and sweeps down from above, close past the
+// camera, onto its band. A spring follows
+// the camera's movement and turning: the ribbons lag behind it and settle, bending most at their
+// middles, the near one more. As the scene arrives each draws itself in from its start, with a
+// bright leading tip.
+// Traced from the ribbon world's own panorama (a flat view from the viewpoint), not the page, as
+// Marble re-framed the crop; each point is [yaw, pitch, distance]: degrees from the forward view
+// and Marble units out, measured from the world's bright splats along that direction. So the tubes
+// sit on the world's own ribbons and move with them. A third of the way along, the near ribbon
+// dips to 16% of its distance (about 1.8 units), so it leaves its band, swoops close past the
+// camera in the upper middle of the view, and returns to the band.
 const RIBBON_LINES = [
-  [[675.2, 907.6], [611.4, 925.0], [567.9, 970.2], [536.0, 1028.2], [524.4, 1086.2], [538.9, 1118.1], [573.7, 1139.6], [620.1, 1152.9], [678.1, 1152.9], [733.2, 1132.6], [768.0, 1106.5]],
-  [[759.3, 883.2], [733.2, 923.8], [692.6, 976.0], [652.0, 1028.2], [620.1, 1074.6], [602.7, 1121.0], [596.9, 1173.2], [608.5, 1216.7], [637.5, 1245.7], [675.2, 1260.2], [721.6, 1259.0], [762.2, 1242.8], [776.7, 1225.4]],
-  [[866.6, 894.8], [846.3, 947.0], [826.0, 999.2], [802.8, 1045.6], [776.7, 1092.0], [762.2, 1132.6], [758.1, 1176.1], [768.0, 1213.8], [791.2, 1235.8], [820.2, 1234.1], [842.2, 1210.9], [852.1, 1173.2], [849.2, 1129.7], [838.8, 1094.9], [826.0, 1075.8]],
-  [[768.0, 1097.8], [826.0, 1073.4], [884.0, 1066.5], [924.6, 1080.4], [950.7, 1115.2], [958.2, 1161.6], [950.7, 1208.0], [930.4, 1242.8], [895.6, 1261.4], [852.1, 1273.0]],
+  { path: [[21.17, 47.41, 1.374], [17.28, 42.28, 1.392], [10.86, 36.79, 1.336], [1.43, 31.23, 1.238], [-9.41, 24.58, 1.219], [-17.77, 16.98, 1.201], [-22.0, 9.35, 1.192], [-19.85, 3.78, 1.181], [-13.34, 1.26, 1.143], [-4.02, 1.29, 1.127], [5.51, 4.0, 1.138]], near: 0.16, sway: 1.6 },   // the long band from the top, curling along the bottom of the left loop
+  { path: [[6.19, 4.67, 1.139], [12.17, 7.24, 1.163], [19.73, 7.86, 1.201], [25.54, 5.47, 1.246], [27.19, -0.06, 1.257], [26.1, -7.38, 1.282], [22.12, -12.51, 1.252], [14.76, -14.91, 1.224], [8.87, -13.06, 1.171], [4.84, -7.51, 1.152], [4.16, -0.75, 1.137], [6.19, 4.4, 1.139]], sway: 0.8 },               // the loop on the right
 ];
 const RIBBON_WORLD = 'ribbon-loops';
-const RIB = { cx: 715, cy: 1082, k: 0.022, d: 9, width: 0.17 };   // crop centre, world units per grid unit, distance ahead
-const ribbons = { group: new THREE.Group(), list: [], on: params.get('ribbons') !== '0', level: { value: 0 }, t: 0, id: null };
+const RIB = { radius: 0.12 };
+const ribbons = { group: new THREE.Group(), list: [], on: params.get('ribbons') !== '0', level: { value: 0 }, t: 0, id: null,
+  sway: new THREE.Vector3(), swayV: new THREE.Vector3(), lastCam: new THREE.Vector3(), lastYaw: 0, lastPitch: 0 };
 {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uTime: shared.uTime, uLevel: ribbons.level, uReveal: { value: 0 }, uPhase: { value: 0 } },
-    transparent: true, side: THREE.DoubleSide, depthWrite: false,
-    vertexShader: `attribute float aS; attribute float aSide; uniform float uTime; uniform float uPhase; varying float vS; varying float vSide;
+    uniforms: { uTime: shared.uTime, uLevel: ribbons.level, uReveal: { value: 0 }, uPhase: { value: 0 }, uSway: { value: ribbons.sway }, uSwayK: { value: 1 } },
+    transparent: true,
+    vertexShader: `uniform float uTime; uniform float uPhase; uniform vec3 uSway; uniform float uSwayK; varying float vS; varying vec3 vN; varying vec3 vV;
       void main(){
-        vS = aS; vSide = aSide;
-        vec3 p = position;
-        p.z += 0.18 * sin(uTime * 0.8 + aS * 6.0 + uPhase);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        vS = uv.x;
+        float bend = sin(3.14159 * uv.x);
+        vec3 p = position + uSway * uSwayK * bend;
+        p += vec3(0.08 * sin(uTime * 0.5 + uv.x * 5.0 + uPhase), 0.06 * sin(uTime * 0.43 + uv.x * 4.0 + uPhase * 1.3), 0.15 * sin(uTime * 0.37 + uv.x * 6.0 + uPhase)) * bend;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
       }`,
-    fragmentShader: `uniform float uTime; uniform float uLevel; uniform float uReveal; varying float vS; varying float vSide;
+    fragmentShader: `uniform float uTime; uniform float uLevel; uniform float uReveal; varying float vS; varying vec3 vN; varying vec3 vV;
       void main(){
         if (vS > uReveal) discard;
+        vec3 n = normalize(vN);
         vec3 paper = vec3(0.94, 0.91, 0.86), ink = vec3(0.03, 0.025, 0.02);
-        vec3 c = mix(paper, ink, smoothstep(0.62, 0.95, abs(vSide)));
-        c *= 0.86 + 0.14 * sin(vS * 46.0 - uTime * 3.0);
-        c += vec3(1.0, 0.95, 0.85) * smoothstep(0.06, 0.0, uReveal - vS) * step(uReveal, 0.999);   // the bright leading tip
-        if (!gl_FrontFacing) c *= 0.7;
+        float light = 0.62 + 0.38 * max(dot(n, normalize(vec3(-0.4, 0.6, 0.7))), 0.0);
+        vec3 c = paper * light;
+        c = mix(c, ink, smoothstep(0.55, 0.85, 1.0 - abs(dot(n, normalize(vV)))));   // the inked silhouette
+        c *= 0.9 + 0.1 * sin(vS * 46.0 - uTime * 3.0);
+        c += vec3(1.0, 0.95, 0.85) * smoothstep(0.05, 0.0, uReveal - vS) * step(uReveal, 0.999);   // the bright leading tip
         gl_FragColor = vec4(c, uLevel);
         #include <colorspace_fragment>
       }`,
   });
-  RIBBON_LINES.forEach((line, r) => {
-    const z0 = (r - 1.5) * 0.7, A = 1.4 + r * 0.35, f = 1.2 + r * 0.4, ph = r * 1.9, twist = (0.6 + 0.3 * r) * Math.PI * 2;
-    const pts = line.map(([x, y], i) => {
-      const s = i / (line.length - 1);
-      return new THREE.Vector3((x - RIB.cx) * RIB.k, -(y - RIB.cy) * RIB.k, z0 + A * Math.sin(s * Math.PI * f + ph));
+  RIBBON_LINES.forEach((rb, r) => {
+    const n = rb.path.length, ph = r * 1.9;
+    const pts = rb.path.map(([yw, pt, dist], i) => {
+      const s = i / (n - 1), y = yw * DEG, p = pt * DEG;
+      // the extrusion brings the world's paper forward 26%, so the tubes sit where the ribbons are seen
+      let d = dist * WORLD_SCALE * 0.74;
+      if (rb.near) d *= 1 - (1 - rb.near) * Math.exp(-(((s - 0.3) / 0.16) ** 2));
+      return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)).multiplyScalar(d);
     });
     const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-    const N = 240, pos = new Float32Array((N + 1) * 2 * 3), aS = new Float32Array((N + 1) * 2), aSide = new Float32Array((N + 1) * 2), idx = [];
-    const view = new THREE.Vector3(0, 0, 1), side = new THREE.Vector3(), tan = new THREE.Vector3(), q = new THREE.Quaternion();
-    for (let i = 0; i <= N; i++) {
-      const s = i / N, c = curve.getPointAt(s);
-      curve.getTangentAt(s, tan);
-      side.crossVectors(tan, view).normalize();
-      side.applyQuaternion(q.setFromAxisAngle(tan, twist * s * 0.5));     // a gentle twist along the length
-      for (let k = 0; k < 2; k++) {
-        const sg = k === 0 ? -1 : 1, j = i * 2 + k;
-        pos[j * 3] = c.x + side.x * RIB.width * 0.5 * sg; pos[j * 3 + 1] = c.y + side.y * RIB.width * 0.5 * sg; pos[j * 3 + 2] = c.z + side.z * RIB.width * 0.5 * sg;
-        aS[j] = s; aSide[j] = sg;
-      }
-      if (i < N) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('aS', new THREE.BufferAttribute(aS, 1));
-    geo.setAttribute('aSide', new THREE.BufferAttribute(aSide, 1));
-    geo.setIndex(idx);
     const m = mat.clone();
-    m.uniforms.uTime = shared.uTime; m.uniforms.uLevel = ribbons.level; m.uniforms.uPhase.value = ph;
-    const mesh = new THREE.Mesh(geo, m);
+    m.uniforms.uTime = shared.uTime; m.uniforms.uLevel = ribbons.level; m.uniforms.uSway = { value: ribbons.sway };
+    m.uniforms.uPhase.value = ph; m.uniforms.uSwayK.value = rb.sway;
+    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 320, RIB.radius, 12, false), m);
     mesh.renderOrder = 3;
     ribbons.group.add(mesh);
-    ribbons.list.push({ mesh, mat: m, delay: r * 0.45 });
+    ribbons.list.push({ mesh, mat: m, delay: r * 0.6 });
   });
   ribbons.group.visible = false;
   scene.add(ribbons.group);
 }
 function updateRibbons(dt, rawDt) {
   const here = ribbons.on && state.stage === 'void' && worlds.ok && worlds.id === RIBBON_WORLD;
-  if (worlds.id !== ribbons.id) { ribbons.id = worlds.id; ribbons.t = 0; }       // a new arrival draws them in again
+  if (worlds.id !== ribbons.id) { ribbons.id = worlds.id; ribbons.t0 = null; }   // a new arrival draws them in again
   const want = here ? 1 - 0.85 * worlds.suction : 0;
   ribbons.level.value += (want - ribbons.level.value) * (1 - Math.exp(-dt * 3));
   ribbons.group.visible = ribbons.level.value > 0.01;
-  if (!ribbons.group.visible) return;
+  // the camera's movement, sideways and turning, drives a spring the ribbons hang from
+  const cam = camera.position, step = Math.max(dt, 1e-3);
+  const vel = cam.clone().sub(ribbons.lastCam).divideScalar(step);
+  vel.x -= (look.yaw - ribbons.lastYaw) / step * 6; vel.y += (look.pitch - ribbons.lastPitch) / step * 6;
+  ribbons.lastCam.copy(cam); ribbons.lastYaw = look.yaw; ribbons.lastPitch = look.pitch;
+  if (!ribbons.group.visible) { ribbons.sway.set(0, 0, 0); ribbons.swayV.set(0, 0, 0); return; }
+  const target = vel.multiplyScalar(-0.22).clampLength(0, 1.4);
+  ribbons.swayV.addScaledVector(target.sub(ribbons.sway), 9 * dt).multiplyScalar(Math.exp(-dt * 2.6));
+  ribbons.sway.addScaledVector(ribbons.swayV, dt);
+  if (reducedMotion) ribbons.sway.set(0, 0, 0);
   // the draw-in follows the world opening out of its core
-  if (worlds.suction < 0.6) ribbons.t += rawDt;    // wall clock, so slow devices draw in on time
-  ribbons.group.position.copy(P0).add(new THREE.Vector3(0, 0, -RIB.d));
-  ribbons.group.rotation.y = 0.06 * Math.sin(shared.uTime.value * 0.11);
-  ribbons.group.rotation.x = 0.04 * Math.sin(shared.uTime.value * 0.13 + 1);
-  for (const r of ribbons.list) r.mat.uniforms.uReveal.value = reducedMotion ? 1 : clamp((ribbons.t - r.delay) / 2.6, 0, 1.0001);
+  // by the clock from when the world has mostly opened, so slow devices draw in on time
+  if (worlds.suction < 0.6 && ribbons.t0 == null) ribbons.t0 = performance.now();
+  ribbons.t = ribbons.t0 == null ? 0 : (performance.now() - ribbons.t0) / 1000;
+  ribbons.group.position.copy(P0);
+  for (const r of ribbons.list) r.mat.uniforms.uReveal.value = reducedMotion ? 1 : clamp((ribbons.t - r.delay) / 2.8, 0, 1.0001);
+}
+
+/* ---------- Bob's panel: cut from the page, floating in the opening space in layers ---------- */
+// Paul, 24 October: in the opening space the illustration of Bob was unclear, so his black panel
+// is cut out to float above the splat background, with elements inside it sliced into layers for
+// parallax. tools/make_panel_layers.py cuts three layers on one canvas (the panel, Bob, and the
+// dials, cup and stick in front), filling in behind each. They sit at three depths, each scaled
+// so that from the resting viewpoint they line up as drawn; they follow the camera's slow wander,
+// so they float against the world behind, while the pointer or tilt moves the camera against them
+// and the layers part. CRSSHKKKKK! shears them with the world's signal.
+const PANEL_WORLD = 'bob-cockpit';
+const PANEL_UV = [0.0, 0.1456, 0.43973, 0.55078];   // the layers' canvas on the page (make_panel_layers.py)
+const PANEL_LAYERS = [['back', 7.0], ['figure', 6.4], ['front', 5.7]];   // file, distance ahead
+const panelFloat = { group: new THREE.Group(), layers: [], on: params.get('panel') !== '0', level: 0 };
+{
+  const loader = new THREE.TextureLoader(), aspect = (PANEL_UV[3] - PANEL_UV[1]) * META.aspect / (PANEL_UV[2] - PANEL_UV[0]);
+  PANEL_LAYERS.forEach(([name, d], i) => {
+    const tex = loader.load(`assets/props/panel-${name}.webp`);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.02, depthTest: false, depthWrite: false, opacity: 0 });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, aspect), mat);
+    mesh.renderOrder = 6 + i;
+    panelFloat.group.add(mesh);
+    panelFloat.layers.push({ mesh, mat, d });
+  });
+  panelFloat.group.visible = false;
+  scene.add(panelFloat.group);
+}
+function updatePanelFloat(dt) {
+  const here = panelFloat.on && state.stage === 'void' && worlds.ok && worlds.id === PANEL_WORLD;
+  // full strength once the world is half open, so Bob reads clearly from the start
+  panelFloat.level += ((here ? clamp(2 * (1 - worlds.suction), 0, 1) : 0) - panelFloat.level) * (1 - Math.exp(-dt * 4));
+  panelFloat.group.visible = panelFloat.level > 0.01;
+  if (!panelFloat.group.visible) return;
+  const t = shared.uTime.value, k = reducedMotion ? 0 : 1;
+  // anchored to the camera's slow path, not to the pointer, so the pointer parts the layers
+  panelFloat.group.position.copy(P0).add(worlds.drift).add(worlds.wander);
+  panelFloat.group.position.y += k * 0.12 * Math.sin(t * 0.5);
+  panelFloat.group.rotation.set(k * 0.03 * Math.sin(t * 0.31), k * 0.05 * Math.sin(t * 0.23 + 1), k * 0.015 * Math.sin(t * 0.4));
+  const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  for (const L of panelFloat.layers) {
+    // as tall as 62% of the view, in the upper part of it (the caption card sits below)
+    const viewH = 2 * L.d * tanH, h = viewH * 0.62, w = h / L.mesh.geometry.parameters.height;
+    L.mesh.scale.set(w, w, 1);
+    const shear = worlds.jitter > 0 ? (Math.random() - 0.5) * worlds.jitter * 0.3 : 0;
+    L.mesh.position.set(shear, viewH * 0.1, -L.d);
+    L.mat.opacity = panelFloat.level;
+  }
+}
+
+/* ---------- the slab: Marble's white slab in the singularity, cut out and floating ---------- */
+// Paul, 24 October: "cut out the big white rectangle to the left and have it float in the 3D
+// space". tools/cut_slab.py cuts it from the world's panorama as a flat view from the viewpoint
+// (assets/props/slab.png) and the world's own splats for it are dropped (the ink modifier's cut).
+// The card starts exactly where the slab was, at its depth (brought forward as the extrusion
+// brings paper forward), then eases into a slow drift and turn.
+const slab = { on: params.get('slab') !== '0', level: 0, t: 0, id: null, mesh: null, base: new THREE.Vector3(), basis: new THREE.Quaternion(), right: new THREE.Vector3(), up: new THREE.Vector3(), fwd: new THREE.Vector3() };
+{
+  const tex = new THREE.TextureLoader().load('assets/props/slab.png');
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide, opacity: 0 });
+  const y = SLAB.card.view[0] * DEG, p = SLAB.card.view[1] * DEG;
+  slab.fwd.set(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y));
+  slab.right.crossVectors(slab.fwd, new THREE.Vector3(0, 1, 0)).normalize();
+  slab.up.crossVectors(slab.right, slab.fwd);
+  slab.basis.setFromRotationMatrix(new THREE.Matrix4().makeBasis(slab.right, slab.up, slab.fwd.clone().negate()));
+  slab.dist = 1.29 * WORLD_SCALE * 0.74;
+  slab.mesh = new THREE.Mesh(new THREE.PlaneGeometry(SLAB.card.size[0] * slab.dist, SLAB.card.size[1] * slab.dist), mat);
+  slab.mesh.renderOrder = 4;
+  slab.mesh.visible = false;
+  scene.add(slab.mesh);
+}
+const _sq = new THREE.Quaternion(), _se = new THREE.Euler();
+function updateSlab(dt, rawDt) {
+  const here = slab.on && state.stage === 'void' && worlds.ok && worlds.id === STORY_WORLD;
+  if (worlds.id !== slab.id) { slab.id = worlds.id; slab.t = 0; }
+  slab.level += ((here ? 1 - worlds.suction : 0) - slab.level) * (1 - Math.exp(-dt * 2));
+  slab.mesh.visible = slab.level > 0.01;
+  if (!slab.mesh.visible) return;
+  if (worlds.suction < 0.5) slab.t += rawDt;
+  const d = worlds.extrudeOn ? slab.dist : slab.dist / 0.74, t = shared.uTime.value;
+  slab.base.copy(P0).addScaledVector(slab.fwd, d).addScaledVector(slab.right, SLAB.card.offset[0] * d).addScaledVector(slab.up, SLAB.card.offset[1] * d);
+  slab.mesh.scale.setScalar(d / slab.dist);
+  // from where it was, easing into a slow float: drifting and turning on all three axes
+  const r = reducedMotion ? 0.3 : smooth(0, 8, slab.t);
+  slab.mesh.position.copy(slab.base)
+    .addScaledVector(slab.right, r * 1.2 * Math.sin(t * 0.13))
+    .addScaledVector(slab.up, r * 0.8 * Math.sin(t * 0.17 + 1))
+    .addScaledVector(slab.fwd, -r * 1.6 * (0.5 + 0.5 * Math.sin(t * 0.09 + 2)));
+  _se.set(r * 0.18 * Math.sin(t * 0.21), r * 0.26 * Math.sin(t * 0.15 + 0.7), r * 0.12 * Math.sin(t * 0.11 + 1.9));
+  slab.mesh.quaternion.copy(slab.basis).multiply(_sq.setFromEuler(_se));
+  slab.mesh.material.opacity = slab.level;
 }
 
 /* ---------- the nucleus: the white heart of the singularity, turning, with flowing tendrils ---------- */
@@ -1422,13 +1583,19 @@ function updateRibbons(dt, rawDt) {
 // brightest at its rim, turning slowly on two axes; tendrils grow from it in every direction,
 // tapered, with waves running out along them from root to tip so the tips lash and the roots stay
 // calm. It sits on the axis where the shards are born, and shows with them.
-const NUC_D = 9;                                   // ahead of the viewpoint, in front of the world's shell of splats
+// Where the drawn nucleus is in the singularity world, measured from its splats: 4.2 degrees left
+// of the forward view, 7.8 up, 1.38 Marble units out (16.5 here), brought forward 26% as the
+// extrusion brings the world's paper splats forward, so the 3D nucleus sits exactly over it and
+// moves with it as the camera drifts. It is drawn over the splats (no depth test), and the shards
+// and the slab are drawn over it.
+const NUC_DIR = (() => { const y = -4.2 * DEG, p = 7.8 * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)); })();
+const NUC_D = 1.379 * WORLD_SCALE * 0.74;
 const NUC_TENDRILS = reducedMotion ? 12 : 42;
 const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), on: params.get('nucleus') !== '0', level: { value: 0 }, tendrils: [] };
 {
   const body = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 6), new THREE.ShaderMaterial({
     uniforms: { uTime: shared.uTime, uLevel: nucleus.level },
-    transparent: true,
+    transparent: true, depthTest: false, depthWrite: false,
     vertexShader: `uniform float uTime; varying vec3 vN; varying vec3 vV; varying float vH;
       void main(){
         vec3 p = position;
@@ -1443,16 +1610,17 @@ const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), on: params.
       void main(){
         float rim = 1.0 - abs(dot(normalize(vN), normalize(vV)));
         vec3 c = mix(vec3(0.7, 0.66, 0.6), vec3(1.0, 0.98, 0.94), smoothstep(-0.4, 0.7, vH)) + pow(rim, 2.0) * 0.7;
-        gl_FragColor = vec4(c, uLevel);
+        gl_FragColor = vec4(c, uLevel * 0.6);   // semi-transparent
         #include <colorspace_fragment>
       }`,
   }));
+  body.renderOrder = 1;
   nucleus.spin.add(body);
   const tg = new THREE.CylinderGeometry(1, 1, 1, 6, 90, true);
   tg.translate(0, 0.5, 0);
   const tmat = new THREE.ShaderMaterial({
     uniforms: { uTime: shared.uTime, uLevel: nucleus.level, uPhase: { value: 0 }, uLen: { value: 4 }, uWidth: { value: 0.05 }, uWild: { value: 1 } },
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
     vertexShader: `uniform float uTime; uniform float uPhase; uniform float uLen; uniform float uWidth; uniform float uWild; varying float vT;
       void main(){
         float t = position.y; vT = t;
@@ -1476,6 +1644,7 @@ const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), on: params.
     m.uniforms.uWidth.value = 0.035 + Math.random() * 0.08;
     m.uniforms.uWild.value = 0.9 + Math.random() * 0.9;
     const t = new THREE.Mesh(tg, m);
+    t.renderOrder = 1;
     const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
     t.quaternion.setFromUnitVectors(Y, dir);
     t.position.copy(dir).multiplyScalar(0.8);
@@ -1490,10 +1659,12 @@ function updateNucleus(dt) {
   nucleus.level.value += (want - nucleus.level.value) * (1 - Math.exp(-dt * 1.2));
   nucleus.group.visible = nucleus.level.value > 0.01;
   if (!nucleus.group.visible) return;
-  nucleus.group.position.copy(P0).add(new THREE.Vector3(0, 0, -NUC_D));
+  nucleus.group.position.copy(P0).addScaledVector(NUC_DIR, worlds.extrudeOn ? NUC_D : NUC_D / 0.74);
   const k = reducedMotion ? 0.3 : 1;
-  nucleus.spin.rotation.y += dt * 0.35 * k;
-  nucleus.spin.rotation.x += dt * 0.13 * k;
+  // it spins much faster than anything else in the space (Paul)
+  nucleus.spin.rotation.y += dt * 2.6 * k;
+  nucleus.spin.rotation.x += dt * 1.1 * k;
+  nucleus.spin.rotation.z += dt * 0.7 * k;
   nucleus.spin.scale.setScalar(1.25 * (1 + 0.05 * Math.sin(shared.uTime.value * 1.7)));
 }
 
@@ -1581,7 +1752,18 @@ function updateCard(dt) {
   let w = Math.min(visW * 0.86, visH * 0.26 * cardState.aspect);
   const h = w / cardState.aspect;
   const k = reducedMotion ? 1 : Math.max(0, cardState.lift);
-  card.scale.set(w * (0.7 + 0.3 * k), h * (0.7 + 0.3 * k), 1);
+  // left waiting 10 s with no touch, click or key, the card pulses once: a swell and a flash of glow
+  const now = performance.now();
+  if (journey.phase === 'space' && !journey.pulsed && !state.holding && now - Math.max(journey.stepAt || now, lastInput) > 10000) { journey.pulsed = true; cardState.pulse = 0; }
+  let pulse = 0;
+  if (cardState.pulse !== undefined) {
+    cardState.pulse += dt;
+    pulse = Math.sin(Math.PI * clamp(cardState.pulse / 0.7, 0, 1));
+    if (cardState.pulse > 0.7) cardState.pulse = undefined;
+  }
+  const pk = 1 + 0.14 * pulse;
+  card.scale.set(w * (0.7 + 0.3 * k) * pk, h * (0.7 + 0.3 * k) * pk, 1);
+
   card.position.set(0, -visH / 2 + h / 2 + visH * 0.13, -dist + (reducedMotion ? 0 : (1 - k) * 0.6));
   card.rotation.z = reducedMotion ? 0 : cardState.tilt * k;
   cardMat.uniforms.uOpacity.value = clamp(cardState.lift * 1.4, 0, 1);
@@ -1589,10 +1771,10 @@ function updateCard(dt) {
   cardMat.uniforms.uFlick.value = journey.cardT < 0.5 ? 1 : 0;
   const beat = BEATS[STEPS[journey.step]?.beat];
   const act = journey.phase === 'space' && (beat?.trigger || beat?.hold);
-  cardMat.uniforms.uGlow.value = beat?.trigger && act ? 0.3 + 0.3 * Math.sin(shared.uTime.value * 5) : 0;
+  cardMat.uniforms.uGlow.value = Math.max(beat?.trigger && act ? 0.3 + 0.3 * Math.sin(shared.uTime.value * 5) : 0, 0.5 * pulse);
   // the glow breathes while it waits, and builds as the hold charges
   const hp = state.holding ? clamp(state.holdT / HOLD_DUR, 0, 1) : 0;
-  const glow = act ? (state.holding ? 0.7 + 1.6 * hp : 0.42 + 0.22 * Math.sin(shared.uTime.value * 2.4)) : 0;
+  const glow = Math.max(act ? (state.holding ? 0.7 + 1.6 * hp : 0.42 + 0.22 * Math.sin(shared.uTime.value * 2.4)) : 0, 1.4 * pulse);
   glowMat.uniforms.uStrength.value = glow * cardMat.uniforms.uOpacity.value;
   cardGlow.visible = glow > 0.01;
 }
@@ -1647,6 +1829,116 @@ function fxUpdate(dt) {
   }
   fx.parts = fx.parts.filter((p) => p.life < p.max);
 }
+
+// ---------- music: three QNTM CTRL tracks from the Smokehouse Shift EP, unlocked through the story ----------
+// Paul, 24 October. assets/music/index.json lists the tracks, the beat that unlocks each, and which
+// track's loop plays quietly in each space. The tab at the side counts the unlocks; opening it lists
+// the tracks, with a play button once a track is unlocked and its file is there. Unlocks are kept
+// in this browser. Loops crossfade between spaces and pause while a full track plays. With no
+// audio files yet, the unlocks and the counter still work and nothing plays.
+const music = { index: null, unlocked: new Set(), have: {}, loopBuf: {}, loopNow: null, loopKey: undefined, player: null, playing: null };
+function musicStore(save) {
+  try {
+    if (save) localStorage.setItem('ot-music', JSON.stringify([...music.unlocked]));
+    else for (const id of JSON.parse(localStorage.getItem('ot-music') || '[]')) music.unlocked.add(id);
+  } catch (e) { /* no storage: unlocks last for this visit */ }
+}
+async function musicLoad() {
+  try { const r = await fetch('assets/music/index.json', { cache: 'no-cache' }); music.index = r.ok ? await r.json() : null; } catch (e) { music.index = null; }
+  if (!music.index?.tracks?.length || REVIEW) return;
+  musicStore(false);
+  // which audio files are here: the build lists them in "present", so missing ones are never requested
+  const present = new Set(music.index.present || []);
+  for (const t of music.index.tracks) for (const k of ['file', 'loop']) music.have[t.id + ':' + k] = !!t[k] && present.has(t[k]);
+  $('musicBuy').href = music.index.release?.url || '#';
+  musicRender();
+}
+function musicRender() {
+  const tracks = music.index.tracks, n = tracks.filter((t) => music.unlocked.has(t.id)).length;
+  $('musicCount').textContent = `${n}/${tracks.length}`;
+  $('musicBuy').hidden = n < tracks.length;
+  const ol = $('musicTracks'); ol.replaceChildren();
+  tracks.forEach((t, i) => {
+    const li = document.createElement('li'), open = music.unlocked.has(t.id);
+    li.className = open ? '' : 'locked';
+    const name = document.createElement('span'); name.textContent = open ? `${i + 1}. ${t.title}` : `${i + 1}. Locked`;
+    li.append(name);
+    if (open) {
+      const b = document.createElement('button'); b.type = 'button';
+      b.textContent = music.playing === t.id ? 'Pause' : 'Play';
+      b.disabled = !music.have[t.id + ':file'];
+      if (b.disabled) b.title = 'Coming soon';
+      b.addEventListener('click', (e) => { e.stopPropagation(); musicToggle(t); });
+      li.append(b);
+    }
+    ol.append(li);
+  });
+}
+function toast(text) {
+  const el = $('toast'); el.textContent = text; el.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+// a beat has played: unlock any track waiting for it
+function musicBeat(beat) {
+  if (!music.index) return;
+  for (const t of music.index.tracks) {
+    if (t.unlockAt !== beat || music.unlocked.has(t.id)) continue;
+    music.unlocked.add(t.id); musicStore(true); musicRender();
+    const n = music.unlocked.size, all = music.index.tracks.length;
+    toast(n === all ? `All ${all} tracks unlocked` : `Track unlocked: ${t.title}`);
+    const tab = $('musicTab'); tab.classList.remove('unlocked'); void tab.offsetWidth; tab.classList.add('unlocked');   // not 'flash': that is the white flash overlay's class
+    if (sound.ok) sound.blip();
+  }
+}
+function musicToggle(t) {
+  if (!sound.ok) return;
+  if (!music.player) {
+    music.player = new Audio(); music.player.preload = 'auto';
+    try { sound.ctx.createMediaElementSource(music.player).connect(sound.master); } catch (e) { /* plays direct */ }
+    music.player.addEventListener('ended', () => { music.playing = null; musicLoop(music.loopKey, true); musicRender(); });
+  }
+  if (music.playing === t.id) { music.player.pause(); music.playing = null; musicLoop(music.loopKey, true); }
+  else {
+    music.player.src = 'assets/music/' + t.file;
+    music.player.play().catch(() => {});
+    music.playing = t.id; musicLoopStop();
+  }
+  musicRender();
+}
+async function musicLoopBuffer(id) {
+  const t = music.index.tracks.find((x) => x.id === id);
+  if (!t || !music.have[id + ':loop'] || !sound.ok) return null;
+  if (!music.loopBuf[id]) music.loopBuf[id] = fetch('assets/music/' + t.loop).then((r) => r.arrayBuffer()).then((b) => sound.ctx.decodeAudioData(b)).catch(() => null);
+  return music.loopBuf[id];
+}
+function musicLoopStop() {
+  if (!music.loopNow) return;
+  const { src, g } = music.loopNow, t = sound.now();
+  g.gain.setTargetAtTime(0, t, 0.6); src.stop(t + 3);
+  music.loopNow = null;
+}
+// the loop for a space ('page', or a world id), crossfading from the last
+async function musicLoop(key, force) {
+  if (!music.index || (key === music.loopKey && !force)) return;
+  music.loopKey = key;
+  const id = music.index.loops?.[key] ?? null;
+  if (!force && music.loopNow?.id === id) return;
+  if (music.playing) return;                        // a full track is playing: loops wait
+  musicLoopStop();
+  const buf = id && (await musicLoopBuffer(id));
+  if (!buf || music.loopKey !== key || music.playing) return;
+  const ctx = sound.ctx, t = sound.now(), src = ctx.createBufferSource(), g = ctx.createGain();
+  src.buffer = buf; src.loop = true;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(music.index.loopLevel ?? 0.32, t + 2.5);
+  src.connect(g).connect(sound.master); src.start(t);
+  music.loopNow = { id, src, g };
+}
+$('musicTab').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = $('musicList').hidden;
+  $('musicList').hidden = !open; $('musicTab').setAttribute('aria-expanded', String(open));
+});
+musicLoad();
 
 // ---------- films: short clips of Bob that cut in, full screen, as he speaks ----------
 // assets/films/index.json lists the clips and the beats that cue them ("cues": { beat: { clip,
@@ -1723,9 +2015,14 @@ function showStep(i) {
   if (beat.fx === 'blip') sound.blip();
   sound.playVoice(beat.b);
   playFilm(beat.b);
+  musicBeat(beat.b);
+  // the tap hint only on the first scene, pointing at the card, so the story's way through is clear
+  // from the start (Paul); after that only the hold, a gesture nobody would guess, is named, and
+  // a card left waiting 10 s pulses once instead
   if (beat.hold) setHint('Press and hold to unlock');
-  else if (beat.trigger) setHint(`${tapWord} INITIATING QNTM CTRL`);
-  else setHint(`${tapWord} to continue`);
+  else if (i === 0) setHint(`${tapWord} to continue`, true);
+  else setHint('');
+  journey.stepAt = performance.now(); journey.pulsed = false;
   const next = STEPS[i + 1];
   sound.prefetchVoice(next ? BEATS[next.beat].b : 'tbc');
   if (next) prefetchFilm(BEATS[next.beat].b);
@@ -1905,6 +2202,9 @@ canvas.addEventListener('pointercancel', () => { if (state.holding) endHold(fals
 let wheelLock = 0;
 addEventListener('wheel', (e) => { if (state.stage === 'read' && !journey.on && Math.abs(e.deltaY) > 20 && performance.now() > wheelLock) { wheelLock = performance.now() + 650; advance(); } }, { passive: true });
 let keyHold = false;
+let lastInput = 0;   // the last touch, click or key, for the idle pulse
+addEventListener('pointerdown', () => { lastInput = performance.now(); }, { capture: true });
+addEventListener('keydown', () => { lastInput = performance.now(); }, { capture: true });
 addEventListener('keydown', (e) => {
   // a key during a film cuts it short and does nothing else
   if (films.on) { e.preventDefault(); if (!e.repeat) stopFilm(true); return; }
@@ -1933,12 +2233,13 @@ addEventListener('keyup', (e) => { if (keyHold && (e.key === ' ' || e.key === 'E
 function onOrient(e) {
   if (e.beta == null) return;
   if (!parallax.g0) parallax.g0 = { b: e.beta, g: e.gamma };
-  parallax.gx = clamp((e.gamma - parallax.g0.g) / 25, -1, 1);
-  parallax.gy = clamp((e.beta - parallax.g0.b) / 25, -1, 1);
+  parallax.gx = clamp((e.gamma - parallax.g0.g) / 18, -1, 1);
+  parallax.gy = clamp((e.beta - parallax.g0.b) / 18, -1, 1);
 }
 
 $('start').addEventListener('click', async () => {
   sound.start();
+  if (music.index?.tracks?.length && !REVIEW) $('music').hidden = false;
   primeFilms();
   try {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -2009,8 +2310,16 @@ async function startReview() {
   panel.append(nb);
   const rb = document.createElement('button');
   rb.className = 'ui-btn'; rb.type = 'button'; rb.textContent = 'Ribbons'; rb.setAttribute('aria-pressed', String(ribbons.on));
-  rb.addEventListener('click', () => { ribbons.on = !ribbons.on; ribbons.t = 0; rb.setAttribute('aria-pressed', String(ribbons.on)); });
+  rb.addEventListener('click', () => { ribbons.on = !ribbons.on; ribbons.t0 = null; rb.setAttribute('aria-pressed', String(ribbons.on)); });
   panel.append(rb);
+  const slb = document.createElement('button');
+  slb.className = 'ui-btn'; slb.type = 'button'; slb.textContent = 'Slab'; slb.setAttribute('aria-pressed', String(slab.on));
+  slb.addEventListener('click', () => {
+    slab.on = !slab.on; slb.setAttribute('aria-pressed', String(slab.on));
+    worlds.u.cut.value = worlds.id === STORY_WORLD && slab.on ? 1 : 0;
+    for (const m of worldMeshes()) m.updateVersion();
+  });
+  panel.append(slb);
   show(worlds.id || STORY_WORLD);
 }
 if (REVIEW) $('note').textContent = 'Review mode: opens the Marble worlds directly.';
@@ -2032,7 +2341,8 @@ function frame() {
     parallax.x = lerp(parallax.x, px, 1 - Math.exp(-dt * 4));
     parallax.y = lerp(parallax.y, py, 1 - Math.exp(-dt * 4));
     const breathe = reducedMotion ? 0 : Math.sin(t * 0.4) * 0.02;
-    camera.position.set(parallax.x * 0.32, -parallax.y * 0.32, fitDist * (1 + breathe * 0.2));
+    // Paul asked for more movement here (24 October): the camera travels about twice as far
+    camera.position.set(parallax.x * 0.6, -parallax.y * 0.6, fitDist * (1 + breathe * 0.2));
     camera.lookAt(lookTarget);
     const agitTarget = state.stage === 'read' && !journey.on ? smooth(0, BEATS.length - 1, Math.max(0, state.beat)) : journey.on ? 0.25 : 0;
     shared.uAgit.value = lerp(shared.uAgit.value, agitTarget, 1 - Math.exp(-dt * 1.5));
@@ -2147,9 +2457,11 @@ function frame() {
       worlds.offset.lerp(tmpV.set(px, -py, 0).multiplyScalar(worlds.parallax).applyQuaternion(camera.quaternion), 1 - Math.exp(-dt * 4));
       camera.position.copy(P0).add(worlds.drift).add(worlds.wander).add(worlds.offset);
     } else if (!reducedMotion) camera.position.addScaledVector(fwd, dt * 0.25);
-    if (state.endT > 3 && !tbcCard.visible && !REVIEW && (!journey.on || journey.done)) {
+    // To be continued... comes 8 s into the ending (Paul: five seconds later than it was)
+    if (state.endT > 8 && !tbcCard.visible && !REVIEW && (!journey.on || journey.done)) {
       tbcCard.visible = true;
       sound.playVoice('tbc');
+      musicBeat('tbc');
       const gp = tbc.mesh.geometry.parameters, visW = 2 * 2.4 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
       const s = Math.min(0.34 / gp.height, (visW * 0.78) / gp.width);
       tbcCard.scale.setScalar(s);
@@ -2159,7 +2471,7 @@ function frame() {
       tbcCard.material.uniforms.uOpacity.value = smooth(3, 4.5, state.endT);
       tbcCard.material.uniforms.uFlick.value = state.endT < 3.6 ? 1 : 0;
     }
-    if (state.endT > 5 && !REVIEW && (!journey.on || journey.done)) $('again').classList.add('show');
+    if (state.endT > 10 && !REVIEW && (!journey.on || journey.done)) $('again').classList.add('show');
     if (state.endT > 6 && look.idle < 1 && (!journey.on || journey.done)) setHint('');
   }
 
@@ -2170,7 +2482,10 @@ function frame() {
   updateWorld(rawDt, t);
   updateShards(dt);
   updateNucleus(dt);
+  updateSlab(dt, rawDt);
+  updatePanelFloat(dt);
   updateRibbons(dt, rawDt);
+  if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey);
   sound.update(dt, camera);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -2180,7 +2495,9 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   depth.generateMipmaps = false; depth.minFilter = THREE.LinearFilter; depth.anisotropy = 1;
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons };
+  // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
+  setTimeout(() => $('intro').classList.add('out'), Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

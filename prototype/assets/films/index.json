@@ -16,8 +16,8 @@
     "bob1": {
       "clip": "bob-wide",
       "at": 0.3,
-      "from": 0,
-      "len": 4.8,
+      "from": 1.0,
+      "len": 3.9,
       "note": "W-what the hell Smokehouse? The transmitter erupts, he drops his coffee and freezes"
     },
     "holy": {
