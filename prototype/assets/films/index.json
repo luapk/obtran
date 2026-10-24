@@ -1,36 +1,39 @@
 {
-  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Photoreal takes (Paul, 24 October); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film.",
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Alien Bob takes (Paul's character, 24 October; earlier takes in films/sources.json); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film.",
   "clips": {
     "bob-wide": {
       "file": "bob-wide.mp4",
-      "frame": "bob-wide.jpg",
-      "v": "57df6f84"
+      "v": "51f93ab1"
     },
     "bob-close": {
       "file": "bob-close.mp4",
-      "frame": "bob-close.jpg",
-      "v": "6bf46a50"
+      "v": "b29a4656"
     },
     "touchpad": {
       "file": "touchpad.mp4",
       "v": "a19159ae"
+    },
+    "bob-eyes": {
+      "file": "bob-eyes.mp4",
+      "v": "4778f86d",
+      "note": "spare: the eye darts as lights flash, an inner eyelid slides across; for elsewhere in the story (Paul), no cue yet"
     }
   },
   "cues": {
     "bob1": {
       "clip": "bob-wide",
-      "at": 0.3,
-      "from": 1.0,
-      "len": 3.9,
-      "note": "W-what the hell Smokehouse? The transmitter erupts, he drops his coffee and freezes",
+      "at": 0.1,
+      "from": 0.6,
+      "len": 4.4,
+      "note": "W-what the hell Smokehouse? Alien Bob sips, the transmitter hits, the mug drops (about 1.3 s into the clip), he freezes",
       "card": true
     },
     "holy": {
       "clip": "bob-close",
       "at": 0.15,
-      "from": 0.6,
-      "len": 3.8,
-      "note": "Holy smokes! Er, ok. The fear lands in his face, then he swallows and nods; his 'Holy smokes! Er, ok.' panel comes up over it (Paul)",
+      "from": 0.4,
+      "len": 4.5,
+      "note": "Holy smokes! Er, ok. Extreme close-up of his eye behind the dirty visor, the tear rolling; his panel comes up over it (Paul)",
       "card": true
     }
   }
