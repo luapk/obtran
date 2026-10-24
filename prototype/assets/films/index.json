@@ -34,10 +34,27 @@
     "bob-eyes": {
       "file": "bob-eyes.mp4",
       "v": "4778f86d",
-      "note": "after the wide shot on \"W-what the hell\", looped until the reader acts (cue bob1, then)",
+      "note": "spare: was the loop after the wide shot until bob-eye-macro replaced it (Paul)",
       "wide": {
         "file": "bob-eyes-16x9.mp4",
         "v": "dc780e46"
+      }
+    },
+    "bob-eye-macro": {
+      "file": "bob-eye-macro.mp4",
+      "v": "e3a63668",
+      "focus": [
+        0.42,
+        0.5
+      ],
+      "note": "one eye in macro, a data screen reflected in it, blinking (no tears); 16:9, so portrait screens cut it about the eye (focus). Loops after the wide shot on \"W-what the hell\" (Paul: \"new vid at 1\")",
+      "wide": {
+        "file": "bob-eye-macro.mp4",
+        "v": "e3a63668",
+        "focus": [
+          0.42,
+          0.5
+        ]
       }
     }
   },
@@ -47,10 +64,10 @@
       "at": 0.1,
       "from": 1.0,
       "len": 4.0,
-      "note": "W-what the hell Smokehouse? Alien Bob sips, the transmitter hits and he is startled (about 1.4 s into the portrait clip, 2.7 s into the 16:9 one), the mug drops, he freezes. Each starts about half a second before the startle (Paul: \"start the wide shot a moment before he gets startled\"). Then the eye close-up (bob-eyes) loops under \"metascanning intergalactic tumbleweed\" until the reader taps or presses a key, which moves the story on (Paul)",
+      "note": "W-what the hell Smokehouse? Alien Bob sips, the transmitter hits and he is startled (about 1.4 s into the portrait clip, 2.7 s into the 16:9 one), the mug drops, he freezes. Each starts about half a second before the startle (Paul: \"start the wide shot a moment before he gets startled\"). Then the eye macro (bob-eye-macro) loops under \"metascanning intergalactic tumbleweed\" until the reader taps or presses a key, which moves the story on (Paul)",
       "card": true,
       "then": {
-        "clip": "bob-eyes",
+        "clip": "bob-eye-macro",
         "loop": true,
         "from": 0
       },

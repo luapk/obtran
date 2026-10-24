@@ -2452,10 +2452,12 @@ function filmVideo(id) {
     if (land) v.classList.add('land');
     // crop: how far to crop in (0.4 = 40%), about focus [x, y] in the frame (Paul: "on one of the close ups,
     // crop in 40%"); the Super 8 pass does it, and the plain video by a scale
-    if (f.crop) {
+    // focus alone also places a frame cut to fill the screen (a 16:9 clip on a portrait screen)
+    if (f.crop || f.focus) {
       const [fx, fy] = f.focus || [0.5, 0.5];
-      v.dataset.crop = f.crop; v.dataset.focus = `${fx},${fy}`;
-      v.style.transformOrigin = `${fx * 100}% ${fy * 100}%`; v.style.transform = `scale(${1 / (1 - f.crop)})`;
+      v.dataset.crop = f.crop || 0; v.dataset.focus = `${fx},${fy}`;
+      v.style.objectPosition = `${fx * 100}% ${fy * 100}%`;
+      if (f.crop) { v.style.transformOrigin = `${fx * 100}% ${fy * 100}%`; v.style.transform = `scale(${1 / (1 - f.crop)})`; }
     }
     // kept on the page (hidden) from the start: some phone browsers are stricter with a video
     // that is not in the document
@@ -2583,7 +2585,7 @@ function drawSuper8(dt) {
   // a clip's crop: a smaller window of the frame about its focus, kept inside the frame
   const keep = 1 - (+v.dataset.crop || 0), [fx, fy] = (v.dataset.focus || '0.5,0.5').split(',').map(Number);
   const hx = sx * keep / 2, hy = sy * keep / 2;
-  const cx = keep < 1 ? clamp(fx, Math.min(hx, 0.5), Math.max(1 - hx, 0.5)) : 0.5, cy = keep < 1 ? clamp(fy, Math.min(hy, 0.5), Math.max(1 - hy, 0.5)) : 0.5;
+  const cx = clamp(fx, Math.min(hx, 0.5), Math.max(1 - hx, 0.5)), cy = clamp(fy, Math.min(hy, 0.5), Math.max(1 - hy, 0.5));
   gl.uniform2f(s8.u.uScale, sx * keep, sy * keep); gl.uniform2f(s8.u.uFocus, cx, cy);
   gl.uniform2f(s8.u.uWeave, s8.weave[0], s8.weave[1]); gl.uniform2f(s8.u.uRes, W, H);
   gl.uniform1f(s8.u.uSeed, s8.seed); gl.uniform1f(s8.u.uFlick, s8.flick); gl.uniform1f(s8.u.uScratch, s8.scratch);
@@ -2593,8 +2595,9 @@ function drawSuper8(dt) {
 
 // ---------- glyph field behind "Initiating QNTM CTRL..." (Paul, 24 October) ----------
 // The space goes to black behind the card, then scrambling alien glyphs (the CCTV readout's strokes) fill
-// the screen from the centre outwards in rings, the front of the ring brightest. When the breach begins
-// they drain back into the centre with the collapse, and the field fades as the singularity unwinds.
+// the screen from the centre outwards in rings, the front of the ring brightest. Through the breach and
+// while the singularity loads the field stays full and scrambling, with rings running inwards, and it
+// fades as the singularity unwinds.
 // Drawn on a canvas used as a texture on a plane just behind the card, so the card stays on top.
 const glyphField = { canvas: document.createElement('canvas'), ctx: null, tex: null, mesh: null, mode: 'off', t: 0, dur: 1, next: 0, cells: null, opacity: 0 };
 {
@@ -2607,7 +2610,9 @@ const glyphField = { canvas: document.createElement('canvas'), ctx: null, tex: n
   camera.add(glyphField.mesh);
 }
 function glyphFieldStart() { glyphField.mode = 'fill'; glyphField.t = 0; glyphField.cells = null; glyphField.mesh.visible = true; }
-function glyphFieldCollapse(dur) { if (glyphField.mode === 'off') return; glyphField.mode = 'drain'; glyphField.t = 0; glyphField.dur = dur; }
+// the breach: the field stays full and keeps scrambling through the collapse and while the singularity loads (Paul:
+// it looked frozen once it had drained), with bright rings running in towards the centre; it fades as the world opens
+function glyphFieldHold() { if (glyphField.mode === 'off') return; glyphField.mode = 'hold'; glyphField.t = 0; }
 function glyphFieldEnd() { if (glyphField.mode !== 'off') { glyphField.mode = 'fade'; glyphField.t = 0; } }
 function updateGlyphField(dt) {
   const G = glyphField;
@@ -2616,9 +2621,9 @@ function updateGlyphField(dt) {
   // fill the view at its distance
   const d = 3, h = 2 * d * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   G.mesh.position.set(0, 0, -d); G.mesh.scale.set(h * camera.aspect, h, 1);
-  G.opacity = G.mode === 'fade' ? Math.max(0, 1 - G.t / 0.8) : Math.min(1, G.opacity + dt / 0.3);
+  G.opacity = G.mode === 'fade' ? Math.max(0, 1 - G.t / 1.4) : Math.min(1, G.opacity + dt / 0.3);
   G.mesh.material.opacity = G.opacity;
-  if (G.mode === 'fade' && G.t > 0.8) { G.mode = 'off'; G.mesh.visible = false; return; }
+  if (G.mode === 'fade' && G.t > 1.4) { G.mode = 'off'; G.mesh.visible = false; return; }
   if (G.t < G.next) return;                  // redrawn about 20 times a second
   G.next = G.t + 0.05;
   const scale = 0.6, W = Math.round(innerWidth * scale), H = Math.round(innerHeight * scale), cs = 15;
@@ -2631,14 +2636,15 @@ function updateGlyphField(dt) {
   const c = G.ctx;
   c.fillStyle = '#050403'; c.fillRect(0, 0, W, H);
   c.lineWidth = 1.2; c.lineCap = 'round';
-  // how far out the field reaches now: filling over 1.6 s, then (draining) shrinking back with the collapse
-  const front = G.mode === 'fill' ? Math.min(1.08, (G.t - 0.25) / 1.6) : G.mode === 'drain' ? 1.08 * (1 - G.t / G.dur) : 1.08;
+  // how far out the field reaches now: filling over 1.6 s, then full; while held, a bright ring runs in to the centre every 0.9 s
+  const front = G.mode === 'fill' ? Math.min(1.08, (G.t - 0.25) / 1.6) : 1.08;
+  const ringAt = G.mode === 'hold' ? 1.08 * (1 - (G.t / 0.9) % 1) : front;
   const s = cs * 0.7 / 3;
   for (const cell of G.cells) {
     if (cell.r > front) continue;
     if (Math.random() < 0.25) cell.g = Math.floor(Math.random() * cctv.glyphs.length);   // scrambling
     if (Math.random() < 0.15) cell.b = 0.3 + 0.6 * Math.random();
-    const edge = Math.max(0, 1 - Math.abs(front - cell.r) / 0.08);                     // the front of the ring
+    const edge = Math.max(0, 1 - Math.abs(ringAt - cell.r) / 0.08);                    // the front of the ring
     const a = Math.min(1, cell.b * (0.55 + 0.45 * (1 - cell.r)) + edge * 0.8);
     c.strokeStyle = `rgba(239,233,223,${a.toFixed(2)})`; c.fillStyle = c.strokeStyle;
     const g = cctv.glyphs[cell.g], gx = cell.x - cs * 0.35, gy = cell.y - cs * 0.4;
@@ -3028,7 +3034,7 @@ function finalBreach() {
   $('sr').textContent = 'Initiating QNTM CTRL. The space breaks apart and you fall through the singularity.';
   sound.breach(FINAL_DUR);
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
-  glyphFieldCollapse(FINAL_DUR * 0.72);
+  glyphFieldHold();
   leave(FINAL_WORLD, () => {
     journey.phase = 'end'; journey.done = true;
     glyphFieldEnd();
