@@ -22,6 +22,10 @@ from their loudness over time (ffmpeg, -45 dB as silence):
   decrypt.mp3     telemetry.wav (Scifi_Computer_..._Telemetry_Complex_Bleeps_And_Blops_Short_Phrases_01): its first
                   phrase, cut to exactly 1.34 s, the length of OBTRAN003 decrypting on the opening screen,
                   with a sharp fade in (5 ms) and out (40 ms), brought up to a -6 dB peak.
+  airy-1/2        airy-whoosh.wav (Swooshes_Whoosh_Airy_Big_Reverberant_Variations_01): four big airy whooshes with their
+                  own reverb, 0 to 5.48 s, 7.3 to 12.56, 14.14 to 19.41 and 20.95 to 26.65 s; the first two. Each swells to
+                  its peak about 1.6 to 1.9 s in and rings out. airy-1 goes with the hop across the page between spaces,
+                  airy-2 with the zoom into the caption (Paul: "change up one of the transitions... a second for another").
   bed.mp3         intro_comic_singularity.mp3: 14 s of steady atmosphere for the comic page and the
                   singularity, rising from silence and stopping dead. Made into a loop: from 0.8 s (after
                   its fade in), with its last 2 s blended into its opening (equal power), so the page can
@@ -46,6 +50,8 @@ CUTS = {
     "power-up": ("biometric_power_up.wav", 0.0, 4.6, 0.01, 0.08),
     "bleep": ("ui_confirm.wav", 0.0, 0.85, 0.0, 0.2),
     "decrypt": ("telemetry.wav", 0.0, 1.34, 0.005, 0.04),
+    "airy-1": ("airy-whoosh.wav", 0.0, 5.48, 0.0, 0.6),
+    "airy-2": ("airy-whoosh.wav", 7.3, 12.56, 0.0, 0.6),
 }
 NORMALISE = {"bleep": -6.0, "decrypt": -6.0}       # peak in dB, for sounds that arrive too quiet
 

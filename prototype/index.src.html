@@ -1120,7 +1120,7 @@ class Sound {
   // own level, as they arrive at different loudness. Where one is missing the synthesised sound stays.
   loadSfx() {
     this.sfx = {};
-    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'power-up', 'bed', 'bleep'])
+    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'airy-1', 'airy-2', 'power-up', 'bed', 'bleep'])
       fetch(`assets/sfx/${n}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b))
         .then((buf) => { this.sfx[n] = buf; }).catch(() => {});
   }
@@ -2949,7 +2949,8 @@ function startHop(i) {
   journey.hop = { i, A, B, C: W.clone().multiplyScalar(2).sub(A.to.clone().add(B.to).multiplyScalar(0.5)), swapped: false,
     load: loadWorld(STEPS[i].world).catch((e) => console.warn('world unavailable', e)) };
   journey.phase = 'hop'; journey.t = 0;
-  if (!sound.sfxPlay('whoosh-2', { gain: 0.6, verb: 0.35, echo: 0.22 })) sound.blip();   // the camera across the page
+  // the camera across the page: Paul's big airy whoosh (it carries its own reverb, so a lighter send), his first whoosh if missing
+  if (!sound.sfxPlay('airy-1', { gain: 0.7, verb: 0.12, echo: 0.14 }) && !sound.sfxPlay('whoosh-2', { gain: 0.6, verb: 0.35, echo: 0.22 })) sound.blip();
 }
 function updateHop() {
   const H = journey.hop, u = clamp(journey.t / HOP_DUR, 0, 1), e = ease(u), r = 1 - e;
@@ -2998,7 +2999,8 @@ function enterSpace() {
   const P = boxPose(BEATS[STEPS[0].beat].b);
   layCard(P);
   journey.enter = { from: camera.position.clone(), q: camera.quaternion.clone(), fov0: camera.fov, fov1: P.fov, to: P.to };
-  if (!sound.sfxPlay('whoosh-1', { gain: 0.6, verb: 0.35, echo: 0.22 })) sound.blip();   // the zoom into the caption
+  // the zoom into the caption: the second airy whoosh, which peaks about as the zoom lands
+  if (!sound.sfxPlay('airy-2', { gain: 0.7, verb: 0.12, echo: 0.14 }) && !sound.sfxPlay('whoosh-1', { gain: 0.6, verb: 0.35, echo: 0.22 })) sound.blip();
   if (sound.ok) { sound.cabin.gain.setTargetAtTime(0.25, sound.now(), 0.8); sound.startSpace(); }
 }
 
