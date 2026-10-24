@@ -11,3 +11,4 @@ worlds/worlds/*.tmp
 dist-*/
 __pycache__/
 source/sfx/
+source/music/

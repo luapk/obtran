@@ -1,20 +1,47 @@
 {
-  "note": "QNTM CTRL, Smokehouse Shift EP (Oblivious Transfer, OBTRAN003). Paul supplies the audio: put each track's full file and its loop in this folder under the names below (mp3, m4a or ogg all work; change the names here to match). A track unlocks as the story reaches its beat (a beat id from voices/script.json). loops maps each space (a world id, or 'page' for the opening page) to the track whose loop plays quietly there. Until a file is here its play button stays off and its loop is skipped.",
-  "release": { "artist": "QNTM CTRL", "title": "Smokehouse Shift", "catalogue": "OBTRAN003", "url": "https://oblivioustransfer.bandcamp.com/album/smokehouse-shift" },
+  "note": "QNTM CTRL, Smokehouse Shift EP (Oblivious Transfer, OBTRAN003). Paul supplies the audio: put each track's full file and its loop in this folder under the names below (mp3, m4a or ogg all work; change the names here to match). A track unlocks as the story reaches its beat (a beat id from voices/script.json). loops maps each space (a world id, or 'page' for the opening page) to the track whose loop plays quietly there. Until a file is here its play button stays off and its loop is skipped. startAt: the loops wait for this beat (the narrator's caption, the first voice line; Paul, 25 October: \"starting at the same time as the first VO\"); from then on the loop carries on through every space and the hops across the page with no seam, as every space uses the same loop. Only Smokehouse Shift's loop is here so far (tools/make_music.py, from Paul's 25.9 s excerpt), so every space plays it; give a space another track's id once that loop arrives. The reader can turn music off and on (the Music on button, kept in the browser).",
+  "release": {
+    "artist": "QNTM CTRL",
+    "title": "Smokehouse Shift",
+    "catalogue": "OBTRAN003",
+    "url": "https://oblivioustransfer.bandcamp.com/album/smokehouse-shift"
+  },
   "tracks": [
-    { "id": "smokehouse-shift", "title": "Smokehouse Shift", "file": "smokehouse-shift.mp3", "loop": "smokehouse-shift.loop.mp3", "unlockAt": "smoke1", "why": "Smokehouse Shift first calls Bob" },
-    { "id": "pulsar-forest", "title": "Pulsar Forest", "file": "pulsar-forest.mp3", "loop": "pulsar-forest.loop.mp3", "unlockAt": "holy", "why": "Bob unlocks his biometric key: the Pulsar Protocol begins" },
-    { "id": "preacher", "title": "Preacher", "file": "preacher.mp3", "loop": "preacher.loop.mp3", "unlockAt": "tbc", "why": "To be continued..." }
+    {
+      "id": "smokehouse-shift",
+      "title": "Smokehouse Shift",
+      "file": "smokehouse-shift.mp3",
+      "loop": "smokehouse-shift.loop.mp3",
+      "unlockAt": "smoke1",
+      "why": "Smokehouse Shift first calls Bob"
+    },
+    {
+      "id": "pulsar-forest",
+      "title": "Pulsar Forest",
+      "file": "pulsar-forest.mp3",
+      "loop": "pulsar-forest.loop.mp3",
+      "unlockAt": "holy",
+      "why": "Bob unlocks his biometric key: the Pulsar Protocol begins"
+    },
+    {
+      "id": "preacher",
+      "title": "Preacher",
+      "file": "preacher.mp3",
+      "loop": "preacher.loop.mp3",
+      "unlockAt": "tbc",
+      "why": "To be continued..."
+    }
   ],
   "loops": {
-    "page": null,
+    "page": "smokehouse-shift",
     "bob-cockpit": "smokehouse-shift",
     "hull-machinery": "smokehouse-shift",
-    "ribbon-loops": "pulsar-forest",
-    "bob-head-relief": "pulsar-forest",
-    "monolith-slabs": "pulsar-forest",
-    "bob": "preacher",
-    "singularity-core": "preacher"
+    "ribbon-loops": "smokehouse-shift",
+    "bob-head-relief": "smokehouse-shift",
+    "monolith-slabs": "smokehouse-shift",
+    "bob": "smokehouse-shift",
+    "singularity-core": "smokehouse-shift"
   },
-  "loopLevel": 0.32
+  "loopLevel": 0.32,
+  "startAt": "caption"
 }
