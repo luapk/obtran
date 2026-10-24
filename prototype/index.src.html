@@ -2324,16 +2324,11 @@ function musicBus() {
   if (!music.bus && sound.ok) { music.bus = sound.ctx.createGain(); music.bus.gain.value = music.vol; music.bus.connect(sound.master); }
   return music.bus || sound.master;
 }
-function musicStore(save) {
-  try {
-    if (save) localStorage.setItem('ot-music', JSON.stringify([...music.unlocked]));
-    else for (const id of JSON.parse(localStorage.getItem('ot-music') || '[]')) music.unlocked.add(id);
-  } catch (e) { /* no storage: unlocks last for this visit */ }
-}
+// unlocks last for this visit only: every visit starts the collection again (Paul, 25 October)
+try { localStorage.removeItem('ot-music'); } catch (e) { /* no storage */ }
 async function musicLoad() {
   try { const r = await fetch('assets/music/index.json', { cache: 'no-cache' }); music.index = r.ok ? await r.json() : null; } catch (e) { music.index = null; }
   if (!music.index?.tracks?.length || REVIEW) return;
-  musicStore(false);
   // which audio files are here: the build lists them in "present", so missing ones are never requested
   const present = new Set(music.index.present || []);
   for (const t of music.index.tracks) for (const k of ['file', 'loop']) music.have[t.id + ':' + k] = !!t[k] && present.has(t[k]);
@@ -2387,7 +2382,7 @@ function musicBeat(beat) {
   musicCue(beat);
   for (const t of music.index.tracks) {
     if (t.unlockAt !== beat || music.unlocked.has(t.id)) continue;
-    music.unlocked.add(t.id); musicStore(true); musicRender();
+    music.unlocked.add(t.id); musicRender();
     const n = music.unlocked.size, all = music.index.tracks.length;
     tabMarquee(n === all ? `All ${all} tracks unlocked` : `Track unlocked: ${t.title}`);
     sound.sfxPlay('unlock', { gain: 0.8 });
