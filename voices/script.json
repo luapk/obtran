@@ -1,5 +1,5 @@
 {
-  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are eleven_v3 audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again. The Render voices workflow runs whenever this file changes on main or the working branch.",
+  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are eleven_v3 audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again. The Render voices workflow runs whenever this file changes on main or the working branch. Spoken text may differ from the lettering for pronunciation: the hyphens make \"Spomenik-Operative-Bob\" one name, and QNTM CTRL is said \"quantum control\".",
   "model": "eleven_v3",
   "output_format": "mp3_44100_128",
   "voices": {
@@ -36,7 +36,7 @@
       }
     },
     "narrator": {
-      "id": "jvcMcno3QtjOzGtfpjoI",
+      "id": "tiLGT9eftokjCKvXtgmt",
       "radio": false,
       "settings": {
         "stability": 0.55,
@@ -50,7 +50,7 @@
     {
       "beat": "caption",
       "speaker": "narrator",
-      "text": "[calm, measured] Canes Crescenza, 3091 AD. Spomenik Operative Bob sips his morning coffee, when suddenly the vessel's transmitter erupts..."
+      "text": "[calm, measured] Canes Crescenza, 3091 AD. Spomenik-Operative-Bob sips his morning coffee, when suddenly the vessel's transmitter erupts..."
     },
     {
       "beat": "smoke1",
@@ -85,7 +85,7 @@
     {
       "beat": "qntm",
       "speaker": "bob",
-      "text": "[nervous, under his breath] Initiating QNTM CTRL..."
+      "text": "[nervous, under his breath] Initiating quantum control..."
     },
     {
       "beat": "tbc",
