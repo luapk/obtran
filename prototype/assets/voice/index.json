@@ -2,8 +2,8 @@
   "lines": {
     "caption": {
       "file": "caption.mp3",
-      "hash": "df43ba31bb9b5468",
-      "bytes": 194394,
+      "hash": "bb28d9af5e7195d6",
+      "bytes": 180183,
       "speaker": "narrator",
       "radio": false
     },
@@ -87,8 +87,8 @@
     },
     "qntm": {
       "file": "qntm.mp3",
-      "hash": "043d88076e93b09b",
-      "bytes": 52287,
+      "hash": "3a31262ab56a996e",
+      "bytes": 40585,
       "speaker": "bob",
       "radio": {
         "low": 300,
@@ -100,8 +100,8 @@
     },
     "tbc": {
       "file": "tbc.mp3",
-      "hash": "2ccf0b7a9f808759",
-      "bytes": 35569,
+      "hash": "a5bb10f723cd788d",
+      "bytes": 66498,
       "speaker": "narrator",
       "radio": false
     }
