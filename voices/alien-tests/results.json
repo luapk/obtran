@@ -1,0 +1,92 @@
+{
+  "tests": {
+    "deep-wet": {
+      "hash": "62ca0be3ceb3db08",
+      "model": "eleven_ttv_v3",
+      "description": "A deep, wet alien voice, very low and resonant, as if speaking through thick fluid in the throat, with slurping consonants and soft tongue clicks between the words. Nervous, stammering, startled. A strange, non-human cadence.",
+      "takes": [
+        {
+          "file": "deep-wet-1.mp3",
+          "generated_voice_id": "fuXLew6Fphb1MRRka2tH",
+          "seconds": 18.836083333333335
+        },
+        {
+          "file": "deep-wet-2.mp3",
+          "generated_voice_id": "AacHkxWgmaZDMsXWkwTH",
+          "seconds": 19.567541666666667
+        },
+        {
+          "file": "deep-wet-3.mp3",
+          "generated_voice_id": "7A6XufhvJAQh4cPORQ15",
+          "seconds": 21.31775
+        }
+      ]
+    },
+    "clicky": {
+      "hash": "6be1e0990e79cdb8",
+      "model": "eleven_ttv_v3",
+      "description": "An insectoid alien speaking English. A very deep voice underneath, with constant sharp mandible clicks and wet chittering on the consonants, glistening and sticky, the words slightly garbled. Frightened.",
+      "takes": [
+        {
+          "file": "clicky-1.mp3",
+          "generated_voice_id": "6SABH8PdlGdz18GVKS4f",
+          "seconds": 17.869583333333335
+        },
+        {
+          "file": "clicky-2.mp3",
+          "generated_voice_id": "3qTm7PacJbZbacsqjaxj",
+          "seconds": 20.03775
+        },
+        {
+          "file": "clicky-3.mp3",
+          "generated_voice_id": "NcH812ey4s604R3F0Bvv",
+          "seconds": 17.634458333333335
+        }
+      ]
+    },
+    "weird": {
+      "hash": "e57e81df7b490b6a",
+      "model": "eleven_ttv_v3",
+      "description": "A strange humanoid alien, halfway between human and creature. Deep and breathy, with odd pitch slides that bend in the middle of words, wet mouth sounds and clicks in the throat, a slight doubled undertone, the words a little garbled. Nervous and startled.",
+      "takes": [
+        {
+          "file": "weird-1.mp3",
+          "generated_voice_id": "gLUqV0s2AasttMPk6gaJ",
+          "seconds": 19.332416666666667
+        },
+        {
+          "file": "weird-2.mp3",
+          "generated_voice_id": "BPEU1tbc8h8AHbRGdi6p",
+          "seconds": 18.75775
+        },
+        {
+          "file": "weird-3.mp3",
+          "generated_voice_id": "ODrWUzV7pFhX90OmybAO",
+          "seconds": 21.239375
+        }
+      ]
+    },
+    "garbled": {
+      "hash": "1c07b09aced1ef75",
+      "model": "eleven_ttv_v3",
+      "description": "A deep, wet alien voice, very low, gurgling and clicking, struggling to form human words, which come out half garbled with alien sounds in between. Frightened.",
+      "takes": [
+        {
+          "file": "garbled-1.mp3",
+          "generated_voice_id": "Zza7xcTODE3Ho3s36y57",
+          "seconds": 23.87775
+        },
+        {
+          "file": "garbled-2.mp3",
+          "generated_voice_id": "4wriSJJRqM19LVUQwSPQ",
+          "seconds": 32.994458333333334
+        },
+        {
+          "file": "garbled-3.mp3",
+          "generated_voice_id": "Ag1WmQ98MonvuHVpN9Gc",
+          "seconds": 30.591208333333334
+        }
+      ]
+    }
+  }
+}
