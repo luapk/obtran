@@ -3028,14 +3028,40 @@ function playFilm(beat) {
   const v0 = filmVideo(cue.clip), box = $('film');
   if (v0.classList.contains('land') && cue.wide) cue = { ...cue, ...cue.wide };   // the 16:9 take's own timings
   const v = v0;
-  films.timers.push(setTimeout(() => {
-    try { v.currentTime = cue.from || 0; } catch (e) { /* not loaded yet: start from the top */ }
+  films.timers.push(setTimeout(async () => {
+    // sync (a lipsync take): wait for the line to start, then start the film that far in, so the lips follow the voice
+    let from = cue.from || 0, vs = null;
+    if (cue.sync && sound.ok) {
+      for (let k = 0; k < 30 && sound.voiceSpan?.beat !== beat; k++) await new Promise((r) => setTimeout(r, 50));
+      vs = sound.voiceSpan;
+      if (vs?.beat === beat) {
+        const lead = vs.t0 - sound.now();
+        if (lead > 0) await new Promise((r) => setTimeout(r, lead * 1000)); else from += -lead;
+      }
+      if (films.timers.length === 0) return;           // the film was stopped while it waited
+    }
+    try { v.currentTime = from; } catch (e) { /* not loaded yet: start from the top */ }
     v.play().then(() => {
       for (const o of Object.values(films.videos)) o.classList.toggle('cur', o === v);
       box.classList.add('on'); films.on = true; cctv.t0 = 0;
       if (cue.card) showFilmCard(beat);
       flash(0.6);
-      films.timers.push(setTimeout(() => (cue.then ? filmThen(cue.then) : stopFilm(true)), (cue.len || 2.4) * 1000));
+      // starting playback takes a moment (about 0.2 s here), which shows on lips: once it is running, put it where the
+      // voice is now (a little ahead, for the seek), and cut at the same point in the clip whenever it got there
+      if (vs?.beat === beat) {
+        const want = (cue.from || 0) + (sound.now() - vs.t0) + 0.04;
+        if (Math.abs(v.currentTime - want) > 0.06) { try { v.currentTime = want; } catch (e) { /* not seekable yet */ } }
+        from = want;
+        // the seek itself costs a little: what is left is made up by playing slightly fast (or slow) until it matches
+        const base = cue.from || 0;
+        films.sync = { v, fn: () => {
+          const lag = (sound.now() - vs.t0) - (v.currentTime - base);
+          v.playbackRate = Math.abs(lag) < 0.04 ? 1 : clamp(1 + lag * 1.5, 0.85, 1.25);
+        } };
+        v.addEventListener('timeupdate', films.sync.fn);
+      }
+      const hold = Math.max(0.3, (cue.len || 2.4) - (from - (cue.from || 0)));   // a synced film that started further in ends at the same point
+      films.timers.push(setTimeout(() => (cue.then ? filmThen(cue.then) : stopFilm(true)), hold * 1000));
     }).catch((e) => {
       console.warn('film not played:', cue.clip, e && e.name);   // the line still plays
       if (BEATS[state.beat]?.filmOnly && journey.phase === 'space') card.visible = true;   // and its panel shows in the space instead
@@ -3045,7 +3071,11 @@ function playFilm(beat) {
 // a cue's then: the film cuts straight into another clip, which can loop until the reader taps or
 // presses a key, and that moves the story on (Paul: the eye close-up after Bob's wide shot, under
 // "metascanning intergalactic tumbleweed", "on loop until user interacts")
+function filmUnsync() {
+  if (films.sync) { films.sync.v.removeEventListener('timeupdate', films.sync.fn); films.sync.v.playbackRate = 1; films.sync = null; }
+}
 function filmThen(then) {
+  filmUnsync();
   const v = filmVideo(then.clip);
   if (v.classList.contains('land') && then.wide) then = { ...then, ...then.wide };
   v.loop = !!then.loop;
@@ -3066,6 +3096,7 @@ function filmInteract() {
 }
 function stopFilm(snap) {
   films.timers.forEach(clearTimeout); films.timers = [];
+  filmUnsync();
   films.looping = false;
   const box = $('film');
   if (films.on) {

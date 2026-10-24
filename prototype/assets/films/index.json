@@ -1,5 +1,5 @@
 {
-  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Alien Bob takes (Paul's character, 24 October; earlier takes in films/sources.json); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film. then: the film runs straight on into another clip, looped when loop is set, until the reader taps or presses a key, which also moves the story on. wide: a clip's 16:9 take for landscape screens. crop (and focus): crop in by that much about that point (Paul: \"on one of the close ups, crop in 40%\"). backdrops: a beat to a looping clip that fills the screen in its space while that beat shows (Super 8 and the CCTV readout, the world's splats hidden, its sand over it); level is its opacity, focus where it is cut to fill the screen.",
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Alien Bob takes (Paul's character, 24 October; earlier takes in films/sources.json); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film. then: the film runs straight on into another clip, looped when loop is set, until the reader taps or presses a key, which also moves the story on. wide: a clip's 16:9 take for landscape screens. crop (and focus): crop in by that much about that point (Paul: \"on one of the close ups, crop in 40%\"). backdrops: a beat to a looping clip that fills the screen in its space while that beat shows (Super 8 and the CCTV readout, the world's splats hidden, its sand over it); level is its opacity, focus where it is cut to fill the screen. sync: a lipsync take starts with its voice line (waits for it, or starts as far in as the line has run).",
   "clips": {
     "bob-wide": {
       "file": "bob-wide.mp4",
@@ -7,7 +7,8 @@
       "wide": {
         "file": "bob-wide-16x9.mp4",
         "v": "19a240d6"
-      }
+      },
+      "note": "spare: was the wide on \"W-what the hell\" until bob-talk replaced it (Paul)"
     },
     "bob-close": {
       "file": "bob-close.mp4",
@@ -56,25 +57,27 @@
           0.5
         ]
       }
+    },
+    "bob-talk": {
+      "file": "bob-talk.mp4",
+      "v": "a1b2040a",
+      "note": "lipsync: Alien Bob with his mug says the first half of his line to camera (9:16 only; landscape screens show it whole with black either side)"
     }
   },
   "cues": {
     "bob1": {
-      "clip": "bob-wide",
-      "at": 0.1,
-      "from": 1.0,
-      "len": 4.0,
-      "note": "W-what the hell Smokehouse? Alien Bob sips, the transmitter hits and he is startled (about 1.4 s into the portrait clip, 2.7 s into the 16:9 one), the mug drops, he freezes. Each starts about half a second before the startle (Paul: \"start the wide shot a moment before he gets startled\"). Then the eye macro (bob-eye-macro) loops under \"metascanning intergalactic tumbleweed\" until the reader taps or presses a key, which moves the story on (Paul)",
+      "clip": "bob-talk",
+      "at": 0,
+      "from": 0,
+      "len": 5.0,
+      "note": "W-what the hell Smokehouse? Alien Bob says the first half of his line to camera, lipsynced (bob-talk, from the line's start, 5 s: 'W-what the hell Smokehouse? I've been out here for like, 3 kalpas'), held until that half is delivered (Paul: \"hold for longer before cutting to close up clip, until live action line is delivered\"); then the eye macro (bob-eye-macro) loops under \"metascanning intergalactic tumbleweed\" until the reader taps or presses a key, which moves the story on",
       "card": true,
       "then": {
         "clip": "bob-eye-macro",
         "loop": true,
         "from": 0
       },
-      "wide": {
-        "from": 2.2,
-        "len": 2.8
-      }
+      "sync": true
     },
     "holy": {
       "clip": "bob-close",
