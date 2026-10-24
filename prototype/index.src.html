@@ -21,6 +21,8 @@
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--paper); overflow: hidden; }
   body { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; -webkit-tap-highlight-color: transparent; touch-action: none; user-select: none; -webkit-user-select: none; }
   canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+  /* strobe inversions in the singularity: a white layer that subtracts, so the 3D view below turns negative */
+  #invert { position: fixed; inset: 0; pointer-events: none; background: #fff; mix-blend-mode: difference; opacity: 0; }
   .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%); }
   .grain { position: fixed; inset: -50%; pointer-events: none; opacity: 0.09; mix-blend-mode: screen; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); animation: grain 0.6s steps(4) infinite; }
   @keyframes grain { 0%{transform:translate(0,0)} 25%{transform:translate(-3%,2%)} 50%{transform:translate(2%,-3%)} 75%{transform:translate(-2%,-1%)} 100%{transform:translate(0,0)} }
@@ -40,14 +42,19 @@
   @keyframes scanRoll { from { background-position: 0 0, 0 0%; } to { background-position: 0 0, 0 -300%; } }
   /* the biometric touch screen for the hold: a looping top-down film of an alien touch pad, a code
      layer drawn where the thumb is, and the line's lettering */
-  #pad { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.45s; touch-action: none; }
+  /* the pad floats over Bob's space (Paul: "add Gaussian splatter behind touchscreen"): the world shows
+     round it through a dark veil, and the film's edges feather into it */
+  #pad { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(5,4,3,0.45); opacity: 0; pointer-events: none; transition: opacity 0.45s; touch-action: none; }
   #pad.on { opacity: 1; pointer-events: auto; }
   /* a long press must reach the pad, not the video: on a video Android Chrome opens its own menu
      (download, picture in picture) and cancels the hold */
   #pad video, #film video { pointer-events: none; -webkit-touch-callout: none; }
   #pad, #film { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-  #pad video { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.05); }
-  @media (min-aspect-ratio: 4/5) { #pad video { object-fit: contain; } }
+  #pad video { display: block; width: min(90vw, 82vh * 0.5625); aspect-ratio: 9 / 16; height: auto; object-fit: cover; filter: grayscale(1) contrast(1.05) drop-shadow(0 0 30px rgba(0,0,0,0.9));
+    -webkit-mask-image: radial-gradient(ellipse 60% 56% at 50% 50%, #000 78%, transparent 100%); mask-image: radial-gradient(ellipse 60% 56% at 50% 50%, #000 78%, transparent 100%);
+    animation: padFloat 6s ease-in-out infinite; }
+  @keyframes padFloat { 0%, 100% { transform: translateY(-0.6%) rotate(-0.4deg); } 50% { transform: translateY(0.6%) rotate(0.4deg); } }
+  @media (prefers-reduced-motion: reduce) { #pad video { animation: none; } }
   #pad::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0 1px, rgba(0,0,0,0) 1px 2px); }
   #padUI { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   body.padOn #ring { display: none; }
@@ -155,6 +162,7 @@
 <script>window.__introT0 = performance.now(); setTimeout(() => { document.getElementById('intro')?.classList.add('out'); document.getElementById('gate')?.classList.add('ready'); }, 10000);</script>
 <div id="film" aria-hidden="true"><canvas id="cctv"></canvas><canvas id="filmCard"></canvas></div>
 <div id="pad" aria-hidden="true"><video muted playsinline loop preload="auto"></video><canvas id="padUI"></canvas></div>
+<div id="invert" aria-hidden="true"></div>
 <div class="vignette"></div>
 <div class="grain"></div>
 <div class="flash" id="flash"></div>
@@ -756,6 +764,7 @@ async function loadSpark() {
   };
   const spark = new worlds.Spark.SparkRenderer({ renderer });
   spark.renderOrder = -10;   // splats first: the nucleus is drawn over them, the 3D shapes over that
+  worlds.spark = spark;
   scene.add(spark);
   return worlds.Spark;
 }
@@ -956,7 +965,7 @@ function loadWorld(id) {
     }
     worlds.mesh = mesh; worlds.echoes = echoes; worlds.sandMesh = sandMesh; worlds.id = id; worlds.ok = true;
     worlds.u.sand.value = worlds.sandOn && !reducedMotion ? (entry.relief ? RELIEF_SAND : 1) : 0;
-    worlds.u.cut.value = id === STORY_WORLD && slab.on ? 1 : 0;   // the slab floats free here, so its splats go
+    worlds.u.cut.value = id === STORY_WORLD ? 1 : 0;   // Marble's white slab is cut out of the singularity
     // the grade measured from the world's crop by tools/clean_worlds.py; a relief is the page's own ink
     const g = view.grade;
     worlds.relief = !!entry.relief;
@@ -1109,6 +1118,13 @@ class Sound {
   // a metal shard creaking as it tumbles past: a train of stick-slip clicks (rate swelling and
   // sagging) rung through four narrow inharmonic resonances, like a struck plate, bending down a
   // little as it groans; bigger shards are lower and longer. x, y, z are relative to the camera.
+  // a low thump under each strobe inversion in the singularity
+  thump(level = 1) {
+    if (!this.ok) return; const ctx = this.ctx, t = this.now();
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.22);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * level, t + 0.006); g.gain.setTargetAtTime(0, t + 0.04, 0.07);
+    o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.5);
+  }
   creak(x, y, z, size = 1) {
     if (!this.ok || this.muted) return;
     const ctx = this.ctx, t = this.now() + 0.02;
@@ -1315,6 +1331,7 @@ function breach() {
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
   pagePts.visible = true;
   voidGroup.visible = true;
+  if (worlds.spark) worlds.spark.visible = true;
   worlds.suction = 1;
   // the drawn rings carry the dive; the world takes over at the flash (see the frame loop)
   (worlds.loading || loadWorld(STORY_WORLD)).then(() => { for (const m of worldMeshes()) m.visible = true; }).catch((e) => console.warn('world unavailable, using the drawn void', e));
@@ -1327,6 +1344,7 @@ function breach() {
 }
 function enterVoid() {
   state.stage = 'void'; state.endT = 0;
+  if (worlds.spark) worlds.spark.visible = true;
   pageMesh.visible = false; pagePts.visible = false; inflow.visible = false;
   bubbles.forEach((b) => (b.mesh.visible = false));
   camera.position.copy(P0); camera.fov = voidFov(); camera.updateProjectionMatrix(); resize();
@@ -1489,50 +1507,69 @@ const ribbons = { group: new THREE.Group(), list: [], on: params.get('ribbons') 
   sway: new THREE.Vector3(), swayV: new THREE.Vector3(), lastCam: new THREE.Vector3(), lastYaw: 0, lastPitch: 0 };
 {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uTime: shared.uTime, uLevel: ribbons.level, uReveal: { value: 0 }, uPhase: { value: 0 }, uSway: { value: ribbons.sway }, uSwayK: { value: 1 } },
+    uniforms: { uTime: shared.uTime, uLevel: ribbons.level, uReveal: { value: 0 }, uPhase: { value: 0 }, uSway: { value: ribbons.sway }, uSwayK: { value: 1 }, uJoin: { value: 0.5 } },
     transparent: true,
-    vertexShader: `uniform float uTime; uniform float uPhase; uniform vec3 uSway; uniform float uSwayK; varying float vS; varying vec3 vN; varying vec3 vV;
+    vertexShader: `uniform float uTime; uniform float uPhase; uniform vec3 uSway; uniform float uSwayK; uniform float uJoin; varying float vS; varying vec3 vN; varying vec3 vV;
       void main(){
         vS = uv.x;
-        float bend = sin(3.14159 * uv.x);
-        vec3 p = position + uSway * uSwayK * bend;
+        // one ribbon through both traced paths: the long band sways twice as much as the loop it runs into
+        float bend = sin(3.14159 * uv.x), k = uSwayK * mix(1.0, 0.5, smoothstep(uJoin - 0.05, uJoin + 0.05, uv.x));
+        vec3 p = position + uSway * k * bend;
         p += vec3(0.08 * sin(uTime * 0.5 + uv.x * 5.0 + uPhase), 0.06 * sin(uTime * 0.43 + uv.x * 4.0 + uPhase * 1.3), 0.15 * sin(uTime * 0.37 + uv.x * 6.0 + uPhase)) * bend;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `uniform float uTime; uniform float uLevel; uniform float uReveal; varying float vS; varying vec3 vN; varying vec3 vV;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
       void main(){
         if (vS > uReveal) discard;
         vec3 n = normalize(vN);
-        vec3 paper = vec3(0.94, 0.91, 0.86), ink = vec3(0.03, 0.025, 0.02);
-        float light = 0.62 + 0.38 * max(dot(n, normalize(vec3(-0.4, 0.6, 0.7))), 0.0);
-        vec3 c = paper * light;
-        c = mix(c, ink, smoothstep(0.55, 0.85, 1.0 - abs(dot(n, normalize(vV)))));   // the inked silhouette
-        c *= 0.9 + 0.1 * sin(vS * 46.0 - uTime * 3.0);
-        c += vec3(1.0, 0.95, 0.85) * smoothstep(0.05, 0.0, uReveal - vS) * step(uReveal, 0.999);   // the bright leading tip
+        // ink grade (Paul): the page's three tones, thresholded like the worlds, not smooth shading.
+        // Paper where the light falls, cross-hatched ink in the mid tones, solid ink in shadow and
+        // at the silhouette, with ragged grainy edges between them like a pen line
+        vec3 paper = vec3(0.937, 0.914, 0.875), sepia = vec3(0.541, 0.416, 0.29), ink = vec3(0.02, 0.016, 0.012);
+        float light = max(dot(n, normalize(vec3(-0.4, 0.6, 0.7))), 0.0);
+        float rim = 1.0 - abs(dot(n, normalize(vV)));
+        float tone = light * (1.0 - smoothstep(0.5, 0.8, rim));
+        tone += (hash(floor(gl_FragCoord.xy / 1.5) + floor(uTime * 8.0)) - 0.5) * 0.12;   // grain on the thresholds
+        tone += 0.06 * sin(vS * 46.0 - uTime * 3.0);                                      // a band of light running along it
+        vec2 fc = gl_FragCoord.xy;
+        float hatchA = step(0.62, fract((fc.x + fc.y) / 5.0)), hatchB = step(0.62, fract((fc.x - fc.y) / 5.0));
+        vec3 c = paper;
+        if (tone < 0.62) c = mix(paper, ink, hatchA);                         // light hatching
+        if (tone < 0.42) c = mix(sepia * 0.6, ink, max(hatchA, hatchB));      // cross-hatched, a touch of sepia between
+        if (tone < 0.2) c = ink;                                             // solid ink
+        c += vec3(1.0, 0.95, 0.85) * smoothstep(0.03, 0.0, uReveal - vS) * step(uReveal, 0.999);   // the bright leading tip
         gl_FragColor = vec4(c, uLevel);
         #include <colorspace_fragment>
       }`,
   });
+  // one continuous ribbon (Paul, 24 October: "make continuous"): the long band ends where the loop on
+  // the right begins, so the two traced paths join into one tube, which comes past the camera and then
+  // runs on round the loop, drawing itself in end to end
+  const pts = [];
   RIBBON_LINES.forEach((rb, r) => {
-    const n = rb.path.length, ph = r * 1.9;
-    const pts = rb.path.map(([yw, pt, dist], i) => {
+    const n = rb.path.length;
+    rb.path.forEach(([yw, pt, dist], i) => {
+      if (r > 0 && i === 0) return;                 // the shared point
       const s = i / (n - 1), y = yw * DEG, p = pt * DEG;
       // the extrusion brings the world's paper forward 26%, so the tubes sit where the ribbons are seen
       let d = dist * WORLD_SCALE * 0.74;
       if (rb.near) d *= 1 - (1 - rb.near) * Math.exp(-(((s - 0.3) / 0.16) ** 2));
-      return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)).multiplyScalar(d);
+      pts.push(new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)).multiplyScalar(d));
     });
-    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-    const m = mat.clone();
-    m.uniforms.uTime = shared.uTime; m.uniforms.uLevel = ribbons.level; m.uniforms.uSway = { value: ribbons.sway };
-    m.uniforms.uPhase.value = ph; m.uniforms.uSwayK.value = rb.sway;
-    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 320, RIB.radius, 12, false), m);
-    mesh.renderOrder = 3;
-    ribbons.group.add(mesh);
-    ribbons.list.push({ mesh, mat: m, delay: r * 0.6 });
   });
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+  // where along the tube (by length) the band becomes the loop
+  const lens = curve.getLengths(400), join = lens[Math.round(400 * (RIBBON_LINES[0].path.length - 1) / (pts.length - 1))] / lens[400];
+  const m = mat.clone();
+  m.uniforms.uTime = shared.uTime; m.uniforms.uLevel = ribbons.level; m.uniforms.uSway = { value: ribbons.sway };
+  m.uniforms.uSwayK.value = RIBBON_LINES[0].sway; m.uniforms.uJoin.value = join;
+  const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 640, RIB.radius, 12, false), m);
+  mesh.renderOrder = 3;
+  ribbons.group.add(mesh);
+  ribbons.list.push({ mesh, mat: m, delay: 0 });
   ribbons.group.visible = false;
   scene.add(ribbons.group);
 }
@@ -1557,7 +1594,7 @@ function updateRibbons(dt, rawDt) {
   if (worlds.suction < 0.6 && ribbons.t0 == null) ribbons.t0 = performance.now();
   ribbons.t = ribbons.t0 == null ? 0 : (performance.now() - ribbons.t0) / 1000;
   ribbons.group.position.copy(P0);
-  for (const r of ribbons.list) r.mat.uniforms.uReveal.value = reducedMotion ? 1 : clamp((ribbons.t - r.delay) / 2.8, 0, 1.0001);
+  for (const r of ribbons.list) r.mat.uniforms.uReveal.value = reducedMotion ? 1 : clamp((ribbons.t - r.delay) / 4.2, 0, 1.0001);
 }
 
 /* ---------- Bob's panel: cut from the page, floating in the opening space in layers ---------- */
@@ -1614,7 +1651,9 @@ function updatePanelFloat(dt) {
 // (assets/props/slab.png) and the world's own splats for it are dropped (the ink modifier's cut).
 // The card starts exactly where the slab was, at its depth (brought forward as the extrusion
 // brings paper forward), then eases into a slow drift and turn.
-const slab = { on: params.get('slab') !== '0', level: 0, t: 0, id: null, mesh: null, base: new THREE.Vector3(), basis: new THREE.Quaternion(), right: new THREE.Vector3(), up: new THREE.Vector3(), fwd: new THREE.Vector3() };
+// Paul, 24 October: "remove the large white 3D panel in singularity": the card is off (?slab=1 brings it
+// back), and Marble's white slab stays cut out of the world's splats
+const slab = { on: params.get('slab') === '1', level: 0, t: 0, id: null, mesh: null, base: new THREE.Vector3(), basis: new THREE.Quaternion(), right: new THREE.Vector3(), up: new THREE.Vector3(), fwd: new THREE.Vector3() };
 {
   const tex = new THREE.TextureLoader().load('assets/props/slab.png');
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -1631,6 +1670,43 @@ const slab = { on: params.get('slab') !== '0', level: 0, t: 0, id: null, mesh: n
   scene.add(slab.mesh);
 }
 const _sq = new THREE.Quaternion(), _se = new THREE.Euler();
+/* ---------- strobe inversions in the singularity ---------- */
+// Paul, 24 October: "try dramatic colour inversions on singularity like strobe effects". The view turns
+// negative in hard cuts, held, each with a low thump and a shear of the signal, in bursts every 4 to
+// 9 s once the world has opened. Kept within the accessibility limit for flashing (no more than three
+// flashes in any second: a burst has at most three inversions spread over at least a second, and
+// bursts are at least 3.5 s apart), since large full-screen flashes can set off seizures. Reduced
+// motion and ?strobe=0 turn it off.
+const STROBE_PATTERNS = [
+  [[0, 0.45]],                                      // one long hold
+  [[0, 0.16], [0.5, 0.75]],                         // two
+  [[0, 0.12], [0.36, 0.48], [0.9, 1.4]],            // three, the last held
+];
+const strobe = { el: $('invert'), on: params.get('strobe') !== '0' && !reducedMotion, next: 2.5, t0: -1, seq: null, inv: false };
+function strobeBurst(pattern) {
+  if (strobe.seq && strobe.t0 >= 0) return;
+  strobe.seq = pattern || STROBE_PATTERNS[Math.floor(Math.random() * STROBE_PATTERNS.length)];
+  strobe.t0 = performance.now();
+}
+function updateStrobe(rawDt) {
+  const here = strobe.on && !REVIEW && state.stage === 'void' && worlds.ok && worlds.id === STORY_WORLD && worlds.suction < 0.5;
+  let inv = false;
+  if (here) {
+    strobe.next -= rawDt;
+    if (strobe.next <= 0 && !strobe.seq) { strobeBurst(); strobe.next = 4 + Math.random() * 5; }
+  } else strobe.next = Math.max(strobe.next, 1.5);   // the first burst comes soon after the world opens
+  if (strobe.seq) {
+    const s = (performance.now() - strobe.t0) / 1000;
+    inv = here && strobe.seq.some(([a, b]) => s >= a && s < b);
+    if (s > strobe.seq[strobe.seq.length - 1][1]) { strobe.seq = null; strobe.t0 = -1; }
+  }
+  if (inv !== strobe.inv) {
+    strobe.inv = inv;
+    strobe.el.style.opacity = inv ? 1 : 0;
+    if (inv) { sound.thump(); worlds.jitter = Math.max(worlds.jitter, 0.55); }
+  }
+}
+
 function updateSlab(dt, rawDt) {
   const here = slab.on && state.stage === 'void' && worlds.ok && worlds.id === STORY_WORLD;
   if (worlds.id !== slab.id) { slab.id = worlds.id; slab.t = 0; }
@@ -1848,7 +1924,7 @@ function updateCard(dt) {
   cardState.vel += ((cardState.target - cardState.lift) * 95 - cardState.vel * 12) * dt;
   cardState.lift += cardState.vel * dt;
   if (cardState.target === 0 && cardState.lift < 0.01) { card.visible = false; return; }
-  if (journey.phase === 'enter' || journey.phase === 'hop') return;   // carried across the page by the camera
+  if (journey.phase === 'enter' || journey.phase === 'hop' || journey.phase === 'pull') return;   // lying on the page while the camera moves
   const { dist, w, h, y: restY } = cardPose(camera.fov);
   const k = reducedMotion ? 1 : Math.max(0, cardState.lift);
   // left waiting 10 s with no touch, click or key, the card pulses once: a swell and a flash of glow
@@ -2167,6 +2243,7 @@ function padShow(beat) {
   pad.video.play?.().catch(() => {});
   pad.on = true; pad.t = 0; pad.burst = -1;
   pad.el.classList.add('on'); document.body.classList.add('padOn');
+  card.visible = false;                          // no lettering over the pad (Paul): the line is heard, not shown
 }
 function padHide(delay = 0) {
   if (!pad.on) return;
@@ -2347,6 +2424,9 @@ function toPage(beatId) {
   const A = boxPose(beatId);
   state.stage = 'enter';                          // first: useWorld shows the drawn void in the void stage
   useWorld(false);
+  // and the splat renderer itself: it can go on drawing the splats it last sorted for a moment,
+  // which showed as grains around the page
+  if (worlds.spark) worlds.spark.visible = false;
   camera.quaternion.copy(IDENTITY_Q); camera.position.copy(A.to); camera.fov = A.fov; camera.updateProjectionMatrix();
   pageMesh.visible = true; pageMat.uniforms.uOpacity.value = 0;
   layCard(A);
@@ -2892,6 +2972,7 @@ function frame() {
   updateShards(dt);
   updateNucleus(dt);
   updateSlab(dt, rawDt);
+  updateStrobe(rawDt);
   updatePanelFloat(dt);
   if (films.on) drawCCTV(rawDt);
   if (pad.on) drawPad(rawDt);
@@ -2908,7 +2989,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
