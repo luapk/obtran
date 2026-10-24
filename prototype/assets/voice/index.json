@@ -9,8 +9,8 @@
     },
     "smoke1": {
       "file": "smoke1.mp3",
-      "hash": "9fbe7690a32c616a",
-      "bytes": 102025,
+      "hash": "38ee5e8d6a6f73f2",
+      "bytes": 111220,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -22,8 +22,8 @@
     },
     "engage": {
       "file": "engage.mp3",
-      "hash": "5153c728f879b1b5",
-      "bytes": 47272,
+      "hash": "17081315460a3176",
+      "bytes": 46018,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -42,8 +42,8 @@
     },
     "drill": {
       "file": "drill.mp3",
-      "hash": "046d790567d9d9e7",
-      "bytes": 98263,
+      "hash": "f10683c236a68d9e",
+      "bytes": 99517,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -55,7 +55,7 @@
     },
     "unlock": {
       "file": "unlock.mp3",
-      "hash": "e5c9f0ba900f0abd",
+      "hash": "a9b3c3a38779ccaf",
       "bytes": 40585,
       "speaker": "smokehouse",
       "radio": {
