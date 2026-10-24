@@ -179,6 +179,16 @@
       "job": "438ff82c-b869-40e4-81cc-a7d92e88d5fb",
       "note": "Bob's panel from the full resolution scan, upscaled to 4k on Higgsfield (bytedance), for tools/make_panel_layers.py",
       "full": true
+    },
+    "hand-cup-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_200930_d728c651-ab78-4d19-8eee-5cfdcf39246d.png",
+      "job": "d728c651-ab78-4d19-8eee-5cfdcf39246d",
+      "note": "Extreme close-up of Alien Bob's bare spindly hand holding the OT logo mug, steam rising, skull ring, black suit sleeve and cuff ring; 16:9, shallow depth of field (Nano Banana Pro request, refs bob4-wide-2, media 092eb8d3, OT logo)"
+    },
+    "hand-cup-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_200930_70c5be49-bd87-4acc-866a-4d379de995b0.png",
+      "job": "70c5be49-bd87-4acc-866a-4d379de995b0",
+      "note": "Extreme close-up of Alien Bob's bare spindly hand holding the OT logo mug, steam rising, skull ring, black suit sleeve and cuff ring; 16:9, shallow depth of field (Nano Banana Pro request, refs bob4-wide-2, media 092eb8d3, OT logo)"
     }
   }
 }
