@@ -13,8 +13,9 @@ name: Render voices
 
 on:
   push:
-    branches: [main]
-    paths: [voices/script.json]
+    # the working branch too, so voices can render before the branch reaches main
+    branches: [main, ccr-f7c462d2-dx11rj]
+    paths: [voices/script.json, .github/workflows/render-voices.yml]
   workflow_dispatch:
     inputs:
       force:
