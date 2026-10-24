@@ -1,0 +1,84 @@
+{
+  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are eleven_v3 audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again.",
+  "model": "eleven_v3",
+  "output_format": "mp3_44100_128",
+  "voices": {
+    "smokehouse": {
+      "id": "SF9uvIlY93SJRMdV5jeP",
+      "radio": true,
+      "settings": {
+        "stability": 0.35,
+        "similarity_boost": 0.75,
+        "style": 0.6,
+        "use_speaker_boost": true
+      }
+    },
+    "bob": {
+      "id": null,
+      "radio": false,
+      "settings": {
+        "stability": 0.45,
+        "similarity_boost": 0.75,
+        "style": 0.3,
+        "use_speaker_boost": true
+      }
+    },
+    "narrator": {
+      "id": null,
+      "radio": false,
+      "settings": {
+        "stability": 0.55,
+        "similarity_boost": 0.75,
+        "style": 0.0,
+        "use_speaker_boost": true
+      }
+    }
+  },
+  "lines": [
+    {
+      "beat": "caption",
+      "speaker": "narrator",
+      "text": "Canes Crescenza, 3091 AD. Spomenik Operative Bob sips his morning coffee, when suddenly the vessel's transmitter erupts..."
+    },
+    {
+      "beat": "smoke1",
+      "speaker": "smokehouse",
+      "text": "[shouting] Smokehouse Shift for Bob, this is Smokehouse Shift for Bob! You are cleared to initiate your Pulsar Protocol!"
+    },
+    {
+      "beat": "engage",
+      "speaker": "smokehouse",
+      "text": "[shouting] Engage Chemical Digital Cryptoflage!"
+    },
+    {
+      "beat": "bob1",
+      "speaker": "bob",
+      "text": "[stammering, incredulous] W-what the hell Smokehouse? I've been out here for like, 3 kalpas metascanning intergalactic tumbleweed. Are you winding..."
+    },
+    {
+      "beat": "drill",
+      "speaker": "smokehouse",
+      "text": "[shouting] This is not a drill, Bob! Engage the Spomenik Transfer Protocol. Just like you were trained to do!"
+    },
+    {
+      "beat": "unlock",
+      "speaker": "smokehouse",
+      "text": "[shouting] Unlock your biometric key, Bob!"
+    },
+    {
+      "beat": "holy",
+      "speaker": "bob",
+      "text": "[startled] Holy smokes! Er, ok."
+    },
+    {
+      "beat": "qntm",
+      "speaker": "bob",
+      "text": "[nervous, under his breath] Initiating QNTM CTRL..."
+    },
+    {
+      "beat": "tbc",
+      "speaker": "narrator",
+      "text": "To be continued..."
+    }
+  ]
+}

@@ -61,6 +61,12 @@ let copied = 0;
 if (!inline) {
   mkdirSync(join(DIST, 'assets'), { recursive: true });
   for (const f of ['page.jpg', 'depth.png', 'meta.json']) copyFileSync(join(ASSETS, f), join(DIST, 'assets', f));
+  // voice lines from tools/render-voices.mjs, when there are any
+  const VOICE = join(ASSETS, 'voice');
+  if (existsSync(VOICE)) {
+    mkdirSync(join(DIST, 'assets', 'voice'), { recursive: true });
+    for (const f of readdirSync(VOICE).filter((f) => f === 'index.json' || f.endsWith('.mp3'))) copyFileSync(join(VOICE, f), join(DIST, 'assets', 'voice', f));
+  }
   mkdirSync(join(DIST, 'worlds'), { recursive: true });
   if (existsSync(WORLDS)) {
     const files = readdirSync(WORLDS).filter(isWorldFile);

@@ -20,7 +20,8 @@ The original brief (written with Gemini) belongs at `source/original-brief.md`, 
 - **Prototype, published as a private claude.ai artifact:** https://claude.ai/artifact/EPqcW5oA6DNdHPtyCYzFwH. It is `prototype/index.src.html` built by `tools/build.mjs --inline`.
 - **Recovered into the repo (23 October):** the first upload held only the PDF, the crops and the pipeline README. The page source and its three assets were recovered from the published artifact (the script and markup are identical to it; the only change since is an inline favicon), and the tools, manifest, pipeline script, mock, workflow and Vercel config were rewritten to this brief. `make_assets.py` reproduces `meta.json` exactly and `depth.png` to within about one level on average; the committed `depth.png` is the original.
 - **Marble pipeline:** `worlds/` holds crops, prompts and a script that generates splat worlds through the World Labs API. Tested against `worlds/mock-api.mjs` (happy path, failure, resume after a dropped connection, vanished operation), not yet against the real API. The request and response field names follow "Verified facts" below; the docs host could not be reached from the session that wrote the script, so the script reads responses defensively and reports the shape of anything unexpected.
-- **GitHub workflow:** `.github/workflows/generate-worlds.yml` runs the pipeline on GitHub and commits the results. Not yet run. Paul has added `WORLDLABS_API_KEY` as an Actions secret. GitHub only offers "Run workflow" once the file is on the default branch (`main`).
+- **GitHub workflow:** `voices/script.json            dialogue lines, voices and settings for render-voices.mjs
+.github/workflows/generate-worlds.yml, render-voices.yml` runs the pipeline on GitHub and commits the results. Not yet run. Paul has added `WORLDLABS_API_KEY` as an Actions secret. GitHub only offers "Run workflow" once the file is on the default branch (`main`).
 - **Vercel:** project `obtran` in the team "Paul's projects", already linked to `luapk/obtran`; production follows `main` (https://obtran.vercel.app). The build now serves the page texture, depth map and worlds as files. Every push builds; branch pushes get a preview URL behind Vercel login.
 - **First draft run (23 October, marble-1.0-draft, all seven):** succeeded in under 3 minutes. Each world is a valid SPZ v2 file of 497,664 splats (about 5 MB) plus a 99,846 splat file (about 1 MB), positions within about plus or minus 1.2 units of the origin, OpenCV axes (x right, y down, z forward). The panorama (`assets.imagery.pano_url`, a 2304x1152 PNG of about 5 MB) was missing from the response when generation finished but present a few minutes later; a free `--refresh` run fetched all seven. Draft worlds have an empty `semantics_metadata`, so there is no `metric_scale_factor`; scale them by eye, or check whether marble-1.1 provides it. The full world response shape is recorded in `state.json` (`response_shape`); it also offers collider and HQ meshes. Marble links are in `worlds/worlds/worlds.json`.
 - **What the drafts look like** (`worlds/previews/`, made by `tools/preview_splats.py`: 360 view from the origin, source crop, forward view):
@@ -66,6 +67,7 @@ tools/
   clean_worlds.py             prune each world's splats to <id>.clean.spz, and write views.json:
                               per-world ink grade (palette and thresholds from its crop) and look limits
   make_bob_head.py            Bob's head as a relief of splats from the scan, plus reliefs.json
+  render-voices.mjs           voices/script.json to prototype/assets/voice/*.mp3 with ElevenLabs
   preview_splats.py           quick 360 and forward renders of a world beside its crop
   smoke-test.cjs              headless Chrome walkthrough with screenshots
 worlds/
@@ -248,6 +250,10 @@ If Marble's worlds lose too much of the ink, build regions from the page itself:
 - Mixing per region is fine, for example a Marble cockpit with cut-out hull blocks.
 
 ### 7. Audio
+
+**Voices (24 October):** two ElevenLabs voices play over the dialogue. `voices/script.json` holds the lines (the lettering's words; bracketed directions are `eleven_v3` audio tags), the voices and their settings. Smokehouse is `SF9uvIlY93SJRMdV5jeP`, shouting, played through a walkie-talkie chain built in Web Audio at playback (band 420 to 2900 Hz with a 1.7 kHz lift, tanh overdrive, a squelch burst as the mic keys, a static bed, a click and beep as it unkeys), so it can be tuned without re-rendering. Bob is dry with a touch of room. Bob's voice id and whether the narrator lines (caption, "To be continued...") are voiced are still open; lines with no voice id are skipped. `tools/render-voices.mjs` renders only lines whose text, voice or settings changed (a hash per line in `prototype/assets/voice/index.json`); the "Render voices" workflow runs it on a push to `main` that changes `voices/script.json`, and needs the `ELEVENLABS_API_KEY` Actions secret. The key Paul uses for Hidden Camden lives in that project's Vercel environment, not on GitHub, so it has to be added to this repo separately. Lines play as each card springs up (journey) or each box lifts (classic); the next line is prefetched; leaving a space cuts the line.
+
+Earlier note:
 
 Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the breach drop to a real track and give each region its own stem.
 

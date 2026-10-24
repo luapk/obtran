@@ -834,6 +834,7 @@ class Sound {
     this.cabin.gain.setTargetAtTime(1, ctx.currentTime, 1.2);
     this.reverb = ctx.createConvolver(); this.reverb.buffer = this.makeIR(4.5);
     this.wet = ctx.createGain(); this.wet.gain.value = 0.6; this.reverb.connect(this.wet).connect(this.master);
+    this.loadVoices();
   }
   makeNoise(sec) { const ctx = this.ctx, b = ctx.createBuffer(1, ctx.sampleRate * sec, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }
   makeIR(sec) { const ctx = this.ctx, n = ctx.sampleRate * sec, b = ctx.createBuffer(2, n, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6); } return b; }
@@ -912,6 +913,77 @@ class Sound {
       if (v.pan.positionX) { v.pan.positionX.value = x; v.pan.positionY.value = y; v.pan.positionZ.value = z; } else v.pan.setPosition(x, y, z);
     });
   }
+  // Voice lines (tools/render-voices.mjs). Smokehouse plays through a walkie-talkie: a
+  // narrow radio band, a little overdrive, a squelch burst as the mic keys, a static bed
+  // under the voice, and a click and beep as it unkeys. Bob is dry, with a touch of room.
+  async loadVoices() {
+    try { const r = await fetch('assets/voice/index.json'); this.voiceIndex = r.ok ? (await r.json()).lines || {} : {}; }
+    catch (e) { this.voiceIndex = {}; }
+    this.voiceBuffers = {};
+  }
+  async voiceBuffer(beat) {
+    const entry = this.voiceIndex?.[beat];
+    if (!entry || !this.ok) return null;
+    if (!this.voiceBuffers[beat]) {
+      this.voiceBuffers[beat] = fetch('assets/voice/' + entry.file).then((r) => r.arrayBuffer()).then((b) => this.ctx.decodeAudioData(b)).catch(() => null);
+    }
+    return this.voiceBuffers[beat];
+  }
+  prefetchVoice(beat) { this.voiceBuffer(beat); }
+  async playVoice(beat) {
+    if (!this.ok || !this.voiceIndex) return;
+    const entry = this.voiceIndex[beat];
+    if (!entry) return;
+    const buf = await this.voiceBuffer(beat);
+    if (!buf) return;
+    this.stopVoice();
+    const ctx = this.ctx, t = this.now() + 0.05;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const out = ctx.createGain(); out.gain.value = 1;
+    out.connect(this.master);
+    const parts = [src, out];
+    if (entry.radio) {
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 420; hp.Q.value = 0.9;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2900; lp.Q.value = 1.1;
+      const mid = ctx.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = 1700; mid.gain.value = 7; mid.Q.value = 1.2;
+      const drive = ctx.createWaveShaper();
+      const curve = new Float32Array(1024);
+      for (let i = 0; i < curve.length; i++) { const x = (i / 1023) * 2 - 1; curve[i] = Math.tanh(x * 3.2) / Math.tanh(3.2); }
+      drive.curve = curve; drive.oversample = '2x';
+      const g = ctx.createGain(); g.gain.value = 0.85;
+      src.connect(hp).connect(mid).connect(lp).connect(drive).connect(g).connect(out);
+      // squelch as the mic keys, then the voice
+      const key = 0.16, end = key + buf.duration;
+      const sq = ctx.createBufferSource(); sq.buffer = this.noise;
+      const sqf = ctx.createBiquadFilter(); sqf.type = 'bandpass'; sqf.frequency.value = 2200; sqf.Q.value = 0.8;
+      const sqg = ctx.createGain(); sqg.gain.setValueAtTime(0, t); sqg.gain.linearRampToValueAtTime(0.32, t + 0.01); sqg.gain.setTargetAtTime(0, t + key - 0.04, 0.02);
+      sq.connect(sqf).connect(sqg).connect(out); sq.start(t); sq.stop(t + key + 0.2);
+      // a static bed under the voice
+      const bed = ctx.createBufferSource(); bed.buffer = this.noise; bed.loop = true;
+      const bedf = ctx.createBiquadFilter(); bedf.type = 'bandpass'; bedf.frequency.value = 1800; bedf.Q.value = 0.5;
+      const bedg = ctx.createGain(); bedg.gain.setValueAtTime(0, t); bedg.gain.linearRampToValueAtTime(0.035, t + key); bedg.gain.setTargetAtTime(0, t + end, 0.03);
+      bed.connect(bedf).connect(bedg).connect(out); bed.start(t); bed.stop(t + end + 0.5);
+      // unkey: a click and a short beep
+      const beep = ctx.createOscillator(); beep.type = 'square'; beep.frequency.value = 1250;
+      const bf = ctx.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = 1250; bf.Q.value = 4;
+      const bg = ctx.createGain(); bg.gain.setValueAtTime(0, t + end + 0.04); bg.gain.linearRampToValueAtTime(0.05, t + end + 0.045); bg.gain.setTargetAtTime(0, t + end + 0.16, 0.015);
+      beep.connect(bf).connect(bg).connect(out); beep.start(t + end + 0.03); beep.stop(t + end + 0.4);
+      src.start(t + key);
+      parts.push(sq, bed, beep);
+    } else {
+      src.connect(out);
+      const wet = ctx.createGain(); wet.gain.value = 0.12; src.connect(wet).connect(this.reverb);
+      src.start(t);
+    }
+    this.voiceParts = parts;
+  }
+  stopVoice() {
+    if (!this.voiceParts) return;
+    const [src, out] = this.voiceParts;
+    try { out.gain.setTargetAtTime(0, this.now(), 0.03); } catch (e) { /* already gone */ }
+    for (const n of this.voiceParts.slice(2).concat([src])) { try { n.stop(this.now() + 0.15); } catch (e) { /* not started or already stopped */ } }
+    this.voiceParts = null;
+  }
   setMuted(m) { this.muted = m; if (this.ok) this.master.gain.setTargetAtTime(m ? 0 : 0.85, this.now(), 0.05); }
 }
 const sound = new Sound();
@@ -970,6 +1042,8 @@ function showBeat(n) {
   shared.uAgit.value = Math.max(shared.uAgit.value, 0);
   if (beat.fx === 'static') { sound.staticBurst(); flash(0.5); }
   if (beat.fx === 'blip') sound.blip();
+  sound.playVoice(beat.b);
+  if (BEATS[n + 1]) sound.prefetchVoice(BEATS[n + 1].b);
   if (navigator.vibrate && beat.fx === 'static') navigator.vibrate([30, 40, 30]);
   if (beat.hold) setHint('Press and hold to unlock');
   else if (beat.trigger) setHint(`${tapWord} INITIATING QNTM CTRL`);
@@ -1106,10 +1180,12 @@ function showStep(i) {
   $('sr').textContent = bubbleById[beat.b].text;
   if (beat.fx === 'static') { sound.staticBurst(); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
   if (beat.fx === 'blip') sound.blip();
+  sound.playVoice(beat.b);
   if (beat.hold) setHint('Press and hold to unlock');
   else if (beat.trigger) setHint(`${tapWord} INITIATING QNTM CTRL`);
   else setHint(`${tapWord} to continue`);
   const next = STEPS[i + 1];
+  sound.prefetchVoice(next ? BEATS[next.beat].b : 'tbc');
   prefetchWorld(next ? next.world : FINAL_WORLD);
 }
 
@@ -1153,6 +1229,7 @@ function journeyNext() {
 // collapse the current space into its core, then load and unwind the next
 function leave(nextWorld, then, dur = OUT_DUR) {
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
+  sound.stopVoice();
   cardState.target = 0;
   setHint('');
   worlds.suctionTarget = 1; worlds.suctionRate = 1 / dur;
@@ -1499,6 +1576,7 @@ function frame() {
     } else if (!reducedMotion) camera.position.addScaledVector(fwd, dt * 0.25);
     if (state.endT > 3 && !tbcCard.visible && !REVIEW && (!journey.on || journey.done)) {
       tbcCard.visible = true;
+      sound.playVoice('tbc');
       const gp = tbc.mesh.geometry.parameters, visW = 2 * 2.4 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
       const s = Math.min(0.34 / gp.height, (visW * 0.78) / gp.width);
       tbcCard.scale.setScalar(s);
@@ -1526,7 +1604,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   depth.generateMipmaps = false; depth.minFilter = THREE.LinearFilter; depth.anisotropy = 1;
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, sound };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

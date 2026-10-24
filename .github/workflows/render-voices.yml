@@ -1,0 +1,82 @@
+name: Render voices
+
+# Renders the dialogue's voice lines with ElevenLabs (tools/render-voices.mjs)
+# and commits prototype/assets/voice/ back to the branch it ran on, which
+# redeploys the site. Only lines whose text, voice or settings changed are
+# rendered, so rerunning costs nothing.
+#
+# Starts from "Run workflow" on the Actions tab, or from a push to main that
+# changes voices/script.json.
+#
+# Needs the repository secret ELEVENLABS_API_KEY (Settings > Secrets and
+# variables > Actions). Never put the key in code or logs.
+
+on:
+  push:
+    branches: [main]
+    paths: [voices/script.json]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Render every line again"
+        type: boolean
+        default: false
+      only:
+        description: "Comma separated beats (blank for all), e.g. smoke1,drill"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-voices-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Check the API key is set
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          if [ -z "$ELEVENLABS_API_KEY" ]; then
+            echo "::error::Add the ELEVENLABS_API_KEY secret under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Render
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          FORCE: ${{ inputs.force }}
+          ONLY: ${{ inputs.only }}
+        run: |
+          args=()
+          [ "$FORCE" = "true" ] && args+=(--force)
+          case "$ONLY" in *[!a-z0-9,]*) echo "::error::only may hold beat ids and commas only"; exit 1 ;; esac
+          [ -n "$ONLY" ] && args+=(--only "$ONLY")
+          node tools/render-voices.mjs "${args[@]}"
+
+      - name: Commit results
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ ! -d prototype/assets/voice ]; then echo "Nothing rendered."; exit 0; fi
+          git add prototype/assets/voice
+          if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
+          git commit -m "Render voices"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

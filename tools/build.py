@@ -77,6 +77,13 @@ def main():
         (DIST / "assets").mkdir()
         for name in ("page.jpg", "depth.png", "meta.json"):
             shutil.copyfile(ASSETS / name, DIST / "assets" / name)
+        # voice lines from tools/render-voices.mjs, when there are any
+        voice = ASSETS / "voice"
+        if voice.exists():
+            (DIST / "assets" / "voice").mkdir()
+            for f in sorted(voice.iterdir()):
+                if f.name == "index.json" or f.suffix == ".mp3":
+                    shutil.copyfile(f, DIST / "assets" / "voice" / f.name)
         (DIST / "worlds").mkdir()
         if WORLDS.exists():
             names = sorted(f.name for f in WORLDS.iterdir() if WORLD_FILE.match(f.name))
