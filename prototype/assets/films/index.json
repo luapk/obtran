@@ -1,13 +1,31 @@
 {
-  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Alien Bob takes (Paul's character, 24 October; earlier takes in films/sources.json); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film. then: the film runs straight on into another clip, looped when loop is set, until the reader taps or presses a key, which also moves the story on.",
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Alien Bob takes (Paul's character, 24 October; earlier takes in films/sources.json); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film. then: the film runs straight on into another clip, looped when loop is set, until the reader taps or presses a key, which also moves the story on. wide: a clip's 16:9 take for landscape screens. crop (and focus): crop in by that much about that point (Paul: \"on one of the close ups, crop in 40%\").",
   "clips": {
     "bob-wide": {
       "file": "bob-wide.mp4",
-      "v": "51f93ab1"
+      "v": "51f93ab1",
+      "wide": {
+        "file": "bob-wide-16x9.mp4",
+        "v": "19a240d6"
+      }
     },
     "bob-close": {
       "file": "bob-close.mp4",
-      "v": "b29a4656"
+      "v": "b29a4656",
+      "crop": 0.4,
+      "focus": [
+        0.5,
+        0.42
+      ],
+      "wide": {
+        "file": "bob-close-16x9.mp4",
+        "v": "f68196fe",
+        "crop": 0.4,
+        "focus": [
+          0.44,
+          0.47
+        ]
+      }
     },
     "touchpad": {
       "file": "touchpad.mp4",
@@ -16,7 +34,11 @@
     "bob-eyes": {
       "file": "bob-eyes.mp4",
       "v": "4778f86d",
-      "note": "after the wide shot on \"W-what the hell\", looped until the reader acts (cue bob1, then)"
+      "note": "after the wide shot on \"W-what the hell\", looped until the reader acts (cue bob1, then)",
+      "wide": {
+        "file": "bob-eyes-16x9.mp4",
+        "v": "dc780e46"
+      }
     }
   },
   "cues": {
@@ -31,6 +53,10 @@
         "clip": "bob-eyes",
         "loop": true,
         "from": 0
+      },
+      "wide": {
+        "from": 0.3,
+        "len": 4.7
       }
     },
     "holy": {

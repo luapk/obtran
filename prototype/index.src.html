@@ -2450,6 +2450,13 @@ function filmVideo(id) {
     const f = land ? clip.wide : clip;
     v.src = 'assets/films/' + f.file + (f.v ? '?v=' + f.v : '');
     if (land) v.classList.add('land');
+    // crop: how far to crop in (0.4 = 40%), about focus [x, y] in the frame (Paul: "on one of the close ups,
+    // crop in 40%"); the Super 8 pass does it, and the plain video by a scale
+    if (f.crop) {
+      const [fx, fy] = f.focus || [0.5, 0.5];
+      v.dataset.crop = f.crop; v.dataset.focus = `${fx},${fy}`;
+      v.style.transformOrigin = `${fx * 100}% ${fy * 100}%`; v.style.transform = `scale(${1 / (1 - f.crop)})`;
+    }
     // kept on the page (hidden) from the start: some phone browsers are stricter with a video
     // that is not in the document
     $('film').prepend(v);
@@ -2512,11 +2519,11 @@ const s8 = { el: $('s8'), gl: null, prog: null, tex: null, u: {}, t: 0, next: 0,
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
     const vs = sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 v; void main(){ v = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }');
     const fs = sh(gl.FRAGMENT_SHADER, `precision mediump float;
-      varying vec2 v; uniform sampler2D uVid; uniform vec2 uScale; uniform vec2 uWeave; uniform vec2 uRes; uniform float uSeed; uniform float uFlick; uniform float uScratch;
+      varying vec2 v; uniform sampler2D uVid; uniform vec2 uScale; uniform vec2 uFocus; uniform vec2 uWeave; uniform vec2 uRes; uniform float uSeed; uniform float uFlick; uniform float uScratch;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
       float lum(vec2 uv){ return dot(texture2D(uVid, uv).rgb, vec3(0.299, 0.587, 0.114)); }
       void main(){
-        vec2 uv = (vec2(v.x, 1.0 - v.y) - 0.5) * uScale + 0.5 + uWeave;
+        vec2 uv = (vec2(v.x, 1.0 - v.y) - 0.5) * uScale + uFocus + uWeave;
         if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
         vec2 px = 1.6 / uRes;                                    // soft, like a cheap zoom lens
         float l = lum(uv) * 0.36 + (lum(uv + vec2(px.x, 0.0)) + lum(uv - vec2(px.x, 0.0)) + lum(uv + vec2(0.0, px.y)) + lum(uv - vec2(0.0, px.y))) * 0.16;
@@ -2545,7 +2552,7 @@ const s8 = { el: $('s8'), gl: null, prog: null, tex: null, u: {}, t: 0, next: 0,
         s8.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, s8.tex);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        for (const n of ['uScale', 'uWeave', 'uRes', 'uSeed', 'uFlick', 'uScratch']) s8.u[n] = gl.getUniformLocation(prog, n);
+        for (const n of ['uScale', 'uFocus', 'uWeave', 'uRes', 'uSeed', 'uFlick', 'uScratch']) s8.u[n] = gl.getUniformLocation(prog, n);
         s8.gl = gl; s8.ok = true;
       }
     }
@@ -2573,7 +2580,12 @@ function drawSuper8(dt) {
   if (s8.scratchLeft > 0) s8.scratchLeft--; else s8.scratch = Math.random() < 0.06 ? (s8.scratchLeft = 4 + Math.floor(Math.random() * 14), 0.15 + Math.random() * 0.7) : -1;
   s8.seed = Math.random() * 1000;
   gl.viewport(0, 0, W, H);
-  gl.uniform2f(s8.u.uScale, sx, sy); gl.uniform2f(s8.u.uWeave, s8.weave[0], s8.weave[1]); gl.uniform2f(s8.u.uRes, W, H);
+  // a clip's crop: a smaller window of the frame about its focus, kept inside the frame
+  const keep = 1 - (+v.dataset.crop || 0), [fx, fy] = (v.dataset.focus || '0.5,0.5').split(',').map(Number);
+  const hx = sx * keep / 2, hy = sy * keep / 2;
+  const cx = keep < 1 ? clamp(fx, Math.min(hx, 0.5), Math.max(1 - hx, 0.5)) : 0.5, cy = keep < 1 ? clamp(fy, Math.min(hy, 0.5), Math.max(1 - hy, 0.5)) : 0.5;
+  gl.uniform2f(s8.u.uScale, sx * keep, sy * keep); gl.uniform2f(s8.u.uFocus, cx, cy);
+  gl.uniform2f(s8.u.uWeave, s8.weave[0], s8.weave[1]); gl.uniform2f(s8.u.uRes, W, H);
   gl.uniform1f(s8.u.uSeed, s8.seed); gl.uniform1f(s8.u.uFlick, s8.flick); gl.uniform1f(s8.u.uScratch, s8.scratch);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   el.classList.add('on');
