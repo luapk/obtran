@@ -82,7 +82,8 @@ worlds/
   PIPELINE.md                 how to run it locally, on GitHub, and against the mock
   worlds/                     output: <id>.spz (500k), <id>.100k.spz, <id>.pano.png, state.json, worlds.json;
                               from tools: <id>(.100k).clean.spz, views.json, bob-head-relief(.100k).spz, reliefs.json
-.github/workflows/generate-worlds.yml, render-voices.yml
+.github/workflows/generate-worlds.yml, render-voices.yml, fetch-films.yml
+films/sources.json            source URLs of Bob's short films, fetched into prototype/assets/films
 vercel.json                   build command and output directory
 ```
 
@@ -145,6 +146,13 @@ Stack: three.js 0.180.0 and Spark 2.4.0 (`@sparkjsdev/spark`), both from jsDeliv
 - **Field of view in the void:** `voidFov()` widens the vertical field on portrait screens until about 70 degrees fit across (62 to 100 degrees); the breach eases into it.
 - **Review mode:** `?world=<id>` skips the page and opens a world with buttons for every world and an "Ink grade" toggle, for judging worlds side by side. Ids are those in `worlds.json` plus `bob-head-relief`.
 - **Reliefs:** `reliefs.json` lists worlds built from the page rather than by Marble. They are loaded the same way but not graded (they are the page's own ink), with tighter look limits and stronger viewpoint parallax, since parallax is what shows a relief's depth.
+
+### Films of Bob (24 October, waiting for Paul's approval)
+
+- Paul asked for two short films of Bob from the illustration, one slightly wider and one close up, to play full screen for a moment as Bob delivers his lines, then snap back to the 3D.
+- Start frames are cut from the full resolution page at 9:16 (`prototype/assets/films/bob-wide.jpg`, `bob-close.jpg`). Rendered on Higgsfield (Seedance 2.5, image to video from the start frame, 5 s, 720p, no audio, 35 credits each; Grok Imagine Lite is 5 credits if a cheaper draft is wanted). The prompts are in the Higgsfield jobs listed in `films/sources.json`. Wide: slight jolt and head turn, halo flicker, line boil, a glitch shear, slow push in. Close: his eyes widen to round O shapes, head wobbles, halo pulses.
+- This container cannot reach Higgsfield's upload host or its video CDN. Frames go up by importing them from obtran.vercel.app; clips come back through the "Fetch films" workflow, which downloads the URLs in `films/sources.json` on a push that changes it, re-encodes them (H.264, no audio, fast start) and commits `<id>.mp4` and a six-frame `<id>.sheet.jpg` to `prototype/assets/films/`.
+- Playback: `prototype/assets/films/index.json` lists the clips and `cues` (beat to clip, with `at` seconds into the line, `len` to hold, `from` in the clip). The clip cuts in with a flash, holds, then snaps back with a flash and signal jitter; a tap or key cuts it short; leaving a space stops it. Portrait screens fill the frame; wide screens show the whole portrait frame with black either side. `cues` stays empty until Paul approves; `?films=1` previews `PROPOSED_CUES` in `index.src.html` (close up on "W-what the hell Smokehouse?", wide on "Holy smokes! Er, ok.").
 
 ### Other behaviour
 
