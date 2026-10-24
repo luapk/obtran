@@ -25,6 +25,13 @@
   .grain { position: fixed; inset: -50%; pointer-events: none; opacity: 0.09; mix-blend-mode: screen; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); animation: grain 0.6s steps(4) infinite; }
   @keyframes grain { 0%{transform:translate(0,0)} 25%{transform:translate(-3%,2%)} 50%{transform:translate(2%,-3%)} 75%{transform:translate(-2%,-1%)} 100%{transform:translate(0,0)} }
   .flash { position: fixed; inset: 0; pointer-events: none; background: var(--paper); opacity: 0; mix-blend-mode: overlay; }
+  /* a short film of Bob that cuts in full screen as he speaks (assets/films) */
+  #film { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+  #film.on { opacity: 1; pointer-events: auto; animation: filmIn 0.16s steps(3, end); }
+  #film video { display: block; width: 100%; height: 100%; object-fit: cover; filter: contrast(1.08); }
+  /* the films are portrait: on a wide screen show the whole frame with ink either side */
+  @media (min-aspect-ratio: 4/5) { #film video { object-fit: contain; } }
+  @keyframes filmIn { 0% { transform: translateX(-3%) scaleY(1.04); filter: brightness(2.2); } 60% { transform: translateX(1.5%); } 100% { transform: none; filter: none; } }
   .black { position: fixed; inset: 0; pointer-events: none; background: #000; opacity: 0; transition: opacity 0.5s; }
 
   #gate { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(6,5,4,0.72); z-index: 5; transition: opacity 0.6s; padding: 16px; }
@@ -61,6 +68,7 @@
 </style>
 </head>
 <body>
+<div id="film" aria-hidden="true"></div>
 <div class="vignette"></div>
 <div class="grain"></div>
 <div class="flash" id="flash"></div>
@@ -1063,7 +1071,8 @@ function showBeat(n) {
   if (beat.fx === 'static') { sound.staticBurst(); flash(0.5); }
   if (beat.fx === 'blip') sound.blip();
   sound.playVoice(beat.b);
-  if (BEATS[n + 1]) sound.prefetchVoice(BEATS[n + 1].b);
+  playFilm(beat.b);
+  if (BEATS[n + 1]) { sound.prefetchVoice(BEATS[n + 1].b); prefetchFilm(BEATS[n + 1].b); }
   if (navigator.vibrate && beat.fx === 'static') navigator.vibrate([30, 40, 30]);
   if (beat.hold) setHint('Press and hold to unlock');
   else if (beat.trigger) setHint(`${tapWord} INITIATING QNTM CTRL`);
@@ -1192,6 +1201,61 @@ function worldFiles(id) {
 // warm the browser cache with the next space while the reader is in this one
 function prefetchWorld(id) { for (const url of worldFiles(id)) fetch(url).catch(() => {}); }
 
+// ---------- films: short clips of Bob that cut in, full screen, as he speaks ----------
+// assets/films/index.json lists the clips and the beats that cue them ("cues": { beat: { clip,
+// at, len, from } }: start this many seconds into the line, hold this long, from this point in
+// the clip). A cue cuts in with a flash, holds a moment and snaps back to the space with a burst
+// of signal jitter; a tap or key cuts it short. ?films=1 previews PROPOSED_CUES before Paul
+// approves them. The films carry no sound: the voice is the page's.
+const PROPOSED_CUES = {
+  bob1: { clip: 'bob-close', at: 0.35, len: 2.6 },   // W-what the hell Smokehouse?
+  holy: { clip: 'bob-wide', at: 0.2, len: 2.2 },     // Holy smokes! Er, ok.
+};
+const films = { index: null, videos: {}, on: false, timers: [] };
+(async () => {
+  try { const r = await fetch('assets/films/index.json'); films.index = r.ok ? await r.json() : null; } catch (e) { films.index = null; }
+  if (films.index && params.get('films') === '1') films.index.cues = { ...PROPOSED_CUES, ...(films.index.cues || {}) };
+})();
+function filmCue(beat) {
+  const cue = films.index?.cues?.[beat];
+  return cue && films.index.clips?.[cue.clip] ? cue : null;
+}
+function filmVideo(id) {
+  if (!films.videos[id]) {
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+    v.src = 'assets/films/' + films.index.clips[id].file;
+    films.videos[id] = v;
+  }
+  return films.videos[id];
+}
+function prefetchFilm(beat) { const cue = filmCue(beat); if (cue) filmVideo(cue.clip).load(); }
+function playFilm(beat) {
+  stopFilm(false);
+  const cue = filmCue(beat);
+  if (!cue || REVIEW) return;
+  const v = filmVideo(cue.clip), box = $('film');
+  films.timers.push(setTimeout(() => {
+    try { v.currentTime = cue.from || 0; } catch (e) { /* not loaded yet: start from the top */ }
+    v.play().then(() => {
+      box.replaceChildren(v); box.classList.add('on'); films.on = true;
+      flash(0.6);
+      films.timers.push(setTimeout(() => stopFilm(true), (cue.len || 2.4) * 1000));
+    }).catch(() => { /* a film that cannot play is skipped; the line still plays */ });
+  }, (cue.at || 0) * 1000));
+}
+function stopFilm(snap) {
+  films.timers.forEach(clearTimeout); films.timers = [];
+  const box = $('film');
+  if (films.on) {
+    box.classList.remove('on'); films.on = false;
+    if (snap) { flash(0.45); if (!reducedMotion) worlds.jitter = Math.max(worlds.jitter, 0.7); }
+  }
+  box.querySelector('video')?.pause();
+}
+$('film').addEventListener('pointerdown', (e) => { e.stopPropagation(); stopFilm(true); });
+
 function showStep(i) {
   journey.step = i;
   const beat = BEATS[STEPS[i].beat];
@@ -1201,11 +1265,13 @@ function showStep(i) {
   if (beat.fx === 'static') { sound.staticBurst(); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
   if (beat.fx === 'blip') sound.blip();
   sound.playVoice(beat.b);
+  playFilm(beat.b);
   if (beat.hold) setHint('Press and hold to unlock');
   else if (beat.trigger) setHint(`${tapWord} INITIATING QNTM CTRL`);
   else setHint(`${tapWord} to continue`);
   const next = STEPS[i + 1];
   sound.prefetchVoice(next ? BEATS[next.beat].b : 'tbc');
+  if (next) prefetchFilm(BEATS[next.beat].b);
   prefetchWorld(next ? next.world : FINAL_WORLD);
 }
 
@@ -1250,6 +1316,7 @@ function journeyNext() {
 function leave(nextWorld, then, dur = OUT_DUR) {
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
   sound.stopVoice();
+  stopFilm(false);
   cardState.target = 0;
   setHint('');
   worlds.suctionTarget = 1; worlds.suctionRate = 1 / dur;
@@ -1379,6 +1446,8 @@ let wheelLock = 0;
 addEventListener('wheel', (e) => { if (state.stage === 'read' && !journey.on && Math.abs(e.deltaY) > 20 && performance.now() > wheelLock) { wheelLock = performance.now() + 650; advance(); } }, { passive: true });
 let keyHold = false;
 addEventListener('keydown', (e) => {
+  // a key during a film cuts it short and does nothing else
+  if (films.on) { e.preventDefault(); if (!e.repeat) stopFilm(true); return; }
   if (journey.on) {
     if (!(e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'ArrowDown')) return;
     e.preventDefault();
@@ -1624,7 +1693,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   depth.generateMipmaps = false; depth.minFilter = THREE.LinearFilter; depth.anisotropy = 1;
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, sound };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, sound, films, playFilm, stopFilm };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

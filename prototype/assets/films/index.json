@@ -1,0 +1,8 @@
+{
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). Empty until Paul approves; ?films=1 previews the proposed cues in index.src.html.",
+  "clips": {
+    "bob-wide": { "file": "bob-wide.mp4", "frame": "bob-wide.jpg" },
+    "bob-close": { "file": "bob-close.mp4", "frame": "bob-close.jpg" }
+  },
+  "cues": {}
+}

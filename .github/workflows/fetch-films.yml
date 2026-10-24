@@ -1,0 +1,65 @@
+name: Fetch films
+
+# Downloads the short films listed in films/sources.json (rendered elsewhere, for
+# example on Higgsfield), prepares them for the page and commits them to
+# prototype/assets/films/, which redeploys the site. A film is fetched again only
+# when its source URL changes.
+#
+# Each clip is re-encoded to H.264 with no audio track (the voices are played by
+# the page) and fast start, so playback can begin before the download finishes.
+# A contact sheet (<id>.sheet.jpg, six frames) is written beside it for review.
+
+on:
+  push:
+    branches: [main, ccr-f7c462d2-dx11rj]
+    paths: [films/sources.json, .github/workflows/fetch-films.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-films-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+
+      - name: Fetch and prepare
+        run: |
+          set -euo pipefail
+          out=prototype/assets/films
+          mkdir -p "$out"
+          for id in $(jq -r '.films | keys[]' films/sources.json); do
+            case "$id" in *[!a-z0-9-]*) echo "::error::bad film id $id"; exit 1 ;; esac
+            url=$(jq -r --arg id "$id" '.films[$id].url' films/sources.json)
+            case "$url" in https://*) ;; *) echo "::error::$id: url must be https"; exit 1 ;; esac
+            stamp="$out/$id.source"
+            if [ -f "$out/$id.mp4" ] && [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$url" ]; then echo "$id up to date"; continue; fi
+            curl -fsSL --retry 3 -o "/tmp/$id.src.mp4" "$url"
+            ffmpeg -loglevel error -y -i "/tmp/$id.src.mp4" -an -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 22 -preset slow -movflags +faststart "$out/$id.mp4"
+            dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$out/$id.mp4")
+            ffmpeg -loglevel error -y -i "$out/$id.mp4" -vf "fps=6/$dur,scale=240:-2,tile=6x1" -frames:v 1 "$out/$id.sheet.jpg"
+            printf '%s' "$url" > "$stamp"
+            echo "$id: $(du -k "$out/$id.mp4" | cut -f1) KB, ${dur}s"
+          done
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prototype/assets/films
+          if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
+          git commit -m "Fetch films"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
