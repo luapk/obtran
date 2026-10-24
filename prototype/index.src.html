@@ -1208,8 +1208,10 @@ function prefetchWorld(id) { for (const url of worldFiles(id)) fetch(url).catch(
 // of signal jitter; a tap or key cuts it short. ?films=1 previews PROPOSED_CUES before Paul
 // approves them. The films carry no sound: the voice is the page's.
 const PROPOSED_CUES = {
-  bob1: { clip: 'bob-close', at: 0.35, len: 2.6 },   // W-what the hell Smokehouse?
-  holy: { clip: 'bob-wide', at: 0.2, len: 2.2 },     // Holy smokes! Er, ok.
+  // W-what the hell Smokehouse? His eyes snap open, then his mouth drops as he stammers
+  bob1: { clip: 'bob-close', at: 0.3, from: 0, len: 3.2 },
+  // Holy smokes! Er, ok. His hand goes to the dials, they light, the halo turns to a vortex
+  holy: { clip: 'bob-wide', at: 0.15, from: 1.4, len: 3.5 },
 };
 const films = { index: null, videos: {}, on: false, timers: [] };
 (async () => {
