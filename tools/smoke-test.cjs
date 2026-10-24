@@ -58,6 +58,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await sleep(1500);
   await shot('gate');
 
+  await page.waitForSelector('#gate.ready', { timeout: 120000 });   // Enter comes in after OBTRAN003 decrypts
   await page.click('#start');
   await sleep(1500);
   await page.mouse.move(W * 0.8, H * 0.3);

@@ -50,8 +50,6 @@
   @media (min-aspect-ratio: 4/5) { #pad video { object-fit: contain; } }
   #pad::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0 1px, rgba(0,0,0,0) 1px 2px); }
   #padUI { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  /* top and height reset: the global canvas rule above pins every canvas to the top at full height */
-  #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; height: auto; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); pointer-events: none; }
   body.padOn #ring { display: none; }
   #cctv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #filmCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); height: auto; pointer-events: none; display: none; }
@@ -105,8 +103,19 @@
   .gate-card { text-align: center; max-width: 22rem; }
   .gate-card h1 { font-size: 0.95rem; letter-spacing: 0.32em; font-weight: 600; margin: 0 0 0.4rem; }
   .gate-card .cat { font-size: 0.72rem; letter-spacing: 0.24em; color: var(--dim); margin: 0 0 2rem; }
-  .gate-card button { font: inherit; font-size: 0.85rem; letter-spacing: 0.2em; color: var(--ink); background: var(--paper); border: 0; padding: 0.95rem 2.2rem; cursor: pointer; clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); }
-  .gate-card button:focus-visible { outline: 2px solid var(--sepia); outline-offset: 4px; }
+  /* the Enter button: a black panel with a thin paper rule, slightly askew, like the comic's boxes */
+  .gate-card button { position: relative; display: inline-grid; place-items: center; width: 11.5rem; height: 4.2rem; padding: 0; border: 0; background: none; cursor: pointer; transform: rotate(-2deg); transition: transform 0.2s, filter 0.2s; }
+  .gate-card button svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .gate-card button polygon { fill: #050403; stroke: #efe9df; stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .gate-card button img { position: relative; width: 62%; height: auto; }
+  .gate-card button:hover, .gate-card button:focus-visible { transform: rotate(-2deg) scale(1.05); filter: drop-shadow(0 0 10px rgba(239,233,223,0.35)); outline: none; }
+  /* OBTRAN003 decrypts, then the sentence and the button come in */
+  .gate-card .code { margin: 0 0 1.6rem; font-size: 1.05rem; letter-spacing: 0.42em; padding-left: 0.42em; min-height: 1.4em; white-space: pre; }
+  .gate-card .lead, .gate-card button { opacity: 0; pointer-events: none; }
+  #gate.ready .lead { animation: gateIn 0.5s steps(5, end) both; }
+  #gate.ready button { animation: gateIn 0.5s 0.35s steps(5, end) both; pointer-events: auto; }
+  @keyframes gateIn { 0% { opacity: 0; } 20% { opacity: 1; } 40% { opacity: 0.2; } 60% { opacity: 1; } 100% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { #gate.ready .lead, #gate.ready button { animation: none; opacity: 1; } }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .gate-card .lead { margin: 0 0 2rem; font-size: 0.82rem; line-height: 1.7; letter-spacing: 0.06em; }
   .gate-card .err { color: #d9a27a; }
@@ -143,9 +152,9 @@
 <body>
 <!-- the OT logo, full screen, before anything else loads (Paul, 24 October); drawn from the label's logo -->
 <div id="intro"><svg viewBox="0 0 467 490" role="img" aria-label="Oblivious Transfer"><g fill="none" stroke="currentColor" stroke-width="22"><rect x="62" y="73" width="62" height="116" rx="31"/><path d="M212 131 H330 A100 100 0 0 1 430 231 V246"/><path d="M108 246 V255 A100 100 0 0 0 208 355 H296"/><path d="M330 304 H440 M385 304 V428"/></g></svg></div>
-<script>window.__introT0 = performance.now(); setTimeout(() => document.getElementById('intro')?.classList.add('out'), 10000);</script>
+<script>window.__introT0 = performance.now(); setTimeout(() => { document.getElementById('intro')?.classList.add('out'); document.getElementById('gate')?.classList.add('ready'); }, 10000);</script>
 <div id="film" aria-hidden="true"><canvas id="cctv"></canvas><canvas id="filmCard"></canvas></div>
-<div id="pad" aria-hidden="true"><video muted playsinline loop preload="auto"></video><canvas id="padUI"></canvas><canvas id="padCard"></canvas></div>
+<div id="pad" aria-hidden="true"><video muted playsinline loop preload="auto"></video><canvas id="padUI"></canvas></div>
 <div class="vignette"></div>
 <div class="grain"></div>
 <div class="flash" id="flash"></div>
@@ -155,9 +164,12 @@
 <div id="gate" role="dialog" aria-label="Start">
   <div class="gate-card">
     <h1 class="sr-only">Oblivious Transfer: OBTRAN 003</h1>
-    <!-- one sentence after the logo, then the comic (Paul, 24 October) -->
+    <!-- after the logo (Paul, 24 October): OBTRAN003 decrypts like a code, then one sentence and
+         the Enter button, drawn as one of the comic's black panels with its word cut from the
+         comic's own lettering (tools/cut_enter_label.py) -->
+    <p class="code" id="code" aria-hidden="true">OBTRAN003</p>
     <p class="lead" id="note">Turn your sound on and follow Bob's story through the page, exploring to unlock tracks.</p>
-    <button id="start" type="button">START</button>
+    <button id="start" type="button" aria-label="Enter"><svg viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polygon points="3,6 97,1.5 98.5,33 1.5,38.5"/></svg><img src="assets/props/enter.png" alt=""></button>
   </div>
 </div>
 
@@ -210,6 +222,22 @@ const BEATS = [
 ];
 
 const $ = (id) => document.getElementById(id);
+
+// OBTRAN003 decrypts like a code as the logo glitches out (Paul, 24 October): each character cycles
+// through code glyphs and settles, left to right, then the sentence and the Enter button come in
+function decryptCode() {
+  const el = $('code'), gate = $('gate'), word = 'OBTRAN003', glyphs = '#%&/<>=+*01ABCDEFKLMNXZ';
+  if (!el || gate.classList.contains('ready')) { gate.classList.add('ready'); return; }
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = word; gate.classList.add('ready'); return; }
+  const t0 = performance.now() + 450, settle = (i) => 380 + i * 120;        // starts as the logo collapses
+  const tick = () => {
+    const ms = performance.now() - t0;
+    el.textContent = ms < 0 ? '' : [...word].map((c, i) => ms > settle(i) ? c : ms > i * 40 ? glyphs[Math.floor(Math.random() * glyphs.length)] : ' ').join('');
+    if (ms < settle(word.length - 1)) setTimeout(tick, 45);
+    else setTimeout(() => gate.classList.add('ready'), 250);
+  };
+  tick();
+}
 const hintEl = $('hint');
 const tapWord = isTouch ? 'Tap' : 'Click';
 
@@ -225,7 +253,7 @@ try {
   renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   if (!renderer.capabilities.isWebGL2) throw new Error('WebGL2 not available');
 } catch (e) {
-  $('note').innerHTML = '<span class="err">This browser cannot run the 3D page (WebGL2 is unavailable).</span>';
+  $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">This browser cannot run the 3D page (WebGL2 is unavailable).</span>';
   $('start').disabled = true;
   throw e;
 }
@@ -2139,7 +2167,6 @@ function padShow(beat) {
   pad.video.play?.().catch(() => {});
   pad.on = true; pad.t = 0; pad.burst = -1;
   pad.el.classList.add('on'); document.body.classList.add('padOn');
-  showFilmCard(beat, $('padCard'));
 }
 function padHide(delay = 0) {
   if (!pad.on) return;
@@ -2880,10 +2907,10 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
-  setTimeout(() => $('intro').classList.add('out'), Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
+  setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
   window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad };
   requestAnimationFrame(frame);
-}).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
+}).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
 </body>
 </html>
