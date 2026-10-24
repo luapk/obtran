@@ -69,7 +69,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.keyboard.press('ArrowRight');
     const spaceReady = (step) => page.waitForFunction((s) => window.__ot.journey.phase === 'space' && window.__ot.journey.step === s && window.__ot.worlds.ok, { timeout: 600000, polling: 500 }, step);
     const steps = await page.evaluate(() => window.__ot.STEPS);
+    const beats = await page.evaluate(() => window.__ot.BEATS);
     for (let i = 0; i < steps.length; i++) {
+      if (beats[steps[i].beat].cut) {
+        // this beat cuts into the next space by itself within a second: just see it pass
+        await page.waitForFunction((s) => window.__ot.journey.step > s, { timeout: 600000, polling: 200 }, i).catch(() => { throw new Error(`step ${i} did not cut to the next space`); });
+        continue;
+      }
       await spaceReady(i).catch(() => { throw new Error(`step ${i} (${steps[i].world}) never became ready`); });
       const world = await page.evaluate(() => window.__ot.worlds.id);
       if (world !== steps[i].world) throw new Error(`step ${i} shows ${world}, expected ${steps[i].world}`);

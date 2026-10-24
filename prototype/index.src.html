@@ -42,14 +42,19 @@
      layer drawn where the thumb is, and the line's lettering */
   #pad { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.45s; touch-action: none; }
   #pad.on { opacity: 1; pointer-events: auto; }
+  /* a long press must reach the pad, not the video: on a video Android Chrome opens its own menu
+     (download, picture in picture) and cancels the hold */
+  #pad video, #film video { pointer-events: none; -webkit-touch-callout: none; }
+  #pad, #film { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
   #pad video { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.05); }
   @media (min-aspect-ratio: 4/5) { #pad video { object-fit: contain; } }
   #pad::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0 1px, rgba(0,0,0,0) 1px 2px); }
   #padUI { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  #padCard { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); pointer-events: none; }
+  /* top and height reset: the global canvas rule above pins every canvas to the top at full height */
+  #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; height: auto; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); pointer-events: none; }
   body.padOn #ring { display: none; }
   #cctv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  #filmCard { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); height: auto; pointer-events: none; display: none; }
+  #filmCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); height: auto; pointer-events: none; display: none; }
   #filmCard.show { display: block; animation: filmCardIn 0.45s cubic-bezier(.2,1.6,.4,1) both; }
   @keyframes filmCardIn { 0% { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.86); filter: brightness(1.8); } 40% { opacity: 1; } 100% { transform: translateX(-50%); filter: none; } }
   @keyframes filmIn { 0% { transform: translateX(-3%) scaleY(1.04); filter: brightness(2.2); } 60% { transform: translateX(1.5%); } 100% { transform: none; filter: none; } }
@@ -178,7 +183,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 const HOLD_DUR = 1.4;                     // seconds of press and hold to unlock
 const BEATS = [
   { b: 'caption' },
-  { b: 'crsh', fx: 'static' },
+  { b: 'crsh', fx: 'static', cut: 0.9 },          // cut: cuts straight into the next space this many seconds in, on its static
   { b: 'smoke1', fx: 'blip', auto: 1.1 },          // auto: moves on by itself this many seconds after its line (and film) end
   { b: 'engage', fx: 'blip' },
   { b: 'bob1' },
@@ -216,7 +221,8 @@ document.body.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x060504);
-const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.01, 800);
+const PAGE_FOV = 40;                     // the page's own lens
+const camera = new THREE.PerspectiveCamera(PAGE_FOV, innerWidth / innerHeight, 0.01, 800);
 camera.rotation.order = 'YXZ';
 scene.add(camera);
 
@@ -982,14 +988,14 @@ class Sound {
   makeNoise(sec) { const ctx = this.ctx, b = ctx.createBuffer(1, ctx.sampleRate * sec, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }
   makeIR(sec) { const ctx = this.ctx, n = ctx.sampleRate * sec, b = ctx.createBuffer(2, n, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6); } return b; }
   now() { return this.ctx.currentTime; }
-  staticBurst() {
+  staticBurst(len = 0.65) {
     if (!this.ok) return; const ctx = this.ctx, t = this.now();
     const s = ctx.createBufferSource(); s.buffer = this.noise;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9; bp.frequency.setValueAtTime(900, t); bp.frequency.exponentialRampToValueAtTime(3200, t + 0.5);
     const g = ctx.createGain(); g.gain.setValueAtTime(0, t);
-    for (let i = 0; i < 14; i++) g.gain.setValueAtTime(Math.random() * 0.55, t + i * 0.045);
-    g.gain.setTargetAtTime(0, t + 0.65, 0.08);
-    s.connect(bp).connect(g).connect(this.master); s.start(t); s.stop(t + 1.2);
+    for (let i = 0; i < Math.round(len / 0.045) + 1; i++) g.gain.setValueAtTime(Math.random() * 0.55, t + i * 0.045);
+    g.gain.setTargetAtTime(0, t + len, 0.08);
+    s.connect(bp).connect(g).connect(this.master); s.start(t); s.stop(t + len + 0.6);
   }
   blip() {
     if (!this.ok) return; const ctx = this.ctx, t = this.now();
@@ -1286,7 +1292,7 @@ function enterVoid() {
   worlds.drift.set(0, 0, 0);
   worlds.nextCrackle = shared.uTime.value + 6;
   if (worlds.ok) useWorld(true);
-  if (!journey.on) setHint('Drag to look around');
+  if (!journey.on || journey.done) setHint('Drag to look around');
 }
 
 
@@ -1361,7 +1367,7 @@ const shards = { group: new THREE.Group(), list: [], on: params.get('shards') !=
   scene.add(shards.group);
 }
 function respawnShard(sh, first) {
-  sh.T = 9 + Math.random() * 10;
+  sh.T = 4.5 + Math.random() * 4;                     // faster past the camera (Paul), was 9 to 19 s
   sh.life = first ? Math.random() * sh.T : 0;
   sh.theta = Math.random() * Math.PI * 2;
   sh.axis.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
@@ -1387,12 +1393,14 @@ function updateShards(dt) {
     sh.life += dt * pace;
     if (sh.life > sh.T) respawnShard(sh, false);
     const ph = sh.life / sh.T;
-    const d = NUC_D - 11 * Math.pow(ph, 1.15);          // from the nucleus towards the viewer
-    const r = 0.15 + 8.4 * Math.pow(ph, 1.8);           // flung outward, faster as it goes
+    // from the nucleus, gathering speed, out past the viewer (Paul: "fly past camera faster"); flung
+    // outward as it goes, so it passes about 5 units to the side rather than through the lens
+    const d = NUC_D - (NUC_D + 4) * Math.pow(ph, 1.6);
+    const r = 0.15 + 7 * Math.pow(ph, 1.8);
     sh.theta += dt * pace * (0.22 + 1.5 / (1 + r));     // quick near the axis, slower out wide
     sh.mesh.position.set(r * Math.cos(sh.theta), r * Math.sin(sh.theta), -d);
     sh.mesh.quaternion.premultiply(_q.setFromAxisAngle(sh.axis, sh.spin * dt * pace));
-    const a = shards.level * smooth(0, 0.12, ph) * (1 - smooth(0.85, 1, ph));
+    const a = shards.level * smooth(0, 0.12, ph) * (1 - smooth(0.93, 1, ph));
     sh.mat.uniforms.uOpacity.value = a; sh.rm.opacity = a * 0.9;
     sh.mesh.visible = a > 0.01;
   }
@@ -1614,7 +1622,7 @@ function updateSlab(dt, rawDt) {
 const NUC_DIR = (() => { const y = -4.2 * DEG, p = 7.8 * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)); })();
 const NUC_D = 1.379 * WORLD_SCALE * 0.74;
 const NUC_TENDRILS = reducedMotion ? 12 : 42;
-const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), on: params.get('nucleus') !== '0', level: { value: 0 }, tendrils: [] };
+const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), slow: new THREE.Group(), on: params.get('nucleus') !== '0', level: { value: 0 }, tendrils: [] };
 {
   const body = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 6), new THREE.ShaderMaterial({
     uniforms: { uTime: shared.uTime, uLevel: nucleus.level },
@@ -1649,10 +1657,10 @@ const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), on: params.
         float t = position.y; vT = t;
         vec3 p = vec3(position.x, 0.0, position.z) * uWidth * pow(1.0 - t, 1.2);
         float a = t * t * uLen * 0.38 * uWild;
-        float w = t * 8.0 - uTime * 2.3 + uPhase;
+        float w = t * 8.0 - uTime * 0.9 + uPhase;
         p.x += a * sin(w) + 0.35 * a * sin(w * 2.3 + 1.0);
         p.z += a * cos(w * 0.8 + uPhase * 1.7);
-        p.y = t * uLen * (0.82 + 0.18 * sin(uTime * 0.7 + uPhase));
+        p.y = t * uLen * (0.82 + 0.18 * sin(uTime * 0.35 + uPhase));
         gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
       }`,
     fragmentShader: `uniform float uLevel; varying float vT;
@@ -1671,9 +1679,10 @@ const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), on: params.
     const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
     t.quaternion.setFromUnitVectors(Y, dir);
     t.position.copy(dir).multiplyScalar(0.8);
-    nucleus.spin.add(t);
+    nucleus.slow.add(t);
   }
-  nucleus.group.add(nucleus.spin);
+  nucleus.group.add(nucleus.spin, nucleus.slow);
+  nucleus.slow.scale.setScalar(1.25);            // the size they had inside the body's group
   nucleus.group.visible = false;
   scene.add(nucleus.group);
 }
@@ -1688,6 +1697,9 @@ function updateNucleus(dt) {
   nucleus.spin.rotation.y += dt * 2.6 * k;
   nucleus.spin.rotation.x += dt * 1.1 * k;
   nucleus.spin.rotation.z += dt * 0.7 * k;
+  // the tendrils turn on their own, much slower (Paul: "tendrils on nucleus should move slower")
+  nucleus.slow.rotation.y += dt * 0.45 * k;
+  nucleus.slow.rotation.x += dt * 0.18 * k;
   nucleus.spin.scale.setScalar(1.25 * (1 + 0.05 * Math.sin(shared.uTime.value * 1.7)));
 }
 
@@ -1767,10 +1779,24 @@ function setCard(beatIndex, keep = false) {
 
 // where the card rests in front of the camera at a given field of view: as wide as fits, never
 // taller than a quarter of the view, low in the frame
-function cardPose(fov) {
+function cardPose(fov, aspect = cardState.aspect) {
   const dist = 2.4, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)), visW = visH * camera.aspect;
-  const w = Math.min(visW * 0.86, visH * 0.26 * cardState.aspect);
-  return { dist, w, h: w / cardState.aspect, y: -visH / 2 + w / cardState.aspect / 2 + visH * 0.13 };
+  const w = Math.min(visW * 0.86, visH * 0.26 * aspect);
+  return { dist, w, h: w / aspect, y: -visH / 2 + w / aspect / 2 + visH * 0.13 };
+}
+
+// where the camera has to be for a box on the page to sit exactly where the card rests in a space:
+// the end of the enter zoom, and both ends of a hop across the page
+function boxPose(id, fov = voidFov()) {
+  const [u0, v0, u1, v1] = bubbleById[id].uv;
+  const c = uvToWorld((u0 + u1) / 2, (v0 + v1) / 2), bw = (u1 - u0) * PW, bh = (v1 - v0) * PH;
+  const pose = cardPose(fov, bw / bh), D = pose.dist * bw / pose.w;
+  return { c, bw, bh, fov, to: new THREE.Vector3(c.x, c.y - pose.y * D / pose.dist, bubbleZ + 0.004 + D) };
+}
+// how far back the whole page fits at a given lens (as fit() does for the page's own lens)
+function pageDist(fov) {
+  const a = innerWidth / innerHeight, t = Math.tan(THREE.MathUtils.degToRad(fov / 2));
+  return Math.max((PH / 2) * 1.16 / t, (PW / 2) * 1.12 / (t * a));
 }
 
 function updateCard(dt) {
@@ -1778,7 +1804,7 @@ function updateCard(dt) {
   cardState.vel += ((cardState.target - cardState.lift) * 95 - cardState.vel * 12) * dt;
   cardState.lift += cardState.vel * dt;
   if (cardState.target === 0 && cardState.lift < 0.01) { card.visible = false; return; }
-  if (journey.phase === 'enter') return;          // carried in from the page by the enter zoom
+  if (journey.phase === 'enter' || journey.phase === 'hop') return;   // carried across the page by the camera
   const { dist, w, h, y: restY } = cardPose(camera.fov);
   const k = reducedMotion ? 1 : Math.max(0, cardState.lift);
   // left waiting 10 s with no touch, click or key, the card pulses once: a swell and a flash of glow
@@ -2103,6 +2129,7 @@ function padHide(delay = 0) {
   if (!pad.on) return;
   setTimeout(() => { pad.on = false; pad.el.classList.remove('on'); document.body.classList.remove('padOn'); setTimeout(() => pad.video.pause(), 500); }, delay);
 }
+for (const el of [pad.el, $('film')]) el.addEventListener('contextmenu', (e) => e.preventDefault());
 pad.el.addEventListener('pointerdown', (e) => { e.stopPropagation(); lastInput = performance.now(); if (!state.holding && pad.burst < 0) startHold(e.clientX, e.clientY); });
 pad.el.addEventListener('pointermove', (e) => { if (state.holding) { state.holdX = e.clientX; state.holdY = e.clientY; } });
 for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) pad.el.addEventListener(ev, () => { if (state.holding) endHold(false); });
@@ -2212,6 +2239,7 @@ $('film').addEventListener('pointerdown', (e) => { e.stopPropagation(); stopFilm
 // pause. The line's length comes from its decoded voice; without one a typical length stands in.
 function scheduleAuto(i, beat) {
   journey.autoAt = null;
+  if (beat.cut) { journey.autoAt = performance.now() + beat.cut * 1000; return; }
   if (!beat.auto) return;
   const start = performance.now(), cue = filmCue(beat.b);
   const filmEnd = cue ? (cue.at || 0) + (cue.len || 2.4) : 0;
@@ -2226,7 +2254,7 @@ function showStep(i, keepCard = false) {
   state.beat = STEPS[i].beat;
   setCard(STEPS[i].beat, keepCard);
   $('sr').textContent = bubbleById[beat.b].text;
-  if (beat.fx === 'static') { sound.staticBurst(); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
+  if (beat.fx === 'static') { sound.staticBurst(beat.cut ? beat.cut + 1.2 : undefined); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
   if (beat.fx === 'blip') sound.blip();
   sound.playVoice(beat.b);
   playFilm(beat.b);
@@ -2245,16 +2273,110 @@ function showStep(i, keepCard = false) {
   prefetchWorld(next ? next.world : FINAL_WORLD);
 }
 
-// arrive in the world now loaded: it unwinds out of its core, then the step's card comes up
-function arrive(i) {
-  journey.phase = 'space';
+// arrive in the world now loaded: it unwinds out of its core, then the step's card comes up.
+// carried: the card was brought in from the page by the camera (the enter zoom, or a hop), so no
+// flash and no new card. cut: a hard cut on static (CRSSHKKKKK!), the world already open and shearing.
+function arrive(i, how) {
+  journey.phase = 'space'; journey.cut = false;
   enterVoid();
   useWorld(true);
-  worlds.suction = 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.55;
+  worlds.suction = how === 'cut' ? 0 : 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.55;
   look.yaw = 0; look.pitch = 0; look.vyaw = 0; look.vpitch = 0;
-  const carried = i === 0 && journey.entered;     // the caption zoomed in from the page: no flash, no new card
-  if (!carried) flash(0.3);
-  showStep(i, carried);
+  if (how === 'cut') { worlds.jitter = 1; sound.staticBurst(0.4); flash(0.45); }
+  else if (how !== 'carried') flash(0.3);
+  showStep(i, how === 'carried');
+}
+
+// the card lying on the page over its own drawn box (the start of the enter zoom, a hop's two ends)
+function layCard(P) {
+  scene.add(card);
+  card.position.set(P.c.x, P.c.y, bubbleZ + 0.004); card.rotation.set(0, 0, 0); card.scale.set(P.bw, P.bh, 1);
+  cardMat.uniforms.uOpacity.value = 1;
+}
+// the card back riding the camera, exactly where it has reached on screen
+function rideCard() {
+  const p = cardPose(camera.fov);
+  camera.add(card); card.position.set(0, p.y, -p.dist); card.rotation.set(0, 0, 0); card.scale.set(p.w, p.h, 1);
+}
+// from a space back onto the page, to the card's own box, as the space collapses behind the card:
+// the camera is put where the box sits exactly as the card did, and the page fades up around it
+function toPage(beatId) {
+  const A = boxPose(beatId);
+  state.stage = 'enter';                          // first: useWorld shows the drawn void in the void stage
+  useWorld(false);
+  camera.quaternion.copy(IDENTITY_Q); camera.position.copy(A.to); camera.fov = A.fov; camera.updateProjectionMatrix();
+  pageMesh.visible = true; pageMat.uniforms.uOpacity.value = 0;
+  layCard(A);
+  return A;
+}
+
+// Hops (Paul, 24 October: the zoom into the narrator panel "is great. Can we use in other places as
+// transition to orientate user to position on page?"): moving to another space, the space collapses
+// behind the card, the camera pulls back from it onto the page, travels across to the next box and
+// zooms into it like the enter zoom, and the next space switches in behind
+const HOP_DUR = 3.4;
+function startHop(i) {
+  const A = toPage(BEATS[STEPS[i - 1].beat].b), B = boxPose(BEATS[STEPS[i].beat].b);
+  // the wide view on the way: both boxes in frame with room around them, at the page's own lens
+  const m = new THREE.Vector2().addVectors(A.c, B.c).multiplyScalar(0.5);
+  const hv = Math.max(PH * 0.2, 1.5 * Math.max(Math.abs(A.c.y - m.y) + Math.max(A.bh, B.bh) / 2, (Math.abs(A.c.x - m.x) + Math.max(A.bw, B.bw) / 2) / camera.aspect));
+  const W = new THREE.Vector3(m.x, m.y, bubbleZ + Math.min(hv / Math.tan(THREE.MathUtils.degToRad(PAGE_FOV / 2)), pageDist(PAGE_FOV)));
+  // a curve from A through W to B: its control point puts W at the halfway mark
+  journey.hop = { i, A, B, C: W.clone().multiplyScalar(2).sub(A.to.clone().add(B.to).multiplyScalar(0.5)), swapped: false,
+    load: loadWorld(STEPS[i].world).catch((e) => console.warn('world unavailable', e)) };
+  journey.phase = 'hop'; journey.t = 0;
+  sound.blip();
+}
+function updateHop() {
+  const H = journey.hop, u = clamp(journey.t / HOP_DUR, 0, 1), e = ease(u), r = 1 - e;
+  camera.position.set(0, 0, 0).addScaledVector(H.A.to, r * r).addScaledVector(H.C, 2 * r * e).addScaledVector(H.B.to, e * e);
+  camera.fov = lerp(H.A.fov, H.B.fov, e) + (PAGE_FOV - lerp(H.A.fov, H.B.fov, e)) * Math.sin(Math.PI * e);
+  camera.updateProjectionMatrix();
+  pageMat.uniforms.uOpacity.value = smooth(0, 0.25, u) * (1 - smooth(0.72, 0.97, u));
+  // halfway, with the whole page showing, the card moves to the next box: they look the same as the drawing
+  if (!H.swapped && u >= 0.5) { H.swapped = true; setCard(STEPS[H.i].beat, true); layCard(H.B); }
+  if (u >= 1) {
+    pageMesh.visible = false;
+    rideCard();
+    journey.phase = 'load';
+    H.load.then(() => arrive(H.i, 'carried'));
+  }
+}
+
+// the final breach starts on the page: the camera pulls back from "Initiating QNTM CTRL..." to the
+// whole page, then the page breaks apart and the camera dives through the drawn singularity (the
+// classic breach), so the reader sees where the story has taken them
+const PULL_DUR = 2.2;
+function startPull() {
+  const A = toPage('qntm');
+  journey.pull = { A, to: new THREE.Vector3(0, 0, pageDist(PAGE_FOV)), load: loadWorld(FINAL_WORLD).catch((e) => console.warn('world unavailable', e)) };
+  journey.phase = 'pull'; journey.t = 0;
+  sound.blip();
+}
+function updatePull() {
+  const P = journey.pull, u = clamp(journey.t / PULL_DUR, 0, 1), e = ease(u);
+  camera.position.lerpVectors(P.A.to, P.to, e);
+  camera.fov = lerp(P.A.fov, PAGE_FOV, e); camera.updateProjectionMatrix();
+  pageMat.uniforms.uOpacity.value = smooth(0, 0.35, u);
+  if (u >= 1 && !P.done) {
+    P.done = true;
+    P.load.then(() => {
+      card.visible = false; cardState.target = 0; rideCard();
+      journey.phase = 'end'; journey.done = true;
+      worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.3;
+      state.stage = 'read';
+      breach();
+    });
+  }
+}
+
+// CRSSHKKKKK! cuts straight into the next space (Paul: "should play into next scene without
+// animation"): the static runs on while the next world loads, the old one shearing, then a hard cut
+function cutTo(i) {
+  journey.autoAt = null; journey.phase = 'load'; journey.cut = true;
+  sound.stopVoice(); stopFilm(false); setHint('');
+  card.visible = false; cardState.target = 0; cardState.lift = 0;
+  loadWorld(STEPS[i].world).then(() => arrive(i, 'cut')).catch((e) => { console.warn(e); arrive(i, 'cut'); });
 }
 
 function startJourney() {
@@ -2275,14 +2397,9 @@ function enterSpace() {
   // fades to dark around it and the lens eases to the spaces' field of view; then the first space
   // unwinds out of its core behind it
   setCard(STEPS[0].beat, true);
-  const b = bubbleById[BEATS[STEPS[0].beat].b], [u0, v0, u1, v1] = b.uv;
-  const c = uvToWorld((u0 + u1) / 2, (v0 + v1) / 2), bw = (u1 - u0) * PW, bh = (v1 - v0) * PH;
-  scene.add(card);
-  card.position.set(c.x, c.y, bubbleZ + 0.004); card.rotation.set(0, 0, 0); card.scale.set(bw, bh, 1);
-  cardMat.uniforms.uOpacity.value = 1;
-  const fov1 = voidFov(), pose = cardPose(fov1), D = pose.dist * bw / pose.w;
-  journey.enter = { from: camera.position.clone(), q: camera.quaternion.clone(), fov0: camera.fov, fov1,
-    to: new THREE.Vector3(c.x, c.y - pose.y * D / pose.dist, bubbleZ + 0.004 + D) };
+  const P = boxPose(BEATS[STEPS[0].beat].b);
+  layCard(P);
+  journey.enter = { from: camera.position.clone(), q: camera.quaternion.clone(), fov0: camera.fov, fov1: P.fov, to: P.to };
   sound.blip();
   if (sound.ok) { sound.cabin.gain.setTargetAtTime(0.25, sound.now(), 0.8); sound.startSpace(); }
 }
@@ -2294,17 +2411,21 @@ function journeyNext() {
   if (beat.trigger) { finalBreach(); return; }
   const next = STEPS[i + 1];
   if (next.world === STEPS[i].world) { showStep(i + 1); return; }
-  leave(next.world, () => arrive(i + 1));
+  if (beat.cut) { cutTo(i + 1); return; }
+  if (reducedMotion) { leave(next.world, () => arrive(i + 1)); return; }
+  leave(null, () => startHop(i + 1), OUT_DUR, true);
 }
 
-// collapse the current space into its core, then load and unwind the next
-function leave(nextWorld, then, dur = OUT_DUR) {
+// collapse the current space into its core, then load and unwind the next (or, without a next
+// world, go on to then: a hop or the pull back to the page, which load the world themselves).
+// keepCard: the card stays up while the space collapses behind it, to be carried onto the page.
+function leave(nextWorld, then, dur = OUT_DUR, keepCard = false) {
   journey.autoAt = null;
   padHide();
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
   sound.stopVoice();
   stopFilm(false);
-  cardState.target = 0;
+  if (!keepCard) cardState.target = 0;
   setHint('');
   worlds.suctionTarget = 1; worlds.suctionRate = 1 / dur;
 }
@@ -2312,6 +2433,7 @@ function leave(nextWorld, then, dur = OUT_DUR) {
 function finalBreach() {
   if (journey.phase !== 'space') return;
   $('sr').textContent = 'Initiating QNTM CTRL. The space breaks apart and you fall through the singularity.';
+  if (!reducedMotion) { leave(null, startPull, OUT_DUR, true); return; }
   sound.breach(FINAL_DUR);
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
   leave(FINAL_WORLD, () => {
@@ -2340,25 +2462,28 @@ function updateJourney(rawDt, dt) {
     bubbles.forEach((b) => (b.target = 0));
     if (u >= 1) {
       pageMesh.visible = false; inflow.visible = false;
-      // the card goes back to riding the camera, at exactly the place it has reached on screen
-      const p = cardPose(camera.fov);
-      camera.add(card); card.position.set(0, p.y, -p.dist); card.rotation.set(0, 0, 0); card.scale.set(p.w, p.h, 1);
+      rideCard();
       journey.entered = true;
       journey.phase = 'load';
-      (worlds.loading || loadWorld(STEPS[0].world)).then(() => arrive(0)).catch((e) => { console.warn(e); setHint('The space could not load'); });
+      (worlds.loading || loadWorld(STEPS[0].world)).then(() => arrive(0, 'carried')).catch((e) => { console.warn(e); setHint('The space could not load'); });
     }
   }
   if (journey.phase === 'space' && journey.autoAt && performance.now() > journey.autoAt && !films.on && !state.holding) {
     journey.autoAt = null;
     journeyNext();
   }
+  if (journey.phase === 'hop') updateHop();
+  if (journey.phase === 'pull') updatePull();
+  // the old world keeps shearing on the static until the cut
+  if (journey.phase === 'load' && journey.cut) worlds.jitter = 1;
   if (journey.phase === 'out') {
     worlds.drift.addScaledVector(tmpV.set(0, 0, -1).applyQuaternion(camera.quaternion), rawDt * 2.5);
     worlds.jitter = Math.max(worlds.jitter, smooth(0.5, 1, journey.t / journey.outDur) * 0.8);
     if (journey.t >= journey.outDur) {
       journey.phase = 'load';
       const then = journey.then;
-      loadWorld(journey.nextWorld).then(then).catch((e) => { console.warn(e); then(); });
+      if (!journey.nextWorld) then();
+      else loadWorld(journey.nextWorld).then(then).catch((e) => { console.warn(e); then(); });
     }
   }
   updateCard(dt);
