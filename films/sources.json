@@ -1,5 +1,5 @@
 {
-  "note": "Short films of Bob, fetched into prototype/assets/films/<id>.mp4 by the Fetch films workflow. Changing a url fetches that film again. Rendered on Higgsfield (Seedance 2.5, 5 s, 720p, 9:16, no audio) from the start frames in prototype/assets/films/<id>.jpg.",
+  "note": "Short films of Bob, fetched into prototype/assets/films/<id>.mp4 by the Fetch films workflow. Changing a url fetches that film again. Rendered on Higgsfield (Seedance 2.5, 5 s, 720p, 9:16, no audio) from the start frames in prototype/assets/films/<id>.jpg. stills are photoreal start frame candidates (Nano Banana Pro from the illustration and the OT logo), fetched to films/stills for review.",
   "films": {
     "bob-wide": {
       "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_124639_70ea62c7-1ef0-4304-b3a0-7b8577c2394a.mp4",
@@ -24,6 +24,24 @@
           "note": "first take, general prompt"
         }
       ]
+    }
+  },
+  "stills": {
+    "real-wide-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_141302_56a70787-8c87-41d2-9186-b189457180ea.png",
+      "job": "56a70787-8c87-41d2-9186-b189457180ea"
+    },
+    "real-wide-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_141303_924f9e20-bb05-4297-acd2-762a07502609.png",
+      "job": "924f9e20-bb05-4297-acd2-762a07502609"
+    },
+    "real-close-3": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_141302_a30fbdd3-6139-4ee8-a401-e97658f9abf9.png",
+      "job": "a30fbdd3-6139-4ee8-a401-e97658f9abf9"
+    },
+    "real-close-4": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_141302_9c205523-9fe7-488c-b069-eeb768ae9176.png",
+      "job": "9c205523-9fe7-488c-b069-eeb768ae9176"
     }
   }
 }

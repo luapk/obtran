@@ -50,12 +50,23 @@ jobs:
             printf '%s' "$url" > "$stamp"
             echo "$id: $(du -k "$out/$id.mp4" | cut -f1) KB, ${dur}s"
           done
+          # stills for review (start frames and candidates), kept in the repo, not deployed
+          mkdir -p films/stills
+          for id in $(jq -r '(.stills // {}) | keys[]' films/sources.json); do
+            case "$id" in *[!a-z0-9-]*) echo "::error::bad still id $id"; exit 1 ;; esac
+            url=$(jq -r --arg id "$id" '.stills[$id].url' films/sources.json)
+            case "$url" in https://*) ;; *) echo "::error::$id: url must be https"; exit 1 ;; esac
+            [ -f "films/stills/$id.jpg" ] && continue
+            curl -fsSL --retry 3 -o "/tmp/$id.still" "$url"
+            ffmpeg -loglevel error -y -i "/tmp/$id.still" -vf "scale=720:-2" -q:v 3 "films/stills/$id.jpg"
+            echo "still $id"
+          done
 
       - name: Commit results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add prototype/assets/films
+          git add prototype/assets/films films/stills
           if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
           git commit -m "Fetch films"
           for i in 1 2 3 4; do
