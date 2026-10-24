@@ -42,7 +42,7 @@
     "bob": "smokehouse-shift",
     "singularity-core": "smokehouse-shift"
   },
-  "loopLevel": 0.75,
+  "loopLevel": 2.4,
   "startAt": "caption",
   "cues": {
     "engage:leave": "pulsar-forest"

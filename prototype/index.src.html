@@ -1083,7 +1083,16 @@ class Sound {
     const ctx = this.ctx; this.ok = true;
     this.master = ctx.createGain(); this.master.gain.value = 0.85;
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
-    this.master.connect(comp).connect(ctx.destination);
+    // a safety limiter on everything, so voices and music together never clip
+    const out = ctx.createDynamicsCompressor(); out.threshold.value = -1; out.knee.value = 0; out.ratio.value = 20; out.attack.value = 0.001; out.release.value = 0.1;
+    this.master.connect(comp).connect(out).connect(ctx.destination);
+    // music skips the master compressor, which squashed it (its soft knee starts about -29 dB, so a louder loop
+    // came out barely louder and clipped; Paul: "music at max volume is still too soft by 10db"): its own fast
+    // limiter instead, then the same 0.85 and mute as the master
+    this.musicLim = ctx.createDynamicsCompressor();
+    this.musicLim.threshold.value = -8; this.musicLim.knee.value = 0; this.musicLim.ratio.value = 20; this.musicLim.attack.value = 0.001; this.musicLim.release.value = 0.06;
+    this.musicOut = ctx.createGain(); this.musicOut.gain.value = 0.85;
+    this.musicLim.connect(this.musicOut).connect(out);
     this.noise = this.makeNoise(2);
     this.loadSfx();
     // cabin: muffled hum plus tape hiss
@@ -1416,7 +1425,7 @@ class Sound {
     for (const n of this.voiceParts.slice(2).concat([src])) { try { n.stop(this.now() + 0.15); } catch (e) { /* not started or already stopped */ } }
     this.voiceParts = null;
   }
-  setMuted(m) { this.muted = m; if (this.ok) this.master.gain.setTargetAtTime(m ? 0 : 0.85, this.now(), 0.05); }
+  setMuted(m) { this.muted = m; if (this.ok) for (const g of [this.master, this.musicOut]) g.gain.setTargetAtTime(m ? 0 : 0.85, this.now(), 0.05); }
 }
 const sound = new Sound();
 
@@ -1791,7 +1800,7 @@ function updateRibbons(dt, rawDt) {
 const PANEL_WORLD = 'bob-cockpit';
 const PANEL_UV = [0.0, 0.1456, 0.43973, 0.55078];   // the layers' canvas on the page (make_panel_layers.py)
 const PANEL_LAYERS = [['back', 7.0], ['figure', 6.4], ['front', 5.7]];   // file, distance ahead
-const panelFloat = { group: new THREE.Group(), layers: [], on: params.get('panel') !== '0', level: 0 };
+const panelFloat = { group: new THREE.Group(), layers: [], on: params.get('panel') === '1', level: 0 };   // off since Paul's "lose panel of cutout illustrated bob"; ?panel=1 brings it back
 {
   const loader = new THREE.TextureLoader(), aspect = (PANEL_UV[3] - PANEL_UV[1]) * META.aspect / (PANEL_UV[2] - PANEL_UV[0]);
   PANEL_LAYERS.forEach(([name, d], i) => {
@@ -2337,7 +2346,7 @@ try { music.off = localStorage.getItem('ot-music-off') === '1'; const v = localS
 // one that dips a little under each voice line (musicDuck)
 function musicBus() {
   if (!music.bus && sound.ok) {
-    music.duckG = sound.ctx.createGain(); music.duckG.connect(sound.master);
+    music.duckG = sound.ctx.createGain(); music.duckG.connect(sound.musicLim || sound.master);
     music.bus = sound.ctx.createGain(); music.bus.gain.value = music.vol; music.bus.connect(music.duckG);
   }
   return music.bus || sound.master;
@@ -2478,7 +2487,7 @@ async function musicLoop(key, force, fadeIn = 2.5) {
   if (!buf || music.loopKey !== key || music.playing || music.off || music.loopNow?.id === id) return;
   const ctx = sound.ctx, t = sound.now(), src = ctx.createBufferSource(), g = ctx.createGain();
   src.buffer = buf; src.loop = true;
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime((music.index.loopLevel ?? 0.75) * (buf.level || 1), t + fadeIn);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime((music.index.loopLevel ?? 2.4) * (buf.level || 1), t + fadeIn);
   src.connect(g).connect(musicBus()); src.start(t);
   music.loopNow = { id, src, g };
 }
@@ -2790,35 +2799,26 @@ function cctvPaint(c, W, H, t, dt) {
   if (Math.random() < dt * 2.5) { c.fillStyle = 'rgba(239,233,223,0.18)'; c.fillRect(0, Math.random() * H, W, 1 + Math.random() * 3); }
 }
 
-// ---------- the opening backdrop (Paul, 24 October: the hand and mug loop "under the opening panel of
-// illustrated bob during narrator intro, b&w with alien cctv as per the others") ----------
-// films/index.json "backdrops" maps a beat to a looping clip that plays on a screen behind Bob's floating
-// panel: through its own Super 8 pass and the CCTV readout, drawn into a texture on a plane set further
-// back than the panel's layers (so it parts from them as the camera wanders), its edges feathered into the
-// world. It comes up with the panel and goes as the beat changes (CRSSHKKKKK! shears it away).
-const BACKDROP_D = 9.5, BACKDROP_TEX = [1280, 720], BACKDROP_HUD = 560;   // distance ahead; texture size; the readout's width in its own px
-const backdrop = { on: params.get('films') !== '0' && !REVIEW, video: null, beat: null, level: 0, want: false, t: 0, next: 0, s8: null, comp: null, cctvT: 0, tex: null, mesh: null };
+// ---------- the opening backdrop (Paul, 24 October: the hand and mug loop during the narrator's caption,
+// "b&w with alien cctv as per the others"; then "have video full screen, lose panel of cutout illustrated bob,
+// have sand over video") ----------
+// films/index.json "backdrops" maps a beat to a looping clip that fills the screen behind everything in its
+// space: through its own Super 8 pass and the CCTV readout, drawn into a texture on a plane fixed to the camera
+// and drawn before the splats. The world's own splats are hidden while it shows, so only the sand drifts over
+// it. It comes up as the space unwinds and cuts away hard when the beat changes (CRSSHKKKKK!).
+const BACKDROP_D = 20, BACKDROP_MAX = 1280;          // distance ahead (inside the sand); the texture's long side
+const backdrop = { on: params.get('films') !== '0' && !REVIEW, video: null, beat: null, level: 0, want: false, t: 0, next: 0, s8: null, comp: null, cctvT: 0, tex: null, mesh: null, hidWorld: false };
 {
-  const [TW, TH] = BACKDROP_TEX;
-  const s8c = document.createElement('canvas'); s8c.width = 960; s8c.height = 540;
+  const s8c = document.createElement('canvas'); s8c.width = 16; s8c.height = 9;
   backdrop.s8 = super8Init(s8c, true);                // kept after drawing, so the composite can read it
-  backdrop.comp = document.createElement('canvas'); backdrop.comp.width = TW; backdrop.comp.height = TH;
+  backdrop.comp = document.createElement('canvas'); backdrop.comp.width = 16; backdrop.comp.height = 9;
   backdrop.tex = new THREE.CanvasTexture(backdrop.comp); backdrop.tex.colorSpace = THREE.SRGBColorSpace;
-  // feathered edges: wide on the sides, narrower top and bottom
-  const fe = document.createElement('canvas'); fe.width = 256; fe.height = 144;
-  const fc = fe.getContext('2d'), img = fc.createImageData(256, 144);
-  for (let y = 0; y < 144; y++) for (let x = 0; x < 256; x++) {
-    const u = (x + 0.5) / 256, v = (y + 0.5) / 144;
-    const a = smooth(0, 0.16, u) * smooth(0, 0.16, 1 - u) * smooth(0, 0.14, v) * smooth(0, 0.14, 1 - v);
-    const i = (y * 256 + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = Math.round(255 * a); img.data[i + 3] = 255;
-  }
-  fc.putImageData(img, 0, 0);
-  const alphaMap = new THREE.CanvasTexture(fe);
-  backdrop.mesh = new THREE.Mesh(new THREE.PlaneGeometry(TW / TH, 1),
-    new THREE.MeshBasicMaterial({ map: backdrop.tex, alphaMap, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }));
-  backdrop.mesh.renderOrder = 5.5;                    // over the world, under the panel's layers (6 to 8)
+  backdrop.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshBasicMaterial({ map: backdrop.tex, transparent: true, depthTest: false, depthWrite: false, opacity: 0, fog: false }));
+  backdrop.mesh.renderOrder = -20;                    // before the splats (-10), so the sand draws over it
+  backdrop.mesh.frustumCulled = false;
   backdrop.mesh.visible = false;
-  panelFloat.group.add(backdrop.mesh);
+  camera.add(backdrop.mesh);
 }
 function backdropClip(beat) { const c = films.index?.backdrops?.[beat]; return c?.file ? c : null; }
 function backdropVideo(beat) {
@@ -2845,40 +2845,59 @@ function primeBackdrops() {
   const beat = Object.keys(films.index.backdrops)[0], v = beat && backdropVideo(beat);
   v?.play().then(() => { if (!backdrop.want) v.pause(); }).catch(() => { /* tried again when it is wanted */ });
 }
+// the world's own splats (not the sand) give way to the backdrop, and come back when it goes
+function backdropHideWorld(hide) {
+  if (hide === backdrop.hidWorld || !worlds.mesh) return;
+  backdrop.hidWorld = hide;
+  const show = !hide && (state.stage === 'breach' || state.stage === 'void');
+  for (const m of [worlds.mesh, ...worlds.echoes]) m.visible = show;
+}
 function updateBackdrop(dt) {
   const beat = BEATS[state.beat]?.b, clip = backdrop.on && backdropClip(beat);
-  const want = !!clip && panelFloat.group.visible && journey.on && (journey.phase === 'space' || journey.phase === 'enter');
-  if (want && !backdrop.want) { const v = backdropVideo(beat); v?.play().catch((e) => console.warn('backdrop not played:', e && e.name)); }
-  backdrop.want = want;
-  // up with the panel, gone quickly when the beat moves on
-  backdrop.level += ((want ? panelFloat.level : 0) - backdrop.level) * (1 - Math.exp(-dt * (want ? 3 : 7)));
-  const v = backdrop.video;
-  backdrop.mesh.visible = backdrop.level > 0.01 && !!v && v.readyState >= 2 && v.videoWidth > 0;
-  if (!backdrop.mesh.visible) { if (!want && v && !v.paused && backdrop.level < 0.01) v.pause(); return; }
-  // sized to the view at its distance: most of the width on wide screens, half the height at least on tall ones
-  const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), viewH = 2 * BACKDROP_D * tanH, viewW = viewH * camera.aspect;
-  const aspect = BACKDROP_TEX[0] / BACKDROP_TEX[1];
-  const h = Math.max(Math.min(viewH * 0.8, viewW * 0.96 / aspect), viewH * 0.5);
+  const here = !!clip && journey.on && state.stage === 'void' && worlds.ok && (journey.phase === 'space' || journey.phase === 'enter');
+  if (here && !backdrop.want) { const v = backdropVideo(beat); v?.play().catch((e) => console.warn('backdrop not played:', e && e.name)); }
+  backdrop.want = here;
+  // up as the space unwinds out of its core; gone at once when the beat changes
+  backdrop.level = here ? Math.min(1, backdrop.level + dt * 3, clamp(2 * (1 - worlds.suction), 0, 1)) : 0;
+  const v = backdrop.video, ready = !!v && v.readyState >= 2 && v.videoWidth > 0;
+  backdrop.mesh.visible = backdrop.level > 0.01 && ready;
+  backdropHideWorld(backdrop.mesh.visible);
+  if (!backdrop.mesh.visible) { if (!here && v && !v.paused) v.pause(); return; }
+  // the plane fills the view at its distance
+  const viewH = 2 * BACKDROP_D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   const shear = worlds.jitter > 0 ? (Math.random() - 0.5) * worlds.jitter * 0.6 : 0;
-  backdrop.mesh.scale.set(h, h, 1);
-  backdrop.mesh.position.set(shear, viewH * 0.1, -BACKDROP_D);
-  backdrop.mesh.material.opacity = backdrop.level * (clip?.level ?? 0.9);
+  backdrop.mesh.scale.set(viewH * camera.aspect * 1.02, viewH * 1.02, 1);
+  backdrop.mesh.position.set(shear, 0, -BACKDROP_D);
+  backdrop.mesh.material.opacity = backdrop.level * (clip.level ?? 1);
   // the frame: Super 8 at 18 frames a second, then the readout over it
   backdrop.t += dt; backdrop.cctvT += dt;
   if (backdrop.t < backdrop.next) return;
   const step = backdrop.t - (backdrop.next - 1 / 18);
   backdrop.next = backdrop.t + 1 / 18;
-  const [TW, TH] = BACKDROP_TEX, c = backdrop.comp.getContext('2d');
+  // the texture takes the screen's shape, so the video is cut to fill it (about the clip's focus) and the readout
+  // sits at the screen's own size
+  const sw = innerWidth, sh = innerHeight, k = Math.min(1, BACKDROP_MAX / Math.max(sw, sh));
+  const TW = Math.round(sw * k), TH = Math.round(sh * k), S = backdrop.s8;
+  if (backdrop.comp.width !== TW || backdrop.comp.height !== TH) {
+    backdrop.comp.width = TW; backdrop.comp.height = TH;
+    S.el.width = Math.round(TW * 0.75); S.el.height = Math.round(TH * 0.75);
+    backdrop.tex.dispose();                            // a new size needs a new texture on the GPU
+  }
+  const c = backdrop.comp.getContext('2d');
   c.setTransform(1, 0, 0, 1, 0, 0);
-  const S = backdrop.s8;
-  if (S.ok && super8Frame(S, v, S.el.width, S.el.height, 1, 1, 1, 0.5, 0.5)) c.drawImage(S.el, 0, 0, TW, TH);
-  else { c.filter = 'grayscale(1) contrast(1.08)'; c.drawImage(v, 0, 0, TW, TH); c.filter = 'none'; }   // no WebGL: the plain film, in black and white
+  const ca = TW / TH, va = v.videoWidth / v.videoHeight, sx = Math.min(1, ca / va), sy = Math.min(1, va / ca);
+  const [fx, fy] = clip.focus || [0.5, 0.5];
+  if (S.ok && super8Frame(S, v, S.el.width, S.el.height, sx, sy, 1, fx, fy)) c.drawImage(S.el, 0, 0, TW, TH);
+  else {                                               // no WebGL: the plain film, cut to fill, in black and white
+    const w = v.videoWidth * sx, h = v.videoHeight * sy;
+    const x0 = clamp(fx * v.videoWidth - w / 2, 0, v.videoWidth - w), y0 = clamp(fy * v.videoHeight - h / 2, 0, v.videoHeight - h);
+    c.filter = 'grayscale(1) contrast(1.08)'; c.drawImage(v, x0, y0, w, h, 0, 0, TW, TH); c.filter = 'none';
+  }
   // the scan lines the films have over them
   c.fillStyle = 'rgba(0,0,0,0.22)';
-  for (let y = 0; y < TH; y += 3) c.fillRect(0, y, TW, 1);
-  const k = TW / BACKDROP_HUD;
+  for (let y = 0; y < TH; y += 2) c.fillRect(0, y, TW, 1);
   c.setTransform(k, 0, 0, k, 0, 0);
-  cctvPaint(c, BACKDROP_HUD, TH / k, backdrop.cctvT, Math.min(step, 0.25));
+  cctvPaint(c, sw, sh, backdrop.cctvT, Math.min(step, 0.25));
   backdrop.tex.needsUpdate = true;
 }
 
