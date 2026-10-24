@@ -1,8 +1,16 @@
 {
-  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). Empty until Paul approves; ?films=1 previews the proposed cues in index.src.html.",
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). Empty until Paul approves; ?films=1 previews the proposed cues in index.src.html. v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one.",
   "clips": {
-    "bob-wide": { "file": "bob-wide.mp4", "frame": "bob-wide.jpg" },
-    "bob-close": { "file": "bob-close.mp4", "frame": "bob-close.jpg" }
+    "bob-wide": {
+      "file": "bob-wide.mp4",
+      "frame": "bob-wide.jpg",
+      "v": "70ea62c7"
+    },
+    "bob-close": {
+      "file": "bob-close.mp4",
+      "frame": "bob-close.jpg",
+      "v": "c20e2718"
+    }
   },
   "cues": {}
 }

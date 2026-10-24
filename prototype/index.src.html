@@ -929,7 +929,7 @@ class Sound {
   // under the voice, and a click and beep as it unkeys. Each voice's radio is set in
   // voices/script.json; a voice without one plays dry, with a touch of room.
   async loadVoices() {
-    try { const r = await fetch('assets/voice/index.json'); this.voiceIndex = r.ok ? (await r.json()).lines || {} : {}; }
+    try { const r = await fetch('assets/voice/index.json', { cache: 'no-cache' }); this.voiceIndex = r.ok ? (await r.json()).lines || {} : {}; }
     catch (e) { this.voiceIndex = {}; }
     this.voiceBuffers = {};
   }
@@ -937,7 +937,8 @@ class Sound {
     const entry = this.voiceIndex?.[beat];
     if (!entry || !this.ok) return null;
     if (!this.voiceBuffers[beat]) {
-      this.voiceBuffers[beat] = fetch('assets/voice/' + entry.file).then((r) => r.arrayBuffer()).then((b) => this.ctx.decodeAudioData(b)).then((buf) => {
+      // the render hash is in the address, so a new take is never served from an old copy
+      this.voiceBuffers[beat] = fetch('assets/voice/' + entry.file + (entry.hash ? '?v=' + entry.hash : '')).then((r) => r.arrayBuffer()).then((b) => this.ctx.decodeAudioData(b)).then((buf) => {
         // measured once: where the speech ends (renders can trail seconds of silence, which
         // would push the unkey beep late) and a gain that brings every line to a similar level
         const d = buf.getChannelData(0);
@@ -1215,7 +1216,7 @@ const PROPOSED_CUES = {
 };
 const films = { index: null, videos: {}, on: false, timers: [] };
 (async () => {
-  try { const r = await fetch('assets/films/index.json'); films.index = r.ok ? await r.json() : null; } catch (e) { films.index = null; }
+  try { const r = await fetch('assets/films/index.json', { cache: 'no-cache' }); films.index = r.ok ? await r.json() : null; } catch (e) { films.index = null; }
   if (films.index && params.get('films') === '1') films.index.cues = { ...PROPOSED_CUES, ...(films.index.cues || {}) };
 })();
 function filmCue(beat) {
@@ -1227,7 +1228,8 @@ function filmVideo(id) {
     const v = document.createElement('video');
     v.muted = true; v.playsInline = true; v.preload = 'auto';
     v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
-    v.src = 'assets/films/' + films.index.clips[id].file;
+    const clip = films.index.clips[id];
+    v.src = 'assets/films/' + clip.file + (clip.v ? '?v=' + clip.v : '');
     films.videos[id] = v;
   }
   return films.videos[id];
