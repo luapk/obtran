@@ -94,6 +94,8 @@
   #music[hidden] { display: none; }
   #music { position: fixed; z-index: 4; right: 14px; top: calc(max(14px, env(safe-area-inset-top)) + 46px); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
   #music .ui-btn { position: static; }
+  #musicVolBox { display: flex; align-items: center; gap: 0.5rem; cursor: default; }
+  #musicVol { width: 6.2rem; accent-color: var(--paper); margin: 0; }
   #musicTab.unlocked { animation: tabFlash 1.2s steps(6, end); }
   /* on an unlock the tab scrolls the track's name through itself, twice, then shows the count again */
   #musicTab.marquee { position: relative; overflow: hidden; white-space: nowrap; }
@@ -201,6 +203,7 @@
 <button id="mute" class="ui-btn" type="button" aria-pressed="false">Sound on</button>
 <div id="music" hidden>
   <button id="musicOn" class="ui-btn" type="button" aria-pressed="true">Music on</button>
+  <label id="musicVolBox" class="ui-btn"><span aria-hidden="true">Vol</span><input id="musicVol" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="Music volume"></label>
   <button id="musicTab" class="ui-btn" type="button" aria-expanded="false" aria-controls="musicList"><span class="mt-name">QNTM CTRL</span> <span id="musicCount">0/3</span></button>
   <div id="musicList" hidden>
     <p class="mt-head">Explore to unlock tracks</p>
@@ -1794,13 +1797,19 @@ const panelFloat = { group: new THREE.Group(), layers: [], on: params.get('panel
   panelFloat.group.visible = false;
   scene.add(panelFloat.group);
 }
+const PANEL_SETTLE = 14;
 function updatePanelFloat(dt) {
   const here = panelFloat.on && state.stage === 'void' && worlds.ok && worlds.id === PANEL_WORLD;
   // full strength once the world is half open, so Bob reads clearly from the start
   panelFloat.level += ((here ? clamp(2 * (1 - worlds.suction), 0, 1) : 0) - panelFloat.level) * (1 - Math.exp(-dt * 4));
   panelFloat.group.visible = panelFloat.level > 0.01;
+  if (!here) panelFloat.since = null;
   if (!panelFloat.group.visible) return;
   const t = shared.uTime.value, k = reducedMotion ? 0 : 1;
+  // it arrives at twice its size and drifts slowly back into place (Paul, 25 October), easing out over PANEL_SETTLE s
+  if (here && panelFloat.since == null) panelFloat.since = t;
+  const settle = panelFloat.since == null ? 1 : clamp((t - panelFloat.since) / PANEL_SETTLE, 0, 1);
+  const grow = 1 + k * (1 - settle) * (1 - settle) * (1 - settle);
   const shown = PANEL_GRAINS ? updatePanelGrains(here) : 1;   // the panel fades in as its grains land
   // anchored to the camera's slow path, not to the pointer, so the pointer parts the layers
   panelFloat.group.position.copy(P0).add(worlds.drift).add(worlds.wander);
@@ -1810,9 +1819,9 @@ function updatePanelFloat(dt) {
   for (const L of panelFloat.layers) {
     // as tall as 62% of the view, in the upper part of it (the caption card sits below)
     const viewH = 2 * L.d * tanH, h = viewH * 0.62, w = h / L.mesh.geometry.parameters.height;
-    L.mesh.scale.set(w, w, 1);
+    L.mesh.scale.set(w * grow, w * grow, 1);
     const shear = worlds.jitter > 0 ? (Math.random() - 0.5) * worlds.jitter * 0.3 : 0;
-    L.mesh.position.set(shear, viewH * 0.1, -L.d);
+    L.mesh.position.set(shear, viewH * 0.1 * grow, -L.d);
     L.mat.opacity = panelFloat.level * shown;
   }
 }
@@ -2308,8 +2317,13 @@ function fxUpdate(dt) {
 // audio files yet, the unlocks and the counter still work and nothing plays.
 // started: the loops wait for the story's first line (startAt in the index, Paul: "starting at the same time as the first VO");
 // off: the reader's Music on/off toggle, kept in the browser
-const music = { index: null, unlocked: new Set(), have: {}, loopBuf: {}, loopNow: null, loopKey: undefined, player: null, playing: null, started: false, off: false };
-try { music.off = localStorage.getItem('ot-music-off') === '1'; } catch (e) { /* storage blocked: music on */ }
+const music = { index: null, unlocked: new Set(), have: {}, loopBuf: {}, loopNow: null, loopKey: undefined, player: null, playing: null, started: false, off: false, vol: 0.8, bus: null, track: null };
+try { music.off = localStorage.getItem('ot-music-off') === '1'; const v = localStorage.getItem('ot-music-vol'); if (v !== null) music.vol = +v; } catch (e) { /* storage blocked: the defaults */ }
+// all music goes through one gain, the reader's volume (Paul: "add a volume control for music")
+function musicBus() {
+  if (!music.bus && sound.ok) { music.bus = sound.ctx.createGain(); music.bus.gain.value = music.vol; music.bus.connect(sound.master); }
+  return music.bus || sound.master;
+}
 function musicStore(save) {
   try {
     if (save) localStorage.setItem('ot-music', JSON.stringify([...music.unlocked]));
@@ -2370,6 +2384,7 @@ function toast(text) {
 function musicBeat(beat) {
   if (!music.index) return;
   if (!music.started && beat === (music.index.startAt || 'caption')) { music.started = true; musicLoop(music.loopKey, true, 0.4); }
+  musicCue(beat);
   for (const t of music.index.tracks) {
     if (t.unlockAt !== beat || music.unlocked.has(t.id)) continue;
     music.unlocked.add(t.id); musicStore(true); musicRender();
@@ -2380,12 +2395,20 @@ function musicBeat(beat) {
     if (sound.ok) sound.blip();
   }
 }
+// cues in the index switch the loop on a beat ("beat") or as the reader moves on from it ("beat:leave"), and it
+// stays from then on, crossfading (Paul: Pulsar Forest "should start to play when user clicks Engage chemical...")
+function musicCue(key) {
+  const id = music.index?.cues?.[key];
+  if (!id || id === music.track) return;
+  music.track = id; music.started = true;
+  musicLoop(music.loopKey, true, 1.2);
+}
 function musicToggle(t) {
   if (!sound.ok) return;
   if (music.off) musicSetOff(false);              // playing a track turns the music back on
   if (!music.player) {
     music.player = new Audio(); music.player.preload = 'auto';
-    try { sound.ctx.createMediaElementSource(music.player).connect(sound.master); } catch (e) { /* plays direct */ }
+    try { sound.ctx.createMediaElementSource(music.player).connect(musicBus()); } catch (e) { /* plays direct */ }
     music.player.addEventListener('ended', () => { music.playing = null; musicLoop(music.loopKey, true); musicRender(); });
   }
   if (music.playing === t.id) { music.player.pause(); music.playing = null; musicLoop(music.loopKey, true); }
@@ -2413,8 +2436,8 @@ async function musicLoop(key, force, fadeIn = 2.5) {
   if (!music.index || (key === music.loopKey && !force)) return;
   music.loopKey = key;
   if (!music.started || music.off) { musicLoopStop(); return; }
-  const id = music.index.loops?.[key] ?? null;
-  if (!force && music.loopNow?.id === id) return;
+  const id = music.track || (music.index.loops?.[key] ?? null);
+  if (music.loopNow?.id === id) return;              // already playing: carry on with no seam
   if (music.playing) return;                        // a full track is playing: loops wait
   musicLoopStop();
   const buf = id && (await musicLoopBuffer(id));
@@ -2422,7 +2445,7 @@ async function musicLoop(key, force, fadeIn = 2.5) {
   const ctx = sound.ctx, t = sound.now(), src = ctx.createBufferSource(), g = ctx.createGain();
   src.buffer = buf; src.loop = true;
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(music.index.loopLevel ?? 0.32, t + fadeIn);
-  src.connect(g).connect(sound.master); src.start(t);
+  src.connect(g).connect(musicBus()); src.start(t);
   music.loopNow = { id, src, g };
 }
 // Music on/off (Paul): the loops and any full track; sound effects and voices carry on
@@ -2435,6 +2458,13 @@ function musicSetOff(off) {
 }
 musicSetOff(music.off);
 $('musicOn').addEventListener('click', (e) => { e.stopPropagation(); musicSetOff(!music.off); });
+$('musicVol').value = String(music.vol);
+for (const ev of ['pointerdown', 'pointerup', 'click', 'touchstart']) $('musicVolBox').addEventListener(ev, (e) => e.stopPropagation());
+$('musicVol').addEventListener('input', () => {
+  music.vol = +$('musicVol').value;
+  if (music.bus) music.bus.gain.setTargetAtTime(music.vol, sound.now(), 0.05);
+  try { localStorage.setItem('ot-music-vol', String(music.vol)); } catch (e) { /* not kept */ }
+});
 $('musicTab').addEventListener('click', (e) => {
   e.stopPropagation();
   const open = $('musicList').hidden;
@@ -3025,6 +3055,7 @@ function journeyNext() {
   if (journey.phase !== 'space') return;
   const i = journey.step, beat = BEATS[STEPS[i].beat];
   if (beat.hold) { nudge(); return; }
+  musicCue(beat.b + ':leave');
   if (beat.trigger) { finalBreach(); return; }
   const next = STEPS[i + 1];
   if (next.world === STEPS[i].world) { showStep(i + 1); return; }
@@ -3229,7 +3260,9 @@ function onOrient(e) {
   parallax.gy = clamp((e.beta - parallax.g0.b) / 18, -1, 1);
 }
 
+const enterSnd = new Audio('assets/sfx/bleep.mp3'); enterSnd.preload = 'auto';
 $('start').addEventListener('click', async () => {
+  enterSnd.play().catch(() => {});                  // the button's sound (Paul), inside the tap so phones allow it
   sound.start();
   if (music.index?.tracks?.length && !REVIEW) $('music').hidden = false;
   primeFilms();
@@ -3508,7 +3541,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
