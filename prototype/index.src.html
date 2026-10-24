@@ -1850,7 +1850,7 @@ function updateSlab(dt, rawDt) {
 // and the slab are drawn over it.
 const NUC_DIR = (() => { const y = -4.2 * DEG, p = 7.8 * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)); })();
 const NUC_D = 1.379 * WORLD_SCALE * 0.74;
-const NUC_TENDRILS = reducedMotion ? 12 : 42;
+const NUC_TENDRILS = reducedMotion ? 9 : 29;   // 30% fewer (Paul, 24 October)
 const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), slow: new THREE.Group(), on: params.get('nucleus') !== '0', level: { value: 0 }, tendrils: [] };
 {
   const body = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 6), new THREE.ShaderMaterial({
@@ -1880,20 +1880,41 @@ const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), slow: new T
   tg.translate(0, 0.5, 0);
   const tmat = new THREE.ShaderMaterial({
     uniforms: { uTime: shared.uTime, uLevel: nucleus.level, uPhase: { value: 0 }, uLen: { value: 4 }, uWidth: { value: 0.05 }, uWild: { value: 1 } },
-    transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-    vertexShader: `uniform float uTime; uniform float uPhase; uniform float uLen; uniform float uWidth; uniform float uWild; varying float vT;
+    transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+    vertexShader: `uniform float uTime; uniform float uPhase; uniform float uLen; uniform float uWidth; uniform float uWild; varying float vT; varying vec3 vN; varying vec3 vV;
       void main(){
         float t = position.y; vT = t;
+        vN = normalize(normalMatrix * vec3(normal.x, 0.0, normal.z));
         vec3 p = vec3(position.x, 0.0, position.z) * uWidth * pow(1.0 - t, 1.2);
         float a = t * t * uLen * 0.38 * uWild;
         float w = t * 8.0 - uTime * 0.9 + uPhase;
         p.x += a * sin(w) + 0.35 * a * sin(w * 2.3 + 1.0);
         p.z += a * cos(w * 0.8 + uPhase * 1.7);
         p.y = t * uLen * (0.82 + 0.18 * sin(uTime * 0.35 + uPhase));
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
       }`,
-    fragmentShader: `uniform float uLevel; varying float vT;
-      void main(){ float a = min(1.0, 1.5 * (1.0 - smoothstep(0.6, 1.0, vT))) * uLevel; gl_FragColor = vec4(vec3(1.0, 0.97, 0.92) * a, a); }`,
+    // ink shade (Paul, 24 October), as on the ribbon: paper where the light falls, hatching in the mid
+    // tones, solid ink in shadow and along the silhouette, fading out towards the tips
+    fragmentShader: `uniform float uLevel; uniform float uTime; varying float vT; varying vec3 vN; varying vec3 vV;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+      void main(){
+        vec3 n = normalize(vN);
+        float light = max(dot(n, normalize(vec3(-0.4, 0.6, 0.7))), 0.0);
+        float rim = 1.0 - abs(dot(n, normalize(vV)));
+        float tone = light * (1.0 - smoothstep(0.45, 0.8, rim)) + (hash(floor(gl_FragCoord.xy / 1.5) + floor(uTime * 8.0)) - 0.5) * 0.12;
+        vec2 fc = gl_FragCoord.xy;
+        float hatchA = step(0.62, fract((fc.x + fc.y) / 5.0)), hatchB = step(0.62, fract((fc.x - fc.y) / 5.0));
+        vec3 paper = vec3(0.937, 0.914, 0.875), sepia = vec3(0.541, 0.416, 0.29), ink = vec3(0.02, 0.016, 0.012);
+        vec3 c = paper;
+        if (tone < 0.6) c = mix(paper, ink, hatchA);
+        if (tone < 0.4) c = mix(sepia * 0.6, ink, max(hatchA, hatchB));
+        if (tone < 0.18) c = ink;
+        float a = min(1.0, 1.5 * (1.0 - smoothstep(0.6, 1.0, vT))) * uLevel;
+        gl_FragColor = vec4(c, a);
+        #include <colorspace_fragment>
+      }`,
   });
   const Y = new THREE.Vector3(0, 1, 0);
   for (let i = 0; i < NUC_TENDRILS; i++) {
