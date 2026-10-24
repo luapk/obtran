@@ -1,31 +1,31 @@
 {
-  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Approved by Paul on 24 October; ?films=0 turns them off.",
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Photoreal takes (Paul, 24 October); black and white; ?films=0 turns them off.",
   "clips": {
     "bob-wide": {
       "file": "bob-wide.mp4",
       "frame": "bob-wide.jpg",
-      "v": "70ea62c7"
+      "v": "57df6f84"
     },
     "bob-close": {
       "file": "bob-close.mp4",
       "frame": "bob-close.jpg",
-      "v": "c20e2718"
+      "v": "6bf46a50"
     }
   },
   "cues": {
     "bob1": {
-      "clip": "bob-close",
+      "clip": "bob-wide",
       "at": 0.3,
       "from": 0,
-      "len": 3.2,
-      "note": "W-what the hell Smokehouse? His eyes snap open, then his mouth drops as he stammers"
+      "len": 4.8,
+      "note": "W-what the hell Smokehouse? The transmitter erupts, he drops his coffee and freezes"
     },
     "holy": {
-      "clip": "bob-wide",
+      "clip": "bob-close",
       "at": 0.15,
-      "from": 1.4,
-      "len": 3.5,
-      "note": "Holy smokes! Er, ok. His hand goes to the dials, they light, the halo turns to a vortex"
+      "from": 0.6,
+      "len": 3.8,
+      "note": "Holy smokes! Er, ok. The fear lands in his face, then he swallows and nods"
     }
   }
 }
