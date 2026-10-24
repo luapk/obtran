@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-24T06:04:15.464Z",
+  "updated": "2026-10-24T08:47:20.825Z",
   "worlds": [
     {
       "id": "bob-cockpit",
@@ -61,15 +61,15 @@
     {
       "id": "singularity-core",
       "title": "The singularity",
-      "model": "marble-1.0-draft",
-      "world_id": "0053a884-f885-43a9-a915-76ec17df253a",
-      "marble_url": "https://marble.worldlabs.ai/world/0053a884-f885-43a9-a915-76ec17df253a",
+      "model": "marble-1.1",
+      "world_id": "5d62c7cd-c3ff-4b0a-8f7e-13edfe48dd5c",
+      "marble_url": "https://marble.worldlabs.ai/world/5d62c7cd-c3ff-4b0a-8f7e-13edfe48dd5c",
       "splats": {
         "500k": "worlds/singularity-core.spz",
         "100k": "worlds/singularity-core.100k.spz"
       },
       "pano": "worlds/singularity-core.pano.png",
-      "metric_scale_factor": null,
+      "metric_scale_factor": 0.5450125,
       "crop_uv": [
         0.22487474211612143,
         0.3142981691368788,
@@ -80,15 +80,15 @@
     {
       "id": "hull-machinery",
       "title": "Hull machinery",
-      "model": "marble-1.0-draft",
-      "world_id": "c7b62e87-4d3f-4139-9909-4ea780131177",
-      "marble_url": "https://marble.worldlabs.ai/world/c7b62e87-4d3f-4139-9909-4ea780131177",
+      "model": "marble-1.1",
+      "world_id": "45cb0fcd-4eb4-47ec-a156-5964c30c210e",
+      "marble_url": "https://marble.worldlabs.ai/world/45cb0fcd-4eb4-47ec-a156-5964c30c210e",
       "splats": {
         "500k": "worlds/hull-machinery.spz",
         "100k": "worlds/hull-machinery.100k.spz"
       },
       "pano": "worlds/hull-machinery.pano.png",
-      "metric_scale_factor": null,
+      "metric_scale_factor": 1.3759437,
       "crop_uv": [
         0.668140288829944,
         0.2478204010462075,
@@ -118,15 +118,15 @@
     {
       "id": "monolith-slabs",
       "title": "Monolith slabs",
-      "model": "marble-1.0-draft",
-      "world_id": "481cdb8a-045e-4e3a-a547-44b20385c2fa",
-      "marble_url": "https://marble.worldlabs.ai/world/481cdb8a-045e-4e3a-a547-44b20385c2fa",
+      "model": "marble-1.1",
+      "world_id": "b6381daf-11c6-429b-a2e0-e815f0256009",
+      "marble_url": "https://marble.worldlabs.ai/world/b6381daf-11c6-429b-a2e0-e815f0256009",
       "splats": {
         "500k": "worlds/monolith-slabs.spz",
         "100k": "worlds/monolith-slabs.100k.spz"
       },
       "pano": "worlds/monolith-slabs.pano.png",
-      "metric_scale_factor": null,
+      "metric_scale_factor": 0.7296483,
       "crop_uv": [
         0,
         0.7395379250217959,

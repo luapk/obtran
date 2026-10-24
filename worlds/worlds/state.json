@@ -55,39 +55,39 @@
   },
   "singularity-core": {
     "status": "done",
-    "model": "marble-1.0-draft",
-    "media_asset_id": "a9902695-030c-485b-945a-4126420c374c",
-    "operation_id": "71dd609f-418c-4d1d-b645-5b912910c7a2",
-    "started_at": "2026-10-23T21:19:20.323Z",
-    "world_id": "0053a884-f885-43a9-a915-76ec17df253a",
-    "finished_at": "2026-10-23T21:19:52.162Z",
-    "marble_url": "https://marble.worldlabs.ai/world/0053a884-f885-43a9-a915-76ec17df253a",
-    "metric_scale_factor": null,
+    "model": "marble-1.1",
+    "media_asset_id": "4c24c4e2-8211-4b86-8551-632c377a3ce6",
+    "operation_id": "51681016-8fb7-4e21-8d56-670660500bde",
+    "started_at": "2026-10-24T08:36:56.286Z",
+    "world_id": "5d62c7cd-c3ff-4b0a-8f7e-13edfe48dd5c",
+    "finished_at": "2026-10-24T08:42:03.825Z",
+    "marble_url": "https://marble.worldlabs.ai/world/5d62c7cd-c3ff-4b0a-8f7e-13edfe48dd5c",
+    "metric_scale_factor": 0.5450125,
     "caption": "The scene is a panoramic depiction of an abstract, mechanical environment, rendered in a striking hand-drawn comic ink style with high contrast and stark black, off-white, and sepia tones. The overall tone is intense and dramatic, emphasizing a sense of immense power emanating from a central point. The scene features a vast circular tunnel of machinery, spiraling inward towards a blinding white starburst at its center. Concentric rings of plating, reinforced by sturdy struts and numerous cables, form the walls of this immense passage. Light radiates outward from the core in thin, sharp white rays, cutting through the darkness of the tunnel. The intricate details are conveyed through meticulous cross-hatching and scratchy hatching techniques, which provide depth and shading without introducing any additional colors. This intricate network of mechanical components extends uniformly in all directions, maintaining its drawn line quality and abstract character throughout the entire 360-degree view. The 360 scene is faultless.",
     "files": {
-      "singularity-core.spz": 5416584,
-      "singularity-core.100k.spz": 1131222,
-      "singularity-core.pano.png": 5710148
+      "singularity-core.spz": 7324433,
+      "singularity-core.100k.spz": 1274969,
+      "singularity-core.pano.png": 17134190
     },
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata:},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}"
   },
   "hull-machinery": {
     "status": "done",
-    "model": "marble-1.0-draft",
-    "media_asset_id": "649beeaa-a269-4e5e-81f2-27680bf18da0",
-    "operation_id": "97e4cec2-bf28-400a-b63e-454473ed47d9",
-    "started_at": "2026-10-23T21:20:00.494Z",
-    "world_id": "c7b62e87-4d3f-4139-9909-4ea780131177",
-    "finished_at": "2026-10-23T21:20:32.216Z",
-    "marble_url": "https://marble.worldlabs.ai/world/c7b62e87-4d3f-4139-9909-4ea780131177",
-    "metric_scale_factor": null,
+    "model": "marble-1.1",
+    "media_asset_id": "9276793c-6184-46cf-8dfc-a0bbecd8c8b0",
+    "operation_id": "a0f6fc20-fde3-4358-95c7-4dc172331209",
+    "started_at": "2026-10-24T08:36:55.709Z",
+    "world_id": "45cb0fcd-4eb4-47ec-a156-5964c30c210e",
+    "finished_at": "2026-10-24T08:42:34.306Z",
+    "marble_url": "https://marble.worldlabs.ai/world/45cb0fcd-4eb4-47ec-a156-5964c30c210e",
+    "metric_scale_factor": 1.3759437,
     "caption": "The scene is a field of broken spaceship hull fragments drifting in dark space, rendered in a hand-drawn comic ink style with high contrast and scratchy hatching for shading. The overall tone is desolate and fragmented, emphasizing the remnants of a catastrophic event. Densely packed, blocky panels, vents, pipes, antennae, and plating are slowly separating, each catching hard white light along their edges, creating sharp distinctions against the deep black of space. The forms are characterized by thick black ink and precise white chalk lines, with a dusty sepia wash providing subtle depth. Various components, from structural ribs to shattered conduits, are entangled yet also drifting apart, indicating a silent, ongoing dispersion. Some larger sections suggest the curvature of a once-whole vessel, now fractured into innumerable pieces, revealing inner workings and support structures. Smaller, more intricate debris spins gently amidst the larger chunks, catching and reflecting the stark illumination. The fragmentation extends in all directions, with larger pieces providing visual anchors around which smaller, more numerous particles dance. The 360 scene is faultless.",
     "files": {
-      "hull-machinery.spz": 4780899,
-      "hull-machinery.100k.spz": 1028920,
-      "hull-machinery.pano.png": 4991942
+      "hull-machinery.spz": 6999509,
+      "hull-machinery.100k.spz": 1213100,
+      "hull-machinery.pano.png": 15182588
     },
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata:},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}"
   },
   "ribbon-loops": {
     "status": "done",
@@ -109,20 +109,20 @@
   },
   "monolith-slabs": {
     "status": "done",
-    "model": "marble-1.0-draft",
-    "media_asset_id": "2c5fc2a4-c36f-4c77-bf45-af3aca7043e1",
-    "operation_id": "8882f3ea-91cb-476b-aa43-a124a1282ba9",
-    "started_at": "2026-10-23T21:20:39.448Z",
-    "world_id": "481cdb8a-045e-4e3a-a547-44b20385c2fa",
-    "finished_at": "2026-10-23T21:21:11.339Z",
-    "marble_url": "https://marble.worldlabs.ai/world/481cdb8a-045e-4e3a-a547-44b20385c2fa",
-    "metric_scale_factor": null,
+    "model": "marble-1.1",
+    "media_asset_id": "7899073f-4771-4346-8882-abdd45ada276",
+    "operation_id": "2f68b377-92fc-4b8d-ad0f-19ef0972f63d",
+    "started_at": "2026-10-24T08:42:12.712Z",
+    "world_id": "b6381daf-11c6-429b-a2e0-e815f0256009",
+    "finished_at": "2026-10-24T08:47:20.824Z",
+    "marble_url": "https://marble.worldlabs.ai/world/b6381daf-11c6-429b-a2e0-e815f0256009",
+    "metric_scale_factor": 0.7296483,
     "caption": "The scene is rendered in a hand-drawn comic ink style, utilizing black ink and white chalk lines on a deep black background, complemented by a dusty sepia wash. The overall tone is stark and abstract, emphasizing high contrast and sharp angles. Huge dark angular slabs and monoliths are tilted at steep angles throughout the empty space, their faces deeply scratched with fine white lines and intricate markings. These colossal structures are dramatically lit from one side, casting long, hard shadows that stretch across the sepia-toned backdrop. Cross-hatching and scratchy hatching techniques define the shading, enhancing the graphic quality of the drawing without introducing any colors beyond black, off-white, and sepia. The composition maintains a raw, drawn line quality, deliberately avoiding any photographic realism, extending these architectural, abstract forms into the surrounding void. The 360 scene is faultless.",
     "files": {
-      "monolith-slabs.spz": 5342614,
-      "monolith-slabs.100k.spz": 1147540,
-      "monolith-slabs.pano.png": 4314569
+      "monolith-slabs.spz": 7250439,
+      "monolith-slabs.100k.spz": 1292144,
+      "monolith-slabs.pano.png": 13750861
     },
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}"
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata:},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}"
   }
 }
