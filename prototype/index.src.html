@@ -28,7 +28,7 @@
   /* a short film of Bob that cuts in full screen as he speaks (assets/films) */
   #film { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; }
   #film.on { opacity: 1; pointer-events: auto; animation: filmIn 0.16s steps(3, end); }
-  #film video { display: none; width: 100%; height: 100%; object-fit: cover; filter: contrast(1.08); }
+  #film video { display: none; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.08); }
   /* the films are portrait: on a wide screen show the whole frame with ink either side */
   @media (min-aspect-ratio: 4/5) { #film video { object-fit: contain; } }
   #film video.cur { display: block; }
@@ -975,6 +975,40 @@ class Sound {
       if (v.pan.positionX) { v.pan.positionX.value = x; v.pan.positionY.value = y; v.pan.positionZ.value = z; } else v.pan.setPosition(x, y, z);
     });
   }
+  // a metal shard creaking as it tumbles past: a train of stick-slip clicks (rate swelling and
+  // sagging) rung through four narrow inharmonic resonances, like a struck plate, bending down a
+  // little as it groans; bigger shards are lower and longer. x, y, z are relative to the camera.
+  creak(x, y, z, size = 1) {
+    if (!this.ok || this.muted) return;
+    const ctx = this.ctx, t = this.now() + 0.02;
+    const dur = Math.min(2.4, 0.45 + Math.random() * 0.9 + size * 0.25);
+    const n = Math.floor(dur * ctx.sampleRate), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+    const r0 = 18 + Math.random() * 40, wob = 0.5 + Math.random() * 2;
+    for (let i = 0, next = 0; i < n; i++) {
+      const u = i / n;
+      if (i >= next) {
+        d[i] = (Math.random() < 0.5 ? -1 : 1) * (0.4 + Math.random() * 0.6);
+        const rate = r0 * (0.6 + 0.8 * Math.sin(Math.PI * u) + 0.3 * Math.sin(u * 6.28 * wob));
+        next = i + Math.max(8, Math.floor(ctx.sampleRate / Math.max(4, rate) * (0.6 + Math.random() * 0.8)));
+      }
+      d[i] += (Math.random() - 0.5) * 0.04 * Math.sin(Math.PI * u);
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const f0 = (70 + Math.random() * 120) / Math.sqrt(Math.max(0.3, size));
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(0.5, t + 0.04); out.gain.setTargetAtTime(0, t + dur * 0.8, 0.12);
+    [1, 2.76, 5.4, 8.93].forEach((m, k) => {
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 28 + k * 10;
+      bp.frequency.setValueAtTime(f0 * m, t); bp.frequency.linearRampToValueAtTime(f0 * m * (0.93 + Math.random() * 0.04), t + dur);
+      const g = ctx.createGain(); g.gain.value = [1.1, 0.7, 0.45, 0.25][k];
+      src.connect(bp).connect(g).connect(out);
+    });
+    const pan = ctx.createPanner(); pan.panningModel = 'HRTF'; pan.distanceModel = 'inverse'; pan.refDistance = 2.5;
+    if (pan.positionX) { pan.positionX.value = x; pan.positionY.value = y; pan.positionZ.value = z; } else pan.setPosition(x, y, z);
+    out.connect(pan); pan.connect(this.master);
+    const wet = ctx.createGain(); wet.gain.value = 0.35; pan.connect(wet).connect(this.reverb);
+    src.start(t); src.stop(t + dur + 0.3);
+  }
   // Voice lines (tools/render-voices.mjs). Both voices play through a walkie-talkie: a
   // narrow radio band, a little overdrive, a squelch burst as the mic keys, a static bed
   // under the voice, and a click and beep as it unkeys. Each voice's radio is set in
@@ -1276,6 +1310,191 @@ function updateShards(dt) {
     sh.mat.uniforms.uOpacity.value = a; sh.rm.opacity = a * 0.9;
     sh.mesh.visible = a > 0.01;
   }
+  // creaks: every second or two the most prominent shard (near for its size) groans where it is
+  shards.nextCreak = (shards.nextCreak ?? 2) - dt;
+  if (shards.level > 0.5 && shards.nextCreak <= 0) {
+    shards.nextCreak = 0.7 + Math.random() * 2.2;
+    let best = null, bd = Infinity;
+    for (const sh of shards.list) {
+      if (!sh.mesh.visible) continue;
+      const k = sh.mesh.getWorldPosition(_sv).distanceTo(camera.position) / sh.size * (0.6 + Math.random() * 0.8);
+      if (k < bd) { bd = k; best = sh; }
+    }
+    if (best) { best.mesh.getWorldPosition(_sv).sub(camera.position); sound.creak(_sv.x, _sv.y, _sv.z, best.size); }
+  }
+}
+const _sv = new THREE.Vector3();
+
+/* ---------- ribbons: the ribbon loops traced from the page and built in 3D ---------- */
+// Paul, 24 October: "for the ribbon scene can you trace the shape of the ribbons and create in
+// 3D, have them animate in as the scene loads". Centrelines traced by eye from the scan (1000 wide
+// grid). Each becomes a flat strip as wide as the drawn band, paper white with inked edges,
+// coiling in depth and twisting along its length. Scaled and centred so that from the viewpoint
+// they sit over the Marble world's own ribbons, then separate from them as the camera drifts. As
+// the scene arrives each one draws itself in from its start, one after another, with a bright
+// leading tip; afterwards a slow shimmer runs along them and they sway.
+const RIBBON_LINES = [
+  [[675.2, 907.6], [611.4, 925.0], [567.9, 970.2], [536.0, 1028.2], [524.4, 1086.2], [538.9, 1118.1], [573.7, 1139.6], [620.1, 1152.9], [678.1, 1152.9], [733.2, 1132.6], [768.0, 1106.5]],
+  [[759.3, 883.2], [733.2, 923.8], [692.6, 976.0], [652.0, 1028.2], [620.1, 1074.6], [602.7, 1121.0], [596.9, 1173.2], [608.5, 1216.7], [637.5, 1245.7], [675.2, 1260.2], [721.6, 1259.0], [762.2, 1242.8], [776.7, 1225.4]],
+  [[866.6, 894.8], [846.3, 947.0], [826.0, 999.2], [802.8, 1045.6], [776.7, 1092.0], [762.2, 1132.6], [758.1, 1176.1], [768.0, 1213.8], [791.2, 1235.8], [820.2, 1234.1], [842.2, 1210.9], [852.1, 1173.2], [849.2, 1129.7], [838.8, 1094.9], [826.0, 1075.8]],
+  [[768.0, 1097.8], [826.0, 1073.4], [884.0, 1066.5], [924.6, 1080.4], [950.7, 1115.2], [958.2, 1161.6], [950.7, 1208.0], [930.4, 1242.8], [895.6, 1261.4], [852.1, 1273.0]],
+];
+const RIBBON_WORLD = 'ribbon-loops';
+const RIB = { cx: 715, cy: 1082, k: 0.022, d: 9, width: 0.17 };   // crop centre, world units per grid unit, distance ahead
+const ribbons = { group: new THREE.Group(), list: [], on: params.get('ribbons') !== '0', level: { value: 0 }, t: 0, id: null };
+{
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTime: shared.uTime, uLevel: ribbons.level, uReveal: { value: 0 }, uPhase: { value: 0 } },
+    transparent: true, side: THREE.DoubleSide, depthWrite: false,
+    vertexShader: `attribute float aS; attribute float aSide; uniform float uTime; uniform float uPhase; varying float vS; varying float vSide;
+      void main(){
+        vS = aS; vSide = aSide;
+        vec3 p = position;
+        p.z += 0.18 * sin(uTime * 0.8 + aS * 6.0 + uPhase);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }`,
+    fragmentShader: `uniform float uTime; uniform float uLevel; uniform float uReveal; varying float vS; varying float vSide;
+      void main(){
+        if (vS > uReveal) discard;
+        vec3 paper = vec3(0.94, 0.91, 0.86), ink = vec3(0.03, 0.025, 0.02);
+        vec3 c = mix(paper, ink, smoothstep(0.62, 0.95, abs(vSide)));
+        c *= 0.86 + 0.14 * sin(vS * 46.0 - uTime * 3.0);
+        c += vec3(1.0, 0.95, 0.85) * smoothstep(0.06, 0.0, uReveal - vS) * step(uReveal, 0.999);   // the bright leading tip
+        if (!gl_FrontFacing) c *= 0.7;
+        gl_FragColor = vec4(c, uLevel);
+        #include <colorspace_fragment>
+      }`,
+  });
+  RIBBON_LINES.forEach((line, r) => {
+    const z0 = (r - 1.5) * 0.7, A = 1.4 + r * 0.35, f = 1.2 + r * 0.4, ph = r * 1.9, twist = (0.6 + 0.3 * r) * Math.PI * 2;
+    const pts = line.map(([x, y], i) => {
+      const s = i / (line.length - 1);
+      return new THREE.Vector3((x - RIB.cx) * RIB.k, -(y - RIB.cy) * RIB.k, z0 + A * Math.sin(s * Math.PI * f + ph));
+    });
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+    const N = 240, pos = new Float32Array((N + 1) * 2 * 3), aS = new Float32Array((N + 1) * 2), aSide = new Float32Array((N + 1) * 2), idx = [];
+    const view = new THREE.Vector3(0, 0, 1), side = new THREE.Vector3(), tan = new THREE.Vector3(), q = new THREE.Quaternion();
+    for (let i = 0; i <= N; i++) {
+      const s = i / N, c = curve.getPointAt(s);
+      curve.getTangentAt(s, tan);
+      side.crossVectors(tan, view).normalize();
+      side.applyQuaternion(q.setFromAxisAngle(tan, twist * s * 0.5));     // a gentle twist along the length
+      for (let k = 0; k < 2; k++) {
+        const sg = k === 0 ? -1 : 1, j = i * 2 + k;
+        pos[j * 3] = c.x + side.x * RIB.width * 0.5 * sg; pos[j * 3 + 1] = c.y + side.y * RIB.width * 0.5 * sg; pos[j * 3 + 2] = c.z + side.z * RIB.width * 0.5 * sg;
+        aS[j] = s; aSide[j] = sg;
+      }
+      if (i < N) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aS', new THREE.BufferAttribute(aS, 1));
+    geo.setAttribute('aSide', new THREE.BufferAttribute(aSide, 1));
+    geo.setIndex(idx);
+    const m = mat.clone();
+    m.uniforms.uTime = shared.uTime; m.uniforms.uLevel = ribbons.level; m.uniforms.uPhase.value = ph;
+    const mesh = new THREE.Mesh(geo, m);
+    mesh.renderOrder = 3;
+    ribbons.group.add(mesh);
+    ribbons.list.push({ mesh, mat: m, delay: r * 0.45 });
+  });
+  ribbons.group.visible = false;
+  scene.add(ribbons.group);
+}
+function updateRibbons(dt, rawDt) {
+  const here = ribbons.on && state.stage === 'void' && worlds.ok && worlds.id === RIBBON_WORLD;
+  if (worlds.id !== ribbons.id) { ribbons.id = worlds.id; ribbons.t = 0; }       // a new arrival draws them in again
+  const want = here ? 1 - 0.85 * worlds.suction : 0;
+  ribbons.level.value += (want - ribbons.level.value) * (1 - Math.exp(-dt * 3));
+  ribbons.group.visible = ribbons.level.value > 0.01;
+  if (!ribbons.group.visible) return;
+  // the draw-in follows the world opening out of its core
+  if (worlds.suction < 0.6) ribbons.t += rawDt;    // wall clock, so slow devices draw in on time
+  ribbons.group.position.copy(P0).add(new THREE.Vector3(0, 0, -RIB.d));
+  ribbons.group.rotation.y = 0.06 * Math.sin(shared.uTime.value * 0.11);
+  ribbons.group.rotation.x = 0.04 * Math.sin(shared.uTime.value * 0.13 + 1);
+  for (const r of ribbons.list) r.mat.uniforms.uReveal.value = reducedMotion ? 1 : clamp((ribbons.t - r.delay) / 2.6, 0, 1.0001);
+}
+
+/* ---------- the nucleus: the white heart of the singularity, turning, with flowing tendrils ---------- */
+// Paul, 24 October: "can the white nucleus at the heart of the singularity be a rotating 3D
+// object with wild flowing tendrils". A white body whose surface heaves with layered waves,
+// brightest at its rim, turning slowly on two axes; tendrils grow from it in every direction,
+// tapered, with waves running out along them from root to tip so the tips lash and the roots stay
+// calm. It sits on the axis where the shards are born, and shows with them.
+const NUC_D = 9;                                   // ahead of the viewpoint, in front of the world's shell of splats
+const NUC_TENDRILS = reducedMotion ? 12 : 42;
+const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), on: params.get('nucleus') !== '0', level: { value: 0 }, tendrils: [] };
+{
+  const body = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 6), new THREE.ShaderMaterial({
+    uniforms: { uTime: shared.uTime, uLevel: nucleus.level },
+    transparent: true,
+    vertexShader: `uniform float uTime; varying vec3 vN; varying vec3 vV; varying float vH;
+      void main(){
+        vec3 p = position;
+        float h = sin(p.x * 4.0 + uTime * 1.3) * sin(p.y * 5.0 - uTime * 1.1) * sin(p.z * 4.5 + uTime * 0.9);
+        h += 0.5 * sin(p.x * 9.0 + p.y * 7.0 - uTime * 2.1);
+        p *= 1.0 + 0.16 * h; vH = h;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        vN = normalize(normalMatrix * normal); vV = -mv.xyz;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `uniform float uLevel; varying vec3 vN; varying vec3 vV; varying float vH;
+      void main(){
+        float rim = 1.0 - abs(dot(normalize(vN), normalize(vV)));
+        vec3 c = mix(vec3(0.7, 0.66, 0.6), vec3(1.0, 0.98, 0.94), smoothstep(-0.4, 0.7, vH)) + pow(rim, 2.0) * 0.7;
+        gl_FragColor = vec4(c, uLevel);
+        #include <colorspace_fragment>
+      }`,
+  }));
+  nucleus.spin.add(body);
+  const tg = new THREE.CylinderGeometry(1, 1, 1, 6, 90, true);
+  tg.translate(0, 0.5, 0);
+  const tmat = new THREE.ShaderMaterial({
+    uniforms: { uTime: shared.uTime, uLevel: nucleus.level, uPhase: { value: 0 }, uLen: { value: 4 }, uWidth: { value: 0.05 }, uWild: { value: 1 } },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    vertexShader: `uniform float uTime; uniform float uPhase; uniform float uLen; uniform float uWidth; uniform float uWild; varying float vT;
+      void main(){
+        float t = position.y; vT = t;
+        vec3 p = vec3(position.x, 0.0, position.z) * uWidth * pow(1.0 - t, 1.2);
+        float a = t * t * uLen * 0.38 * uWild;
+        float w = t * 8.0 - uTime * 2.3 + uPhase;
+        p.x += a * sin(w) + 0.35 * a * sin(w * 2.3 + 1.0);
+        p.z += a * cos(w * 0.8 + uPhase * 1.7);
+        p.y = t * uLen * (0.82 + 0.18 * sin(uTime * 0.7 + uPhase));
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }`,
+    fragmentShader: `uniform float uLevel; varying float vT;
+      void main(){ float a = min(1.0, 1.5 * (1.0 - smoothstep(0.6, 1.0, vT))) * uLevel; gl_FragColor = vec4(vec3(1.0, 0.97, 0.92) * a, a); }`,
+  });
+  const Y = new THREE.Vector3(0, 1, 0);
+  for (let i = 0; i < NUC_TENDRILS; i++) {
+    const m = tmat.clone();
+    m.uniforms.uTime = shared.uTime; m.uniforms.uLevel = nucleus.level;
+    m.uniforms.uPhase.value = Math.random() * 20;
+    m.uniforms.uLen.value = 3.5 + Math.random() * 6.5;
+    m.uniforms.uWidth.value = 0.035 + Math.random() * 0.08;
+    m.uniforms.uWild.value = 0.9 + Math.random() * 0.9;
+    const t = new THREE.Mesh(tg, m);
+    const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+    t.quaternion.setFromUnitVectors(Y, dir);
+    t.position.copy(dir).multiplyScalar(0.8);
+    nucleus.spin.add(t);
+  }
+  nucleus.group.add(nucleus.spin);
+  nucleus.group.visible = false;
+  scene.add(nucleus.group);
+}
+function updateNucleus(dt) {
+  const want = nucleus.on && state.stage === 'void' && worlds.ok && worlds.id === STORY_WORLD ? 1 - worlds.suction : 0;
+  nucleus.level.value += (want - nucleus.level.value) * (1 - Math.exp(-dt * 1.2));
+  nucleus.group.visible = nucleus.level.value > 0.01;
+  if (!nucleus.group.visible) return;
+  nucleus.group.position.copy(P0).add(new THREE.Vector3(0, 0, -NUC_D));
+  const k = reducedMotion ? 0.3 : 1;
+  nucleus.spin.rotation.y += dt * 0.35 * k;
+  nucleus.spin.rotation.x += dt * 0.13 * k;
+  nucleus.spin.scale.setScalar(1.25 * (1 + 0.05 * Math.sin(shared.uTime.value * 1.7)));
 }
 
 /* ---------- the journey: one space at a time ---------- */
@@ -1784,6 +2003,14 @@ async function startReview() {
   shb.className = 'ui-btn'; shb.type = 'button'; shb.textContent = 'Shards'; shb.setAttribute('aria-pressed', String(shards.on));
   shb.addEventListener('click', () => { shards.on = !shards.on; shb.setAttribute('aria-pressed', String(shards.on)); });
   panel.append(shb);
+  const nb = document.createElement('button');
+  nb.className = 'ui-btn'; nb.type = 'button'; nb.textContent = 'Nucleus'; nb.setAttribute('aria-pressed', String(nucleus.on));
+  nb.addEventListener('click', () => { nucleus.on = !nucleus.on; nb.setAttribute('aria-pressed', String(nucleus.on)); });
+  panel.append(nb);
+  const rb = document.createElement('button');
+  rb.className = 'ui-btn'; rb.type = 'button'; rb.textContent = 'Ribbons'; rb.setAttribute('aria-pressed', String(ribbons.on));
+  rb.addEventListener('click', () => { ribbons.on = !ribbons.on; ribbons.t = 0; rb.setAttribute('aria-pressed', String(ribbons.on)); });
+  panel.append(rb);
   show(worlds.id || STORY_WORLD);
 }
 if (REVIEW) $('note').textContent = 'Review mode: opens the Marble worlds directly.';
@@ -1942,6 +2169,8 @@ function frame() {
   updateJourney(rawDt, dt);
   updateWorld(rawDt, t);
   updateShards(dt);
+  updateNucleus(dt);
+  updateRibbons(dt, rawDt);
   sound.update(dt, camera);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -1951,7 +2180,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   depth.generateMipmaps = false; depth.minFilter = THREE.LinearFilter; depth.anisotropy = 1;
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
