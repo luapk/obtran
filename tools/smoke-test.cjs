@@ -74,6 +74,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       if (world !== steps[i].world) throw new Error(`step ${i} shows ${world}, expected ${steps[i].world}`);
       await sleep(2500);
       await shot(`step${i}-${steps[i].world}`);
+      // a key during one of Bob's films only cuts the film, so let it finish first
+      await page.waitForFunction(() => !window.__ot.films?.on, { timeout: 60000, polling: 200 });
       const beat = await page.evaluate((b) => window.__ot.BEATS[b], steps[i].beat);
       if (beat.hold) {
         await page.keyboard.down('Space');
