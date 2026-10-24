@@ -38,21 +38,6 @@
       "100k": "worlds/bob-cockpit.100k.clean.spz"
     }
   },
-  "bob-head-relief": {
-    "yaw": [
-      -60,
-      60
-    ],
-    "pitch": [
-      -40,
-      40
-    ],
-    "radius": 1.809376835823059,
-    "files": {
-      "500k": "worlds/bob-head-relief.clean.spz",
-      "100k": "worlds/bob-head-relief.100k.clean.spz"
-    }
-  },
   "bob-head": {
     "yaw": [
       -170.0,

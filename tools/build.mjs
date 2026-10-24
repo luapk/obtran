@@ -67,6 +67,8 @@ if (!inline) {
     mkdirSync(join(DIST, 'assets', 'voice'), { recursive: true });
     for (const f of readdirSync(VOICE).filter((f) => f === 'index.json' || f.endsWith('.mp3'))) copyFileSync(join(VOICE, f), join(DIST, 'assets', 'voice', f));
   }
+  mkdirSync(join(DIST, 'assets', 'voice'), { recursive: true });
+  if (!existsSync(join(DIST, 'assets', 'voice', 'index.json'))) writeFileSync(join(DIST, 'assets', 'voice', 'index.json'), JSON.stringify({ lines: {} }) + '\n');
   mkdirSync(join(DIST, 'worlds'), { recursive: true });
   if (existsSync(WORLDS)) {
     const files = readdirSync(WORLDS).filter(isWorldFile);

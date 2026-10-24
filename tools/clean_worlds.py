@@ -139,12 +139,17 @@ def grade_for(crop_path, pos, rgb):
 def main():
     manifest = json.loads((ROOT / "worlds" / "manifest.json").read_text())
     crops = {e["id"]: ROOT / "worlds" / e["crop"] for e in manifest["elements"]}
+    # reliefs built from the page (tools/make_bob_head.py) are the page's own ink: leave them alone
+    reliefs_file = WORLDS / "reliefs.json"
+    reliefs = {w["id"] for w in json.loads(reliefs_file.read_text()).get("worlds", [])} if reliefs_file.exists() else set()
     views = {}
     for src in sorted(WORLDS.glob("*.spz")):
         name = src.name
         if ".clean." in name or ".full." in name:
             continue
         wid = name.split(".")[0]
+        if wid in reliefs:
+            continue
         spz = read_columns(src)
         pos, alpha, rgb, radius = decode(spz)
         keep = prune_mask(pos, alpha, radius)

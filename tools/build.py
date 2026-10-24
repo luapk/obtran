@@ -84,6 +84,9 @@ def main():
             for f in sorted(voice.iterdir()):
                 if f.name == "index.json" or f.suffix == ".mp3":
                     shutil.copyfile(f, DIST / "assets" / "voice" / f.name)
+        (DIST / "assets" / "voice").mkdir(exist_ok=True)
+        if not (DIST / "assets" / "voice" / "index.json").exists():
+            (DIST / "assets" / "voice" / "index.json").write_text(json.dumps({"lines": {}}, separators=(",", ":")) + "\n")
         (DIST / "worlds").mkdir()
         if WORLDS.exists():
             names = sorted(f.name for f in WORLDS.iterdir() if WORLD_FILE.match(f.name))
