@@ -26,6 +26,8 @@ node tools/smoke-test.cjs shots 1280 860 desk
 node tools/smoke-test.cjs shots 390 844 phone
 ```
 
+The page opens as drawn; a tap takes you through the spaces one beat at a time. `?classic=1` keeps the earlier flow (beats on the page, then one breach).
+
 Open `dist/index.html?world=<id>` to look at one Marble world (or `bob-head-relief`) with the ink grade on and off.
 
 After new worlds are generated: `python3 tools/clean_worlds.py` (the workflow runs it too), and `python3 tools/make_bob_head.py` for Bob's head from the page.

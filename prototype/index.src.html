@@ -561,7 +561,7 @@ const DEG = Math.PI / 180;
 const worlds = {
   Spark: null, ok: false, list: [], views: {}, id: null, mesh: null, loading: null,
   limits: { yaw: [-Math.PI, Math.PI], pitch: [-1.3, 1.3] }, parallax: 2.0, offset: new THREE.Vector3(),
-  radius: 1.2, wander: new THREE.Vector3(), wanderT: null, echoes: [], extrudeOn: params.get('extrude') !== '0', lastTick: -1,
+  radius: 1.2, wander: new THREE.Vector3(), wanderT: null, suctionTarget: 0, suctionRate: 0.18, echoes: [], extrudeOn: params.get('extrude') !== '0', lastTick: -1,
   sandMesh: null, sandOn: params.get('sand') !== '0',
   u: null, suction: 0, jitter: 0, nextCrackle: 0, drift: new THREE.Vector3(),
 };
@@ -792,7 +792,7 @@ function useWorld(on) {
 function updateWorld(dt, t) {
   if (!worlds.mesh || !worlds.u) return;
   const u = worlds.u;
-  if (state.stage === 'void' && !REVIEW && t > worlds.nextCrackle) {
+  if (state.stage === 'void' && !REVIEW && (!journey.on || journey.done) && t > worlds.nextCrackle) {
     // the transmitter still crackles: a burst of static shears the world for a moment
     worlds.nextCrackle = t + 9 + Math.random() * 8;
     worlds.jitter = 1; sound.staticBurst();
@@ -887,6 +887,8 @@ class Sound {
     setTimeout(() => this.startSpace(), (dur * 0.72 + 0.4) * 1000);
   }
   startSpace() {
+    if (!this.ok || this.spaceOn) return;
+    this.spaceOn = true;
     const ctx = this.ctx, t = this.now();
     [55, 82.41, 110, 130.81, 164.81, 246.94].forEach((f, i) => {
       const o = ctx.createOscillator(); o.type = i < 2 ? 'sine' : 'triangle'; o.frequency.value = f;
@@ -1012,7 +1014,196 @@ function enterVoid() {
   worlds.drift.set(0, 0, 0);
   worlds.nextCrackle = shared.uTime.value + 6;
   if (worlds.ok) useWorld(true);
-  setHint('Drag to look around');
+  if (!journey.on) setHint('Drag to look around');
+}
+
+
+/* ---------- the journey: one space at a time ---------- */
+// The page opens as drawn; a tap dives into Bob's panel, and from there each beat of
+// the dialogue happens inside a world, its lettering box springing up in front of the
+// reader. Moving on collapses the space into its core and unwinds the next one out of
+// it. "Initiating QNTM CTRL..." ends in the singularity. ?classic=1 keeps the old flow:
+// beats on the page, then one breach into the singularity.
+const CLASSIC = params.get('classic') === '1';
+const JOURNEY = [
+  { world: 'bob-cockpit', beats: [0, 1] },        // caption, CRSSHKKKKK!
+  { world: 'hull-machinery', beats: [2] },        // Smokehouse Shift for Bob
+  { world: 'ribbon-loops', beats: [3] },          // Engage Chemical Digital Cryptoflage!
+  { world: 'bob-head-relief', beats: [4] },       // W-what the hell Smokehouse?
+  { world: 'monolith-slabs', beats: [5] },        // This is not a drill: the Spomenik Transfer Protocol
+  { world: 'bob', beats: [6, 7, 8] },             // unlock (hold), Holy smokes!, Initiating QNTM CTRL...
+];
+const FINAL_WORLD = 'singularity-core';
+const STEPS = JOURNEY.flatMap((j) => j.beats.map((beat) => ({ world: j.world, beat })));
+const ENTER_DUR = 1.8, OUT_DUR = 0.9, FINAL_DUR = BREACH_DUR;
+const ENTER_UV = [0.17, 0.36];                    // the middle of Bob's panel on the page
+const journey = { on: !CLASSIC && !REVIEW, step: -1, phase: 'idle', t: 0, done: false, cardT: 0 };
+
+// one lettering card, cut from the page like the lifted boxes, carried in front of the camera
+const cardMat = bubbleById.caption.mat.clone();
+cardMat.uniforms.uPage = shared.uPage;
+cardMat.uniforms.uTime = shared.uTime;
+cardMat.depthTest = false;
+const card = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), cardMat);
+card.renderOrder = 10;
+card.visible = false;
+camera.add(card);
+const cardState = { lift: 0, vel: 0, target: 0, tilt: 0, aspect: 1 };
+
+function setCard(beatIndex) {
+  const b = bubbleById[BEATS[beatIndex].b];
+  const [u0, v0, u1, v1] = b.uv;
+  cardMat.uniforms.uRect.value.set(u0, v0, u1, v1);
+  cardState.aspect = ((u1 - u0) * PW) / ((v1 - v0) * PH);
+  cardState.lift = 0; cardState.vel = 0; cardState.target = 1;
+  cardState.tilt = (Math.random() - 0.5) * 0.08;
+  cardMat.uniforms.uFlick.value = 1; journey.cardT = 0;
+  card.visible = true;
+}
+
+function updateCard(dt) {
+  if (!card.visible) return;
+  cardState.vel += ((cardState.target - cardState.lift) * 95 - cardState.vel * 12) * dt;
+  cardState.lift += cardState.vel * dt;
+  if (cardState.target === 0 && cardState.lift < 0.01) { card.visible = false; return; }
+  // sized to the screen: as wide as fits, never taller than a quarter of it, low in the frame
+  const dist = 2.4, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), visW = visH * camera.aspect;
+  let w = Math.min(visW * 0.86, visH * 0.26 * cardState.aspect);
+  const h = w / cardState.aspect;
+  const k = reducedMotion ? 1 : Math.max(0, cardState.lift);
+  card.scale.set(w * (0.7 + 0.3 * k), h * (0.7 + 0.3 * k), 1);
+  card.position.set(0, -visH / 2 + h / 2 + visH * 0.13, -dist + (reducedMotion ? 0 : (1 - k) * 0.6));
+  card.rotation.z = reducedMotion ? 0 : cardState.tilt * k;
+  cardMat.uniforms.uOpacity.value = clamp(cardState.lift * 1.4, 0, 1);
+  journey.cardT += dt;
+  cardMat.uniforms.uFlick.value = journey.cardT < 0.5 ? 1 : 0;
+  const trigger = BEATS[STEPS[journey.step]?.beat]?.trigger;
+  cardMat.uniforms.uGlow.value = trigger && journey.phase === 'space' ? 0.3 + 0.3 * Math.sin(shared.uTime.value * 5) : 0;
+}
+
+function hitCard(x, y) {
+  if (!card.visible) return false;
+  ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  return ray.intersectObject(card, false).length > 0;
+}
+
+function worldFiles(id) {
+  const entry = worlds.list.find((w) => w.id === id);
+  if (!entry) return [];
+  const view = entry.relief ? entry : worlds.views[id] || {};
+  const f = view.files || entry.splats || {};
+  return [f['500k'], f['100k']].filter(Boolean);
+}
+// warm the browser cache with the next space while the reader is in this one
+function prefetchWorld(id) { for (const url of worldFiles(id)) fetch(url).catch(() => {}); }
+
+function showStep(i) {
+  journey.step = i;
+  const beat = BEATS[STEPS[i].beat];
+  state.beat = STEPS[i].beat;
+  setCard(STEPS[i].beat);
+  $('sr').textContent = bubbleById[beat.b].text;
+  if (beat.fx === 'static') { sound.staticBurst(); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
+  if (beat.fx === 'blip') sound.blip();
+  if (beat.hold) setHint('Press and hold to unlock');
+  else if (beat.trigger) setHint(`${tapWord} INITIATING QNTM CTRL`);
+  else setHint(`${tapWord} to continue`);
+  const next = STEPS[i + 1];
+  prefetchWorld(next ? next.world : FINAL_WORLD);
+}
+
+// arrive in the world now loaded: it unwinds out of its core, then the step's card comes up
+function arrive(i) {
+  journey.phase = 'space';
+  enterVoid();
+  useWorld(true);
+  worlds.suction = 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.55;
+  look.yaw = 0; look.pitch = 0; look.vyaw = 0; look.vpitch = 0;
+  flash(0.3);
+  showStep(i);
+}
+
+function startJourney() {
+  state.stage = 'read'; state.beat = -1;
+  setHint(`${tapWord} to enter`);
+  loadWorld(STEPS[0].world).catch((e) => console.warn('world unavailable', e));
+}
+
+function enterSpace() {
+  if (journey.phase !== 'idle') return;
+  journey.phase = 'enter'; journey.t = 0;
+  state.stage = 'enter';
+  state.camStart = camera.position.clone();
+  setHint('');
+  sound.blip();
+  if (sound.ok) { sound.cabin.gain.setTargetAtTime(0.25, sound.now(), 0.8); sound.startSpace(); }
+}
+
+function journeyNext() {
+  if (journey.phase !== 'space') return;
+  const i = journey.step, beat = BEATS[STEPS[i].beat];
+  if (beat.hold) { nudge(); return; }
+  if (beat.trigger) { finalBreach(); return; }
+  const next = STEPS[i + 1];
+  if (next.world === STEPS[i].world) { showStep(i + 1); return; }
+  leave(next.world, () => arrive(i + 1));
+}
+
+// collapse the current space into its core, then load and unwind the next
+function leave(nextWorld, then, dur = OUT_DUR) {
+  journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
+  cardState.target = 0;
+  setHint('');
+  worlds.suctionTarget = 1; worlds.suctionRate = 1 / dur;
+}
+
+function finalBreach() {
+  if (journey.phase !== 'space') return;
+  $('sr').textContent = 'Initiating QNTM CTRL. The space breaks apart and you fall through the singularity.';
+  sound.breach(FINAL_DUR);
+  if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
+  leave(FINAL_WORLD, () => {
+    journey.phase = 'end'; journey.done = true;
+    enterVoid();
+    useWorld(true);
+    worlds.suction = 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.3;
+    look.yaw = 0; look.pitch = 0;
+    flash(0.5);
+    state.endT = 0;
+    setHint('Drag to look around');
+  }, FINAL_DUR * 0.72);
+}
+
+function updateJourney(rawDt, dt) {
+  if (!journey.on) return;
+  journey.t += rawDt;
+  if (journey.phase === 'enter') {
+    // dive into Bob's panel on the page
+    const u = clamp(journey.t / ENTER_DUR, 0, 1), e = ease(u);
+    const p = uvToWorld(ENTER_UV[0], ENTER_UV[1]);
+    camera.position.set(lerp(state.camStart.x, p.x, e), lerp(state.camStart.y, p.y, e), lerp(state.camStart.z, 0.35, e));
+    camera.lookAt(p.x, p.y, -2);
+    pageMat.uniforms.uOpacity.value = 1 - smooth(0.6, 0.95, u);
+    bubbles.forEach((b) => (b.target = 0));
+    if (u > 0.82 && u < 0.86) flash(0.4);
+    $('black').style.opacity = smooth(0.7, 1, u);
+    if (u >= 1) {
+      pageMesh.visible = false; inflow.visible = false;
+      journey.phase = 'load';
+      (worlds.loading || loadWorld(STEPS[0].world)).then(() => arrive(0)).catch((e) => { console.warn(e); setHint('The space could not load'); });
+    }
+  }
+  if (journey.phase === 'out') {
+    worlds.drift.addScaledVector(tmpV.set(0, 0, -1).applyQuaternion(camera.quaternion), rawDt * 2.5);
+    worlds.jitter = Math.max(worlds.jitter, smooth(0.5, 1, journey.t / journey.outDur) * 0.8);
+    if (journey.t >= journey.outDur) {
+      journey.phase = 'load';
+      const then = journey.then;
+      loadWorld(journey.nextWorld).then(then).catch((e) => { console.warn(e); then(); });
+    }
+  }
+  updateCard(dt);
 }
 
 /* ---------- input ---------- */
@@ -1033,12 +1224,16 @@ function endHold(success) {
   if (!state.holding) return;
   state.holding = false; ring.classList.remove('on'); ringProg.style.strokeDashoffset = 251.3;
   sound.holdStop(success);
-  if (success) { if (navigator.vibrate) navigator.vibrate(40); showBeat(state.beat + 1); }
+  if (success) {
+    if (navigator.vibrate) navigator.vibrate(40);
+    if (journey.on) { const i = journey.step; journey.phase = 'space'; showStep(i + 1); } else showBeat(state.beat + 1);
+  }
 }
 const canvas = renderer.domElement;
 canvas.addEventListener('pointerdown', (e) => {
   down = { x: e.clientX, y: e.clientY, t: performance.now() };
-  if (state.stage === 'read' && BEATS[state.beat].hold) startHold(e.clientX, e.clientY);
+  if (state.stage === 'read' && !journey.on && BEATS[state.beat].hold) startHold(e.clientX, e.clientY);
+  if (journey.on && journey.phase === 'space' && BEATS[state.beat].hold) startHold(e.clientX, e.clientY);
   if (state.stage === 'void') { look.dragging = true; look.lastX = e.clientX; look.lastY = e.clientY; canvas.setPointerCapture(e.pointerId); }
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -1060,11 +1255,22 @@ canvas.addEventListener('pointermove', (e) => {
 });
 function pointerEnd(e) {
   if (state.holding) endHold(false);
-  if (state.stage === 'void') { look.dragging = false; return; }
+  if (state.stage === 'void' && !journey.on) { look.dragging = false; return; }
+  look.dragging = false;
   if (!down) return;
   const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t;
   down = null;
   if (moved > 14 || dt > 600) return;
+  if (journey.on) {
+    // a tap, not a drag: move the journey on
+    if (journey.phase === 'idle' && state.stage === 'read') { enterSpace(); return; }
+    if (journey.phase === 'space') {
+      const beat = BEATS[state.beat];
+      if (beat.trigger) { if (hitCard(e.clientX, e.clientY)) finalBreach(); else nudge(); return; }
+      journeyNext();
+    }
+    return;
+  }
   if (state.stage !== 'read') return;
   const beat = BEATS[state.beat];
   if (beat.trigger) { if (hitBubble(bubbleById.qntm, e.clientX, e.clientY)) breach(); else nudge(); return; }
@@ -1073,9 +1279,20 @@ function pointerEnd(e) {
 canvas.addEventListener('pointerup', pointerEnd);
 canvas.addEventListener('pointercancel', () => { if (state.holding) endHold(false); look.dragging = false; down = null; });
 let wheelLock = 0;
-addEventListener('wheel', (e) => { if (state.stage === 'read' && Math.abs(e.deltaY) > 20 && performance.now() > wheelLock) { wheelLock = performance.now() + 650; advance(); } }, { passive: true });
+addEventListener('wheel', (e) => { if (state.stage === 'read' && !journey.on && Math.abs(e.deltaY) > 20 && performance.now() > wheelLock) { wheelLock = performance.now() + 650; advance(); } }, { passive: true });
 let keyHold = false;
 addEventListener('keydown', (e) => {
+  if (journey.on) {
+    if (!(e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'ArrowDown')) return;
+    e.preventDefault();
+    if (journey.phase === 'idle' && state.stage === 'read') { enterSpace(); return; }
+    if (journey.phase !== 'space') return;
+    const beat = BEATS[state.beat];
+    if (beat.hold) { if (!keyHold && !e.repeat) { keyHold = true; startHold(innerWidth / 2, innerHeight / 2); } return; }
+    if (beat.trigger) { if (e.key === 'Enter' || e.key === ' ') finalBreach(); return; }
+    if (!e.repeat) journeyNext();
+    return;
+  }
   if (state.stage !== 'read') return;
   const beat = BEATS[state.beat];
   if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -1104,6 +1321,7 @@ $('start').addEventListener('click', async () => {
   } catch (e) { /* tilt stays off, pointer still works */ }
   $('gate').classList.add('hide');
   if (REVIEW) { startReview(); return; }
+  if (journey.on) { startJourney(); return; }
   state.stage = 'read';
   showBeat(0);
   loadWorld(STORY_WORLD).catch((e) => console.warn('world unavailable, using the drawn void', e));
@@ -1177,7 +1395,7 @@ function frame() {
     const breathe = reducedMotion ? 0 : Math.sin(t * 0.4) * 0.02;
     camera.position.set(parallax.x * 0.32, -parallax.y * 0.32, fitDist * (1 + breathe * 0.2));
     camera.lookAt(lookTarget);
-    const agitTarget = state.stage === 'read' ? smooth(0, BEATS.length - 1, Math.max(0, state.beat)) : 0;
+    const agitTarget = state.stage === 'read' && !journey.on ? smooth(0, BEATS.length - 1, Math.max(0, state.beat)) : journey.on ? 0.25 : 0;
     shared.uAgit.value = lerp(shared.uAgit.value, agitTarget, 1 - Math.exp(-dt * 1.5));
   }
 
@@ -1243,7 +1461,8 @@ function frame() {
   if (state.stage === 'void') {
     state.endT += rawDt;
     // wall clock, like the other story timers, so a slow device still settles
-    worlds.suction = Math.max(0, worlds.suction - rawDt * (reducedMotion ? 10 : 0.18));
+    const sRate = reducedMotion ? 10 : worlds.suctionRate;
+    worlds.suction += clamp(worlds.suctionTarget - worlds.suction, -sRate * rawDt, sRate * rawDt);
     const lim = worlds.ok ? worlds.limits : { yaw: [-Infinity, Infinity], pitch: [-1.3, 1.3] };
     if (!look.dragging) {
       look.vyaw *= Math.exp(-dt * 3); look.vpitch *= Math.exp(-dt * 3);
@@ -1278,7 +1497,7 @@ function frame() {
       worlds.offset.lerp(tmpV.set(px, -py, 0).multiplyScalar(worlds.parallax).applyQuaternion(camera.quaternion), 1 - Math.exp(-dt * 4));
       camera.position.copy(P0).add(worlds.drift).add(worlds.wander).add(worlds.offset);
     } else if (!reducedMotion) camera.position.addScaledVector(fwd, dt * 0.25);
-    if (state.endT > 3 && !tbcCard.visible && !REVIEW) {
+    if (state.endT > 3 && !tbcCard.visible && !REVIEW && (!journey.on || journey.done)) {
       tbcCard.visible = true;
       const gp = tbc.mesh.geometry.parameters, visW = 2 * 2.4 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
       const s = Math.min(0.34 / gp.height, (visW * 0.78) / gp.width);
@@ -1289,13 +1508,14 @@ function frame() {
       tbcCard.material.uniforms.uOpacity.value = smooth(3, 4.5, state.endT);
       tbcCard.material.uniforms.uFlick.value = state.endT < 3.6 ? 1 : 0;
     }
-    if (state.endT > 5 && !REVIEW) $('again').classList.add('show');
-    if (state.endT > 6 && look.idle < 1) setHint('');
+    if (state.endT > 5 && !REVIEW && (!journey.on || journey.done)) $('again').classList.add('show');
+    if (state.endT > 6 && look.idle < 1 && (!journey.on || journey.done)) setHint('');
   }
 
   spinners.forEach((s) => { s.o.rotation.y += s.s * dt; s.o.rotation.x += s.s * 0.5 * dt; });
   sing.material.rotation += dt * 0.03;
   sing.scale.setScalar(46 + Math.sin(t * 0.7) * 2);
+  updateJourney(rawDt, dt);
   updateWorld(rawDt, t);
   sound.update(dt, camera);
   renderer.render(scene, camera);
@@ -1306,7 +1526,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   depth.generateMipmaps = false; depth.minFilter = THREE.LinearFilter; depth.anisotropy = 1;
   shared.uPage.value = page; shared.uDepth.value = depth;
   resize();
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace };
   requestAnimationFrame(frame);
 }).catch((e) => { $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

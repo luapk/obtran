@@ -7,7 +7,8 @@
 //   node tools/smoke-test.cjs shots 390 844 phone
 //
 // Env: URL (default http://localhost:8765/dist/index.html), CHROME_PATH,
-// WORLD=0 to accept the drawn void when the Marble world is unavailable.
+// WORLD=0 to accept the drawn void when the Marble world is unavailable,
+// CLASSIC=1 to walk the old flow (beats on the page, one breach) instead of the journey.
 // Without a GPU, Chrome runs on SwiftShader, so frame rates are low; the page's
 // timers use wall clock time, which is why the waits below are in seconds.
 const fs = require('fs');
@@ -18,7 +19,8 @@ try { puppeteer = require('puppeteer'); } catch { puppeteer = require('puppeteer
 
 const [outDir = 'shots', w = '1280', h = '860', label = 'desk'] = process.argv.slice(2);
 const W = Number(w), H = Number(h);
-const URL = process.env.URL || 'http://localhost:8765/dist/index.html';
+const CLASSIC = process.env.CLASSIC === '1';
+const URL = (process.env.URL || 'http://localhost:8765/dist/index.html') + (CLASSIC ? '?classic=1' : '');
 const phone = W < 700;
 const candidates = [process.env.CHROME_PATH, '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome', '/opt/pw-browsers/chromium'].filter(Boolean);
 const executablePath = candidates.find((p) => { try { return fs.statSync(p).isFile(); } catch { return false; } });
@@ -57,6 +59,44 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await sleep(1500);
   await page.mouse.move(W * 0.8, H * 0.3);
   await sleep(1500);
+
+  if (!CLASSIC) {
+    // the journey: tap into Bob's panel, then each beat in its own space
+    await shot('page');
+    await page.keyboard.press('ArrowRight');
+    const spaceReady = (step) => page.waitForFunction((s) => window.__ot.journey.phase === 'space' && window.__ot.journey.step === s && window.__ot.worlds.ok, { timeout: 600000, polling: 500 }, step);
+    const steps = await page.evaluate(() => window.__ot.STEPS);
+    for (let i = 0; i < steps.length; i++) {
+      await spaceReady(i).catch(() => { throw new Error(`step ${i} (${steps[i].world}) never became ready`); });
+      const world = await page.evaluate(() => window.__ot.worlds.id);
+      if (world !== steps[i].world) throw new Error(`step ${i} shows ${world}, expected ${steps[i].world}`);
+      await sleep(2500);
+      await shot(`step${i}-${steps[i].world}`);
+      const beat = await page.evaluate((b) => window.__ot.BEATS[b], steps[i].beat);
+      if (beat.hold) {
+        await page.keyboard.down('Space');
+        await page.waitForFunction((s) => window.__ot.journey.step === s + 1, { timeout: 120000, polling: 200 }, i)
+          .catch(() => { throw new Error('hold did not unlock the next beat'); });
+        await page.keyboard.up('Space');
+      } else if (beat.trigger) {
+        await page.keyboard.press('Enter');
+      } else {
+        await page.keyboard.press('ArrowRight');
+      }
+    }
+    await page.waitForFunction(() => window.__ot.journey.done && window.__ot.worlds.id === 'singularity-core', { timeout: 600000, polling: 500 })
+      .catch(() => { throw new Error('the final breach did not reach the singularity'); });
+    await page.waitForFunction(() => document.getElementById('again').classList.contains('show'), { timeout: 600000 });
+    await sleep(1500);
+    await shot('end');
+    const st = await page.evaluate(() => ({ stage: window.__ot.state.stage, again: true, world: window.__ot.worlds.id, splats: window.__ot.worlds.mesh?.numSplats ?? null }));
+    await browser.close();
+    console.log(JSON.stringify(st));
+    if (errors.length) { console.error('page errors:\n' + errors.join('\n')); process.exit(1); }
+    console.log('ok');
+    return;
+  }
+
   await shot('beat-caption');
 
   const beat = () => page.evaluate(() => window.__ot.state.beat);

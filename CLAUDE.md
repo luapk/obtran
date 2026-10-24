@@ -34,7 +34,7 @@ The original brief (written with Gemini) belongs at `source/original-brief.md`, 
 - **Bob's head from the page (task 6, started):** Paul has no layered PSD or ink scans, so `tools/make_bob_head.py` builds a relief from the scan: face ellipse fitted to the ink outline, halo, helmet ring, surroundings fading to ink. It is `?world=bob-head-relief` for now; it gets its place in the story with the portals (task 5).
 - **Paul's phone test (24 October):** the worlds looked flat, zoomed in and all alike. Three causes, all fixed: phones loaded the 100k files (too coarse to read; now 500k unless `navigator.deviceMemory` is under 4), the camera only turned at Marble's viewpoint (now it wanders slowly through the middle of the world, and pointer or tilt slides it further), and portrait used a landscape lens (now the vertical field widens until about 70 degrees fit across, capped at 100). The deeper cause is the assets: in every draft world almost all forward splats sit between 0.8 and 1.8 units from the viewpoint, nothing nearer, so a draft world is a thick shell around you, closer to a panorama with relief than a space with things in it. Paul approved one marble-1.1 test (ribbon loops, 24 October, about 1,580 credits): it is not deeper. Forward splats spread 1.39 times from nearest to furthest (p5 to p95), against 1.49 for the draft; both are the same shell. It is sharper, with a truer black ground and crisper ribbons, much closer to the crop, and it comes with `metric_scale_factor` (0.49) and a 13 MB panorama. So depth will not come from paying for quality; it has to come from structure (page-cut layers in front of a Marble backdrop, the way Bob's head is built). Paul then approved full quality for the singularity, hull machinery and monolith slabs too (24 October, about 4,740 credits), so those four are marble-1.1 (scale factors 0.55, 1.38, 0.49, 0.73) and the three Bob worlds are drafts. marble-1.1 splats are much flatter than the draft's (median longest to shortest axis 123 to 1, against 58), so they break up faster away from the viewpoint.
 - **Extrusion (24 October, Paul's idea: "extrude the splatter algorithmically in space... lean into the glitches"):** see "The worlds layer". It turns the shell into layers that separate as the camera wanders. Tuned against the full-quality worlds: at first it buried the singularity in needles off-centre, so the pull, streak count and camera travel were all reduced until the dense line worlds stayed legible along the whole path.
-- **Not started:** per-region experiences, entered through Spark portals (task 5).
+- **The journey (24 October, Paul: "walk through each space one at a time with the dialogue and copy boxes leading you through it"):** the default flow is now a walk through the spaces, one beat at a time; the old flow (beats on the page, one breach) is `?classic=1`. See "The journey" below. This replaces the portal idea for task 5: the transitions are collapses into each world's core, not Spark portals.
 
 ### Paul's feedback on the prototype (the reason for the next phase)
 
@@ -94,7 +94,25 @@ vercel.json                   build command and output directory
 
 Stack: three.js 0.180.0 and Spark 2.4.0 (`@sparkjsdev/spark`), both from jsDelivr, on WebGL2; custom ShaderMaterials for the page; Web Audio synthesised in code. No GSAP, no WebGPU. Spark 2.4 needs three 0.180 or later, and imports `three/addons/`, so the import map carries that entry too (without it Spark fails to load).
 
-### Stages (the `state.stage` values)
+### The journey (the default flow)
+
+- `gate`, then the page as drawn (`read`, no beats on it, gentle core pulse), hint "Tap to enter". A tap dives the camera into the middle of Bob's panel (`enter`, 1.8 s, page fades, flash) and the first space unwinds out of its core.
+- `JOURNEY` in `index.src.html` maps spaces to beats; edit it to reorder:
+  | Space | Beats |
+  |---|---|
+  | `bob-cockpit` | caption, "CRSSHKKKKK!" (static burst, flash, the world shears) |
+  | `hull-machinery` | "Smokehouse Shift for Bob..." |
+  | `ribbon-loops` | "Engage Chemical Digital Cryptoflage!" |
+  | `bob-head-relief` | "W-what the hell Smokehouse?..." |
+  | `monolith-slabs` | "This is not a drill, Bob... Spomenik Transfer Protocol" (spomenik: monument) |
+  | `bob` | "Unlock your biometric key" (press and hold), "Holy smokes! Er, ok.", "Initiating QNTM CTRL..." (tap the card itself) |
+  | `singularity-core` | the final breach (the full breach sound), then "To be continued..." and "Read again" |
+- In a space (`state.stage === 'void'`, `journey.phase === 'space'`): the beat's lettering is one card cut from the page (the same shader as the lifted boxes), carried low in front of the camera, sized to the screen, springing up with a flicker and a small tilt. Drag or tilt to look; a tap (not a drag), Space, Enter or the right arrow moves on.
+- Moving to another world: the space collapses into its core (suction to 1 over 0.9 s, the camera pushes forward, jitter rises), the next world loads (its files were prefetched when the previous step began), then it unwinds out of its core (suction back to 0 at 0.55 a second) and the next card comes up. Beats in the same space just swap the card.
+- The final breach collapses Bob's space over 3.5 s in time with the breach sound's drop, then the singularity unwinds slowly; the transmitter's random crackles start only then.
+- Test hook additions: `journey`, `STEPS`, `journeyNext`, `finalBreach`, `enterSpace` on `window.__ot`.
+
+### Stages (the `state.stage` values; the classic flow, `?classic=1`)
 
 1. **`gate`:** Start button. One tap starts audio and asks for iOS motion permission.
 2. **`read`:** the page is a displaced plane, 320 x 433 segments. Depth comes from `depth.png`: a radial tunnel that recedes at the singularity, with Bob's panel and the boxes raised flat. Pointer or tilt moves the camera for parallax.
@@ -235,6 +253,7 @@ Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the b
 
 ## Testing
 
+- The smoke test walks the journey by default (every step, checks each step shows its world, the hold, the final breach, the ending); `CLASSIC=1` walks the old flow.
 - `npm i --no-save three@0.180.0 @sparkjsdev/spark@2.4.0 puppeteer` (or `puppeteer-core` with Chrome at `CHROME_PATH`), then `node tools/build.mjs --local`, then serve the repo root on port 8765 (`python3 -m http.server 8765`) and run `node tools/smoke-test.cjs shots 1280 860 desk`, and again at 390 x 844. It walks every beat, the hold, the breach at five frozen points and the void, requires the Marble world to load after the breach (`WORLD=0` accepts the fallback), fails on any page error, and writes screenshots. To look at one world: `http://localhost:8765/dist/index.html?world=<id>`.
 - Without a GPU, Chrome needs `--use-angle=swiftshader --enable-unsafe-swiftshader`. Frame rates are low, which is why timers use wall-clock time.
 - To test the pipeline without spending credits, point `WORLDLABS_BASE` at a local mock that implements the four endpoints above.
