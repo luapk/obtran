@@ -1,5 +1,5 @@
 {
-  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Photoreal takes (Paul, 24 October); black and white; ?films=0 turns them off.",
+  "note": "Short films of Bob, fetched by the Fetch films workflow from films/sources.json. cues maps a beat to a clip: at (seconds into the line), len (how long it holds), from (start point in the clip). v is the take (the start of its Higgsfield job id); change it when a clip is replaced so browsers fetch the new one. Photoreal takes (Paul, 24 October); black and white; ?films=0 turns them off. card: true shows the line's lettering over the film.",
   "clips": {
     "bob-wide": {
       "file": "bob-wide.mp4",
@@ -18,7 +18,8 @@
       "at": 0.3,
       "from": 1.0,
       "len": 3.9,
-      "note": "W-what the hell Smokehouse? The transmitter erupts, he drops his coffee and freezes"
+      "note": "W-what the hell Smokehouse? The transmitter erupts, he drops his coffee and freezes",
+      "card": true
     },
     "holy": {
       "clip": "bob-close",

@@ -32,9 +32,19 @@
   /* the films are portrait: on a wide screen show the whole frame with ink either side */
   @media (min-aspect-ratio: 4/5) { #film video { object-fit: contain; } }
   #film video.cur { display: block; }
+  /* over the films (Paul): a super fine scan line, a slow rolling band, and an alien CCTV readout */
+  #film::after { content: ''; position: absolute; inset: 0; pointer-events: none; background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.34) 0 1px, rgba(0,0,0,0) 1px 2px),
+    linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 48%, rgba(255,255,255,0) 52%);
+    background-size: 100% 2px, 100% 300%; animation: scanRoll 6s linear infinite; }
+  @keyframes scanRoll { from { background-position: 0 0, 0 0%; } to { background-position: 0 0, 0 -300%; } }
+  #cctv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #filmCard { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--a, 3)); height: auto; pointer-events: none; display: none; }
+  #filmCard.show { display: block; animation: filmCardIn 0.45s cubic-bezier(.2,1.6,.4,1) both; }
+  @keyframes filmCardIn { 0% { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.86); filter: brightness(1.8); } 40% { opacity: 1; } 100% { transform: translateX(-50%); filter: none; } }
   @keyframes filmIn { 0% { transform: translateX(-3%) scaleY(1.04); filter: brightness(2.2); } 60% { transform: translateX(1.5%); } 100% { transform: none; filter: none; } }
-  /* the OT logo flashes up first: a couple of glitched frames (one inverted), a hold, then it cuts away */
-  #intro { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #ddd6c6; color: #050403; animation: introIn 0.9s linear both; }
+  /* the OT logo, white out of black (Paul), flashes up first: a couple of glitched frames (one inverted), a hold, then it cuts away */
+  #intro { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #050403; color: #efe9df; animation: introIn 0.9s linear both; }
   #intro svg { width: min(78vw, 66vh); height: auto; }
   #intro.out { animation: introOut 0.4s steps(4, end) forwards; pointer-events: none; }
   @keyframes introIn { 0% { opacity: 0; } 5% { opacity: 1; filter: invert(1); } 10% { opacity: 0; } 15% { opacity: 1; filter: none; transform: translateX(-2.5%) scaleY(1.03); } 19% { transform: none; } 100% { opacity: 1; } }
@@ -103,7 +113,7 @@
 <!-- the OT logo, full screen, before anything else loads (Paul, 24 October); drawn from the label's logo -->
 <div id="intro"><svg viewBox="0 0 467 490" role="img" aria-label="Oblivious Transfer"><g fill="none" stroke="currentColor" stroke-width="22"><rect x="62" y="73" width="62" height="116" rx="31"/><path d="M212 131 H330 A100 100 0 0 1 430 231 V246"/><path d="M108 246 V255 A100 100 0 0 0 208 355 H296"/><path d="M330 304 H440 M385 304 V428"/></g></svg></div>
 <script>window.__introT0 = performance.now(); setTimeout(() => document.getElementById('intro')?.classList.add('out'), 10000);</script>
-<div id="film" aria-hidden="true"></div>
+<div id="film" aria-hidden="true"><canvas id="cctv"></canvas><canvas id="filmCard"></canvas></div>
 <div class="vignette"></div>
 <div class="grain"></div>
 <div class="flash" id="flash"></div>
@@ -124,7 +134,7 @@
 <div id="music" hidden>
   <button id="musicTab" class="ui-btn" type="button" aria-expanded="false" aria-controls="musicList"><span class="mt-name">QNTM CTRL</span> <span id="musicCount">0/3</span></button>
   <div id="musicList" hidden>
-    <p class="mt-head">Smokehouse Shift EP: unlock the three tracks as the story goes on</p>
+    <p class="mt-head">Explore to unlock tracks</p>
     <ol id="musicTracks"></ol>
     <a id="musicBuy" href="#" target="_blank" rel="noopener" hidden>The Smokehouse Shift EP on Bandcamp</a>
   </div>
@@ -158,13 +168,13 @@ const HOLD_DUR = 1.4;                     // seconds of press and hold to unlock
 const BEATS = [
   { b: 'caption' },
   { b: 'crsh', fx: 'static' },
-  { b: 'smoke1', fx: 'blip' },
+  { b: 'smoke1', fx: 'blip', auto: 1.1 },          // auto: moves on by itself this many seconds after its line (and film) end
   { b: 'engage', fx: 'blip' },
   { b: 'bob1' },
   { b: 'drill', fx: 'blip' },
   { b: 'unlock', fx: 'blip', hold: true },
-  { b: 'holy' },
-  { b: 'qntm', trigger: true },
+  { b: 'holy', auto: 1.4 },
+  { b: 'qntm', trigger: true, auto: 1.8 },
 ];
 
 const $ = (id) => document.getElementById(id);
@@ -833,8 +843,10 @@ function sandModifier() {
         // drawn out a little along the swirl, like sand in a long exposure
         float th = 0.5 * (a + 1.5708);
         ${o.gsplat}.quaternion = vec4(0.0, 0.0, sin(th), cos(th));
-        ${o.gsplat}.scales = vec3(g * (1.5 + 2.5 * h2), g, g);
-        vec3 col = mix(${i.paper}, vec3(0.62, 0.48, 0.33), step(0.72, h3));
+        // 30% are data points (Paul): about a quarter the size, round, and pure white so they stay crisp
+        float dataPt = step(fract(h2 * 13.7 + h3 * 7.1), 0.3);
+        ${o.gsplat}.scales = mix(vec3(g * (1.5 + 2.5 * h2), g, g), vec3(g * 0.28), dataPt);
+        vec3 col = mix(mix(${i.paper}, vec3(0.62, 0.48, 0.33), step(0.72, h3)), vec3(1.0), dataPt);
         // opacity above 1 gives Spark a hard edge, so a grain reads as a point rather than a soft blob
         // no grains right at the viewpoint, where they would fill the screen
         float near = smoothstep(0.22, 0.38, len);
@@ -1685,8 +1697,8 @@ const JOURNEY = [
 ];
 const FINAL_WORLD = 'singularity-core';
 const STEPS = JOURNEY.flatMap((j) => j.beats.map((beat) => ({ world: j.world, beat })));
-const ENTER_DUR = 1.8, OUT_DUR = 0.9, FINAL_DUR = BREACH_DUR;
-const ENTER_UV = [0.17, 0.36];                    // the middle of Bob's panel on the page
+const ENTER_DUR = 2.6, OUT_DUR = 0.9, FINAL_DUR = BREACH_DUR;
+const IDENTITY_Q = new THREE.Quaternion();
 const journey = { on: !CLASSIC && !REVIEW, step: -1, phase: 'idle', t: 0, done: false, cardT: 0 };
 
 // one lettering card, cut from the page like the lifted boxes, carried in front of the camera
@@ -1724,7 +1736,7 @@ cardGlow.renderOrder = 9;
 cardGlow.visible = false;
 card.add(cardGlow);
 
-function setCard(beatIndex) {
+function setCard(beatIndex, keep = false) {
   const b = bubbleById[BEATS[beatIndex].b];
   const [u0, v0, u1, v1] = b.uv;
   cardMat.uniforms.uRect.value.set(u0, v0, u1, v1);
@@ -1736,10 +1748,18 @@ function setCard(beatIndex) {
   glowMat.uniforms.uPolyN.value = b.mat.uniforms.uPolyN.value;
   cardGlow.scale.set((u1 - u0 + 2 * gm) / (u1 - u0), (v1 - v0 + 2 * gv) / (v1 - v0), 1);
   cardState.aspect = ((u1 - u0) * PW) / ((v1 - v0) * PH);
-  cardState.lift = 0; cardState.vel = 0; cardState.target = 1;
-  cardState.tilt = (Math.random() - 0.5) * 0.08;
-  cardMat.uniforms.uFlick.value = 1; journey.cardT = 0;
+  cardState.lift = keep ? 1 : 0; cardState.vel = 0; cardState.target = 1;
+  cardState.tilt = keep ? 0 : (Math.random() - 0.5) * 0.08;
+  cardMat.uniforms.uFlick.value = keep ? 0 : 1; journey.cardT = keep ? 1 : 0;
   card.visible = true;
+}
+
+// where the card rests in front of the camera at a given field of view: as wide as fits, never
+// taller than a quarter of the view, low in the frame
+function cardPose(fov) {
+  const dist = 2.4, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)), visW = visH * camera.aspect;
+  const w = Math.min(visW * 0.86, visH * 0.26 * cardState.aspect);
+  return { dist, w, h: w / cardState.aspect, y: -visH / 2 + w / cardState.aspect / 2 + visH * 0.13 };
 }
 
 function updateCard(dt) {
@@ -1747,10 +1767,8 @@ function updateCard(dt) {
   cardState.vel += ((cardState.target - cardState.lift) * 95 - cardState.vel * 12) * dt;
   cardState.lift += cardState.vel * dt;
   if (cardState.target === 0 && cardState.lift < 0.01) { card.visible = false; return; }
-  // sized to the screen: as wide as fits, never taller than a quarter of it, low in the frame
-  const dist = 2.4, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), visW = visH * camera.aspect;
-  let w = Math.min(visW * 0.86, visH * 0.26 * cardState.aspect);
-  const h = w / cardState.aspect;
+  if (journey.phase === 'enter') return;          // carried in from the page by the enter zoom
+  const { dist, w, h, y: restY } = cardPose(camera.fov);
   const k = reducedMotion ? 1 : Math.max(0, cardState.lift);
   // left waiting 10 s with no touch, click or key, the card pulses once: a swell and a flash of glow
   const now = performance.now();
@@ -1764,7 +1782,7 @@ function updateCard(dt) {
   const pk = 1 + 0.14 * pulse;
   card.scale.set(w * (0.7 + 0.3 * k) * pk, h * (0.7 + 0.3 * k) * pk, 1);
 
-  card.position.set(0, -visH / 2 + h / 2 + visH * 0.13, -dist + (reducedMotion ? 0 : (1 - k) * 0.6));
+  card.position.set(0, restY, -dist + (reducedMotion ? 0 : (1 - k) * 0.6));
   card.rotation.z = reducedMotion ? 0 : cardState.tilt * k;
   cardMat.uniforms.uOpacity.value = clamp(cardState.lift * 1.4, 0, 1);
   journey.cardT += dt;
@@ -1964,11 +1982,93 @@ function filmVideo(id) {
     v.src = 'assets/films/' + clip.file + (clip.v ? '?v=' + clip.v : '');
     // kept on the page (hidden) from the start: some phone browsers are stricter with a video
     // that is not in the document
-    $('film').append(v);
+    $('film').prepend(v);
     films.videos[id] = v;
   }
   return films.videos[id];
 }
+// the line's own lettering over the film (Paul: bring Bob's "what the hell" panel up over the video,
+// timed to his line): the box cut from the page along its outline, where the card sits in a space
+function showFilmCard(beat) {
+  const b = bubbleById[beat], img = shared.uPage.value?.image, el = $('filmCard');
+  if (!b || !img) return;
+  const [u0, v0, u1, v1] = b.uv, W = img.width, H = img.height;
+  const sw = (u1 - u0) * W, sh = (v1 - v0) * H, k = Math.min(1, 1400 / sw);
+  el.width = Math.round(sw * k); el.height = Math.round(sh * k);
+  el.style.setProperty('--a', (sw / sh).toFixed(3));
+  const c = el.getContext('2d');
+  c.clearRect(0, 0, el.width, el.height);
+  c.save(); c.beginPath();
+  (b.poly || [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]).forEach(([u, v], i) => { const x = (u - u0) * W * k, y = (v - v0) * H * k; i ? c.lineTo(x, y) : c.moveTo(x, y); });
+  c.closePath(); c.clip();
+  c.drawImage(img, u0 * W, v0 * H, sw, sh, 0, 0, el.width, el.height);
+  c.restore();
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+
+// the alien CCTV readout over the films: corner brackets, REC, a running 3091 timestamp, rows of
+// alien glyphs (drawn as strokes, so no font is needed) that keep changing like data passing, a faint
+// reticle, signal bars and the odd glitch line
+const cctv = { el: $('cctv'), ctx: null, glyphs: [], t0: 0, rows: [] };
+cctv.ctx = cctv.el.getContext('2d');
+{
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let g = 0; g < 28; g++) {
+    const strokes = [], n = 2 + Math.floor(rnd() * 3);
+    for (let k = 0; k < n; k++) strokes.push([Math.floor(rnd() * 3), Math.floor(rnd() * 4), Math.floor(rnd() * 3), Math.floor(rnd() * 4)]);
+    cctv.glyphs.push({ strokes, dot: rnd() < 0.35 ? [Math.floor(rnd() * 3), Math.floor(rnd() * 4)] : null });
+  }
+}
+function cctvGlyphs(c, x, y, row, size, n) {
+  for (let i = 0; i < n; i++) {
+    const g = cctv.glyphs[row[i % row.length]], gx = x + i * size * 1.25, s = size / 3;
+    c.beginPath();
+    for (const [a, b2, d, e] of g.strokes) { c.moveTo(gx + a * s, y + b2 * s * 0.8); c.lineTo(gx + d * s, y + e * s * 0.8); }
+    c.stroke();
+    if (g.dot) c.fillRect(gx + g.dot[0] * s - 1, y + g.dot[1] * s * 0.8 - 1, 2, 2);
+  }
+}
+function drawCCTV(dt) {
+  const el = cctv.el, dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+  if (el.width !== Math.round(W * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
+  const c = cctv.ctx, t = (cctv.t0 += dt);
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const ink = 'rgba(239,233,223,0.82)', m = 18, L = 26;
+  c.strokeStyle = ink; c.fillStyle = ink; c.lineWidth = 1.5;
+  // corner brackets
+  c.beginPath();
+  for (const [x, y, sx, sy] of [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]) { c.moveTo(x, y + sy * L); c.lineTo(x, y); c.lineTo(x + sx * L, y); }
+  c.stroke();
+  // REC and the running timestamp, in the year 3091
+  c.font = '600 11px "IBM Plex Mono", ui-monospace, monospace'; c.textBaseline = 'top';
+  if (Math.floor(t * 1.6) % 2 === 0) { c.beginPath(); c.arc(m + 14, m + 20, 4, 0, 6.283); c.fill(); }
+  c.fillText('REC', m + 24, m + 15);
+  const sec = 15453 + t, hh = Math.floor(sec / 3600) % 24, mm = Math.floor(sec / 60) % 60, ss = Math.floor(sec) % 60, ff = Math.floor((sec % 1) * 24);
+  const ts = `3091.11.22 ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}:${String(ff).padStart(2, '0')}`;
+  c.textAlign = 'right'; c.fillText(ts, W - m - 10, m + 15); c.textAlign = 'left';
+  // glyph rows: change a few glyphs every so often, like data passing
+  if (!cctv.rows.length) for (let r = 0; r < 4; r++) cctv.rows.push(Array.from({ length: 14 }, () => Math.floor(Math.random() * 28)));
+  if (Math.random() < dt * 9) { const r = cctv.rows[Math.floor(Math.random() * 4)]; r[Math.floor(Math.random() * r.length)] = Math.floor(Math.random() * 28); }
+  c.lineWidth = 1.2;
+  cctvGlyphs(c, m + 10, m + 38, cctv.rows[0], 10, 9);
+  cctvGlyphs(c, W - m - 10 - 6 * 12.5, m + 38, cctv.rows[1], 10, 6);
+  cctvGlyphs(c, m + 10, H - m - 40, cctv.rows[2], 9, 12);
+  cctvGlyphs(c, m + 10, H - m - 24, cctv.rows[3], 9, 7);
+  // a faint reticle
+  c.strokeStyle = 'rgba(239,233,223,0.32)'; c.lineWidth = 1;
+  const cx = W / 2, cy = H / 2;
+  c.beginPath(); c.arc(cx, cy, 34, 0, 6.283);
+  for (let k = 0; k < 4; k++) { const a = k * 1.5708; c.moveTo(cx + Math.cos(a) * 26, cy + Math.sin(a) * 26); c.lineTo(cx + Math.cos(a) * 46, cy + Math.sin(a) * 46); }
+  c.stroke();
+  // signal bars, flickering
+  c.fillStyle = ink;
+  for (let k = 0; k < 5; k++) { const on = k < 3 + Math.round(Math.sin(t * 7 + k) + Math.random() * 0.6); c.globalAlpha = on ? 0.85 : 0.2; c.fillRect(W - m - 12 - (4 - k) * 7, H - m - 14 - k * 3, 4, 6 + k * 3); }
+  c.globalAlpha = 1;
+  // the odd glitch line
+  if (Math.random() < dt * 2.5) { c.fillStyle = 'rgba(239,233,223,0.18)'; c.fillRect(0, Math.random() * H, W, 1 + Math.random() * 3); }
+}
+
 function prefetchFilm(beat) { const cue = filmCue(beat); if (cue) filmVideo(cue.clip).load(); }
 // called from the Start tap: starting and stopping each film inside the reader's own gesture
 // lets phones that block a page's own video playback (data saver, low power) play them later
@@ -1988,7 +2088,8 @@ function playFilm(beat) {
     try { v.currentTime = cue.from || 0; } catch (e) { /* not loaded yet: start from the top */ }
     v.play().then(() => {
       for (const o of Object.values(films.videos)) o.classList.toggle('cur', o === v);
-      box.classList.add('on'); films.on = true;
+      box.classList.add('on'); films.on = true; cctv.t0 = 0;
+      if (cue.card) showFilmCard(beat);
       flash(0.6);
       films.timers.push(setTimeout(() => stopFilm(true), (cue.len || 2.4) * 1000));
     }).catch((e) => console.warn('film not played:', cue.clip, e && e.name));   // the line still plays
@@ -2002,14 +2103,28 @@ function stopFilm(snap) {
     if (snap) { flash(0.45); if (!reducedMotion) worlds.jitter = Math.max(worlds.jitter, 0.7); }
   }
   for (const v of Object.values(films.videos)) { v.pause(); v.classList.remove('cur'); }
+  $('filmCard').classList.remove('show');
 }
 $('film').addEventListener('pointerdown', (e) => { e.stopPropagation(); stopFilm(true); });
 
-function showStep(i) {
+// Some beats move on by themselves (Paul: no tap between Smokehouse's first two lines, and none after
+// the biometric key, at a filmic pace): once the line and any film on it have ended, plus the beat's
+// pause. The line's length comes from its decoded voice; without one a typical length stands in.
+function scheduleAuto(i, beat) {
+  journey.autoAt = null;
+  if (!beat.auto) return;
+  const start = performance.now(), cue = filmCue(beat.b);
+  const filmEnd = cue ? (cue.at || 0) + (cue.len || 2.4) : 0;
+  const set = (voiceEnd) => { if (journey.step === i && journey.phase === 'space') journey.autoAt = start + (Math.max(voiceEnd, filmEnd) + beat.auto) * 1000; };
+  set(4);
+  sound.voiceBuffer(beat.b).then((buf) => { if (buf) set((buf.speechEnd || buf.duration) + (sound.voiceIndex?.[beat.b]?.radio ? 0.16 : 0)); }).catch(() => {});
+}
+
+function showStep(i, keepCard = false) {
   journey.step = i;
   const beat = BEATS[STEPS[i].beat];
   state.beat = STEPS[i].beat;
-  setCard(STEPS[i].beat);
+  setCard(STEPS[i].beat, keepCard);
   $('sr').textContent = bubbleById[beat.b].text;
   if (beat.fx === 'static') { sound.staticBurst(); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
   if (beat.fx === 'blip') sound.blip();
@@ -2023,6 +2138,7 @@ function showStep(i) {
   else if (i === 0) setHint(`${tapWord} to continue`, true);
   else setHint('');
   journey.stepAt = performance.now(); journey.pulsed = false;
+  scheduleAuto(i, beat);
   const next = STEPS[i + 1];
   sound.prefetchVoice(next ? BEATS[next.beat].b : 'tbc');
   if (next) prefetchFilm(BEATS[next.beat].b);
@@ -2036,8 +2152,9 @@ function arrive(i) {
   useWorld(true);
   worlds.suction = 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.55;
   look.yaw = 0; look.pitch = 0; look.vyaw = 0; look.vpitch = 0;
-  flash(0.3);
-  showStep(i);
+  const carried = i === 0 && journey.entered;     // the caption zoomed in from the page: no flash, no new card
+  if (!carried) flash(0.3);
+  showStep(i, carried);
 }
 
 function startJourney() {
@@ -2052,6 +2169,20 @@ function enterSpace() {
   state.stage = 'enter';
   state.camStart = camera.position.clone();
   setHint('');
+  // the narrator's caption becomes the first card (Paul: "zoom seamlessly into the narrator panel
+  // with no cuts, background switches in seamlessly behind"): the card starts on the page over the
+  // drawn box, and the camera zooms until the box sits exactly where the card rests, while the page
+  // fades to dark around it and the lens eases to the spaces' field of view; then the first space
+  // unwinds out of its core behind it
+  setCard(STEPS[0].beat, true);
+  const b = bubbleById[BEATS[STEPS[0].beat].b], [u0, v0, u1, v1] = b.uv;
+  const c = uvToWorld((u0 + u1) / 2, (v0 + v1) / 2), bw = (u1 - u0) * PW, bh = (v1 - v0) * PH;
+  scene.add(card);
+  card.position.set(c.x, c.y, bubbleZ + 0.004); card.rotation.set(0, 0, 0); card.scale.set(bw, bh, 1);
+  cardMat.uniforms.uOpacity.value = 1;
+  const fov1 = voidFov(), pose = cardPose(fov1), D = pose.dist * bw / pose.w;
+  journey.enter = { from: camera.position.clone(), q: camera.quaternion.clone(), fov0: camera.fov, fov1,
+    to: new THREE.Vector3(c.x, c.y - pose.y * D / pose.dist, bubbleZ + 0.004 + D) };
   sound.blip();
   if (sound.ok) { sound.cabin.gain.setTargetAtTime(0.25, sound.now(), 0.8); sound.startSpace(); }
 }
@@ -2068,6 +2199,7 @@ function journeyNext() {
 
 // collapse the current space into its core, then load and unwind the next
 function leave(nextWorld, then, dur = OUT_DUR) {
+  journey.autoAt = null;
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
   sound.stopVoice();
   stopFilm(false);
@@ -2097,20 +2229,27 @@ function updateJourney(rawDt, dt) {
   if (!journey.on) return;
   journey.t += rawDt;
   if (journey.phase === 'enter') {
-    // dive into Bob's panel on the page
-    const u = clamp(journey.t / ENTER_DUR, 0, 1), e = ease(u);
-    const p = uvToWorld(ENTER_UV[0], ENTER_UV[1]);
-    camera.position.set(lerp(state.camStart.x, p.x, e), lerp(state.camStart.y, p.y, e), lerp(state.camStart.z, 0.35, e));
-    camera.lookAt(p.x, p.y, -2);
-    pageMat.uniforms.uOpacity.value = 1 - smooth(0.6, 0.95, u);
+    // zoom into the narrator's caption until it rests where the card does (see enterSpace)
+    const u = clamp(journey.t / ENTER_DUR, 0, 1), e = ease(u), E = journey.enter;
+    camera.position.lerpVectors(E.from, E.to, e);
+    camera.quaternion.slerpQuaternions(E.q, IDENTITY_Q, e);
+    camera.fov = lerp(E.fov0, E.fov1, e); camera.updateProjectionMatrix();
+    pageMat.uniforms.uOpacity.value = 1 - smooth(0.3, 0.92, u);
+    inflow.visible = u < 0.4;
     bubbles.forEach((b) => (b.target = 0));
-    if (u > 0.82 && u < 0.86) flash(0.4);
-    $('black').style.opacity = smooth(0.7, 1, u);
     if (u >= 1) {
       pageMesh.visible = false; inflow.visible = false;
+      // the card goes back to riding the camera, at exactly the place it has reached on screen
+      const p = cardPose(camera.fov);
+      camera.add(card); card.position.set(0, p.y, -p.dist); card.rotation.set(0, 0, 0); card.scale.set(p.w, p.h, 1);
+      journey.entered = true;
       journey.phase = 'load';
       (worlds.loading || loadWorld(STEPS[0].world)).then(() => arrive(0)).catch((e) => { console.warn(e); setHint('The space could not load'); });
     }
+  }
+  if (journey.phase === 'space' && journey.autoAt && performance.now() > journey.autoAt && !films.on && !state.holding) {
+    journey.autoAt = null;
+    journeyNext();
   }
   if (journey.phase === 'out') {
     worlds.drift.addScaledVector(tmpV.set(0, 0, -1).applyQuaternion(camera.quaternion), rawDt * 2.5);
@@ -2484,6 +2623,7 @@ function frame() {
   updateNucleus(dt);
   updateSlab(dt, rawDt);
   updatePanelFloat(dt);
+  if (films.on) drawCCTV(rawDt);
   updateRibbons(dt, rawDt);
   if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey);
   sound.update(dt, camera);

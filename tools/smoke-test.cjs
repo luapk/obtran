@@ -78,7 +78,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       // a key during one of Bob's films only cuts the film, so let it finish first
       await page.waitForFunction(() => !window.__ot.films?.on, { timeout: 60000, polling: 200 });
       const beat = await page.evaluate((b) => window.__ot.BEATS[b], steps[i].beat);
-      if (beat.hold) {
+      if (beat.auto) {
+        // this beat moves on by itself once its line (and film) end: wait for it rather than pressing
+        const moved = beat.trigger ? () => window.__ot.journey.phase !== 'space' : (s) => window.__ot.journey.step !== s;
+        await page.waitForFunction(moved, { timeout: 120000, polling: 200 }, i).catch(() => { throw new Error(`step ${i} did not move on by itself`); });
+      } else if (beat.hold) {
         await page.keyboard.down('Space');
         // at most 0.25 s of hold counts per frame, and a 500k world can take tens of seconds a frame here
         await page.waitForFunction((s) => window.__ot.journey.step === s + 1, { timeout: 600000, polling: 200 }, i)
