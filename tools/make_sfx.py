@@ -16,6 +16,9 @@ from their loudness over time (ffmpeg, -45 dB as silence):
   power-up.mp3    biometric_power_up.wav: a pulsing hum in two halves, 0 to 4.57 s and 4.82 to 8.26 s.
                   The first half: the hold lasts 1.4 s, so the page plays it faster as the charge
                   rises and cuts it on release.
+  bleep.mp3       ui_confirm.wav (User_Interface_Alert_Futuristic_Technology_UI_Confirm_Tone_Bright_02): four
+                  tones; the first, 0.03 to 0.9 s, very quiet (peak about -42 dB), so it is brought up to a
+                  -6 dB peak. Plays when the reader taps or clicks a text box (or presses a key) to move on.
   bed.mp3         intro_comic_singularity.mp3: 14 s of steady atmosphere for the comic page and the
                   singularity, rising from silence and stopping dead. Made into a loop: from 0.8 s (after
                   its fade in), with its last 2 s blended into its opening (equal power), so the page can
@@ -38,7 +41,9 @@ CUTS = {
     "whoosh-2": ("whoosh.wav", 2.92, 5.68, 0.0, 0.1),
     "whoosh-3": ("whoosh.wav", 6.32, 8.26, 0.0, 0.1),
     "power-up": ("biometric_power_up.wav", 0.0, 4.6, 0.01, 0.08),
+    "bleep": ("ui_confirm.wav", 0.0, 0.85, 0.0, 0.2),
 }
+NORMALISE = {"bleep": -6.0}       # peak in dB, for sounds that arrive too quiet
 
 
 def main():
@@ -47,6 +52,11 @@ def main():
         af = []
         if fi: af.append(f"afade=t=in:d={fi}")
         af.append(f"afade=t=out:st={b - a - fo:.3f}:d={fo}")
+        if name in NORMALISE:
+            probe = subprocess.run(["ffmpeg", "-hide_banner", "-ss", f"{a}", "-to", f"{b}", "-i", str(SRC / src), "-af", "volumedetect", "-f", "null", "-"],
+                                   capture_output=True, text=True).stderr
+            peak = float(probe.split("max_volume:")[1].split("dB")[0])
+            af.append(f"volume={NORMALISE[name] - peak:.1f}dB")
         out = OUT / f"{name}.mp3"
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-ss", f"{a}", "-to", f"{b}", "-i", str(SRC / src),
                         "-af", ",".join(af), "-ar", "44100", "-ac", "2", "-b:a", "160k", str(out)], check=True)

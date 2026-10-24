@@ -149,6 +149,12 @@
     "bob4-wide-2": {
       "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_175840_f66eaa52-15bc-4a10-a663-0a2f8a818582.png",
       "job": "f66eaa52-15bc-4a10-a663-0a2f8a818582"
+    },
+    "panel-upscaled": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_184037_438ff82c-b869-40e4-81cc-a7d92e88d5fb.png",
+      "job": "438ff82c-b869-40e4-81cc-a7d92e88d5fb",
+      "note": "Bob's panel from the full resolution scan, upscaled to 4k on Higgsfield (bytedance), for tools/make_panel_layers.py",
+      "full": true
     }
   }
 }

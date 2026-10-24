@@ -59,7 +59,12 @@ jobs:
             case "$url" in https://*) ;; *) echo "::error::$id: url must be https"; exit 1 ;; esac
             [ -f "films/stills/$id.jpg" ] && continue
             curl -fsSL --retry 3 -o "/tmp/$id.still" "$url"
-            ffmpeg -loglevel error -y -i "/tmp/$id.still" -vf "scale=720:-2" -q:v 3 "films/stills/$id.jpg"
+            # full: kept at its own size (an upscale to build from), otherwise 720 wide for review
+            if [ "$(jq -r --arg id "$id" '.stills[$id].full // false' films/sources.json)" = "true" ]; then
+              ffmpeg -loglevel error -y -i "/tmp/$id.still" -q:v 2 "films/stills/$id.jpg"
+            else
+              ffmpeg -loglevel error -y -i "/tmp/$id.still" -vf "scale=720:-2" -q:v 3 "films/stills/$id.jpg"
+            fi
             echo "still $id"
           done
 

@@ -1116,7 +1116,7 @@ class Sound {
   // own level, as they arrive at different loudness. Where one is missing the synthesised sound stays.
   loadSfx() {
     this.sfx = {};
-    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'whoosh-3', 'power-up', 'bed'])
+    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'power-up', 'bed', 'bleep'])
       fetch(`assets/sfx/${n}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b))
         .then((buf) => { this.sfx[n] = buf; }).catch(() => {});
   }
@@ -1775,6 +1775,7 @@ function updatePanelFloat(dt) {
   panelFloat.group.visible = panelFloat.level > 0.01;
   if (!panelFloat.group.visible) return;
   const t = shared.uTime.value, k = reducedMotion ? 0 : 1;
+  const shown = PANEL_GRAINS ? updatePanelGrains(here) : 1;   // the panel fades in as its grains land
   // anchored to the camera's slow path, not to the pointer, so the pointer parts the layers
   panelFloat.group.position.copy(P0).add(worlds.drift).add(worlds.wander);
   panelFloat.group.position.y += k * 0.12 * Math.sin(t * 0.5);
@@ -1786,8 +1787,109 @@ function updatePanelFloat(dt) {
     L.mesh.scale.set(w, w, 1);
     const shear = worlds.jitter > 0 ? (Math.random() - 0.5) * worlds.jitter * 0.3 : 0;
     L.mesh.position.set(shear, viewH * 0.1, -L.d);
-    L.mat.opacity = panelFloat.level;
+    L.mat.opacity = panelFloat.level * shown;
   }
+}
+
+/* ---------- the panel's grains: it forms out of them and sheds them (Paul, 24 October, idea 4) ---------- */
+// Grains sampled from the panel's own pixels (the three layers composited, their exact colours). When
+// Bob's space opens they pour in from a swirl round the panel and settle where they belong over about
+// 2.4 s, and the panel fades in as they land; after that a faint trail lifts off its outline and bright
+// ink and drifts away on a slow current, fading, so it seems to be coming apart again. They live in the
+// back layer's own space, so they float, sway and part with the panel.
+const PANEL_GRAINS = reducedMotion ? 0 : (navigator.deviceMemory && navigator.deviceMemory < 4 ? 9000 : 22000);
+const ASSEMBLE_MS = 2400;
+const panelGrains = { points: null, mat: null, t0: 0, built: false };
+function buildPanelGrains() {
+  if (panelGrains.built || !PANEL_GRAINS) return;
+  const imgs = panelFloat.layers.map((L) => L.mat.map?.image);
+  if (imgs.some((im) => !im || !im.width)) return;
+  panelGrains.built = true;
+  const cw = 320, ch = Math.round(cw * imgs[0].height / imgs[0].width);
+  const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  for (const im of imgs) g.drawImage(im, 0, 0, cw, ch);
+  const px = g.getImageData(0, 0, cw, ch).data;
+  // where the grains come from: everywhere on the panel, weighted to its outline and bright ink
+  const cand = [], weight = [];
+  for (let y = 1; y < ch - 1; y++) for (let x = 1; x < cw - 1; x++) {
+    const i = (y * cw + x) * 4, a = px[i + 3];
+    if (a < 128) continue;
+    const edge = px[i + 3 - 4] < 128 || px[i + 3 + 4] < 128 || px[i + 3 - cw * 4] < 128 || px[i + 3 + cw * 4] < 128;
+    const lum = (px[i] + px[i + 1] + px[i + 2]) / 765;
+    cand.push(i); weight.push(0.25 + (edge ? 3 : 0) + (lum > 0.6 ? 1.2 : 0));
+  }
+  const cum = []; let tot = 0; for (const w of weight) cum.push(tot += w);
+  const N = PANEL_GRAINS, aspect = panelFloat.layers[0].mesh.geometry.parameters.height;
+  const home = new Float32Array(N * 3), col = new Float32Array(N * 3), seed = new Float32Array(N * 4);
+  for (let n = 0; n < N; n++) {
+    const r = Math.random() * tot; let lo = 0, hi = cum.length - 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (cum[m] < r) lo = m + 1; else hi = m; }
+    const i = cand[lo], p = i / 4, x = p % cw, y = Math.floor(p / cw);
+    home[n * 3] = (x + Math.random()) / cw - 0.5; home[n * 3 + 1] = (0.5 - (y + Math.random()) / ch) * aspect; home[n * 3 + 2] = 0.002;
+    col[n * 3] = px[i] / 255; col[n * 3 + 1] = px[i + 1] / 255; col[n * 3 + 2] = px[i + 2] / 255;
+    // emitter: an outline or bright-ink grain, which also drifts off afterwards
+    seed.set([Math.random(), Math.random(), Math.random(), weight[lo] > 1 ? 1 : 0], n * 4);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(home, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('seed', new THREE.BufferAttribute(seed, 4));
+  panelGrains.mat = new THREE.ShaderMaterial({
+    uniforms: { uTime: shared.uTime, uAssemble: { value: 0 }, uTrail: { value: 0 }, uLevel: { value: 0 }, uScale: { value: 1 } },
+    transparent: true, depthTest: false, depthWrite: false,
+    vertexShader: `uniform float uTime; uniform float uAssemble; uniform float uTrail; uniform float uScale;
+      attribute vec3 color; attribute vec4 seed; varying vec3 vC; varying float vA;
+      void main(){
+        vec3 p = position; vC = color;
+        // pour in: from a swirl round the panel to its place, each grain in its own time
+        float e = smoothstep(seed.x * 0.45, seed.x * 0.45 + 0.55, uAssemble);
+        float ang = seed.y * 6.2832 + (1.0 - e) * 3.0, rad = (0.9 + 1.6 * seed.z) * (1.0 - e);
+        vec3 from = vec3(cos(ang) * rad, sin(ang) * rad * 0.8, (seed.z - 0.3) * 1.2 * (1.0 - e));
+        p += from;
+        float a = e < 1.0 ? smoothstep(0.0, 0.25, e) * 0.75 : 0.0;
+        float size = 0.7 + 0.8 * (1.0 - e);
+        // then the trail: outline and bright-ink grains lift off and drift away on a slow current, fading
+        if (e >= 1.0 && seed.w > 0.5) {
+          float life = fract(uTime / (4.0 + 3.0 * seed.z) + seed.y);
+          vec3 drift = vec3(-0.75 * life + 0.06 * sin(life * 7.0 + seed.x * 20.0),
+                            0.22 * life + 0.05 * sin(life * 5.0 + seed.y * 30.0) + 0.1 * life * life,
+                            0.18 * life);
+          p = position + drift;
+          a = smoothstep(0.0, 0.08, life) * pow(1.0 - life, 1.6) * 0.45 * uTrail;
+          size = 1.0 + 2.2 * life;
+        }
+        vA = a;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = size * uScale / -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `uniform float uLevel; varying vec3 vC; varying float vA;
+      void main(){
+        vec2 q = gl_PointCoord - 0.5; float g = exp(-dot(q, q) * 14.0);   // a soft gaussian grain
+        float a = g * vA * uLevel; if (a < 0.003) discard;
+        gl_FragColor = vec4(vC, a);
+        #include <colorspace_fragment>
+      }`,
+  });
+  panelGrains.points = new THREE.Points(geo, panelGrains.mat);
+  panelGrains.points.renderOrder = 5;          // under the panel's layers (6 to 8), over the world
+  panelGrains.points.frustumCulled = false;
+  panelFloat.layers[0].mesh.add(panelGrains.points);
+}
+function updatePanelGrains(here) {
+  buildPanelGrains();
+  if (!panelGrains.mat) return 1;
+  const now = performance.now();
+  if (!here) { panelGrains.t0 = 0; panelGrains.mat.uniforms.uLevel.value = 0; return 1; }
+  if (!panelGrains.t0 && worlds.suction < 0.9) panelGrains.t0 = now;
+  const u = panelGrains.hold ?? (panelGrains.t0 ? (now - panelGrains.t0) / ASSEMBLE_MS : 0);   // hold: tests freeze it
+  panelGrains.mat.uniforms.uAssemble.value = Math.min(1, u);
+  panelGrains.mat.uniforms.uTrail.value = smooth(1, 1.6, u);
+  panelGrains.mat.uniforms.uLevel.value = panelFloat.level;
+  // grain size in pixels at a unit of distance: about a texel of the panel at its resting size
+  panelGrains.mat.uniforms.uScale.value = innerHeight * Math.min(devicePixelRatio || 1, 2) * 0.009;
+  return smooth(0.75, 1.0, u);                // how far the panel itself has faded in
 }
 
 /* ---------- the slab: Marble's white slab in the singularity, cut out and floating ---------- */
@@ -2091,7 +2193,7 @@ function updateCard(dt) {
   cardState.vel += ((cardState.target - cardState.lift) * 95 - cardState.vel * 12) * dt;
   cardState.lift += cardState.vel * dt;
   if (cardState.target === 0 && cardState.lift < 0.01) { card.visible = false; return; }
-  if (journey.phase === 'enter' || journey.phase === 'hop' || journey.phase === 'pull') return;   // lying on the page while the camera moves
+  if (journey.phase === 'enter' || journey.phase === 'hop') return;   // lying on the page while the camera moves
   const { dist, w, h, y: restY } = cardPose(camera.fov);
   const k = reducedMotion ? 1 : Math.max(0, cardState.lift);
   // left waiting 10 s with no touch, click or key, the card pulses once: a swell and a flash of glow
@@ -2627,7 +2729,7 @@ function filmThen(then) {
 function filmInteract() {
   const waiting = films.looping;
   stopFilm(true);
-  if (waiting && journey.on && journey.phase === 'space') journeyNext();
+  if (waiting && journey.on && journey.phase === 'space') { sound.sfxPlay('bleep', { gain: 0.6 }); journeyNext(); }
 }
 function stopFilm(snap) {
   films.timers.forEach(clearTimeout); films.timers = [];
@@ -2756,33 +2858,6 @@ function updateHop() {
   }
 }
 
-// the final breach starts on the page: the camera pulls back from "Initiating QNTM CTRL..." to the
-// whole page, then the page breaks apart and the camera dives through the drawn singularity (the
-// classic breach), so the reader sees where the story has taken them
-const PULL_DUR = 2.2;
-function startPull() {
-  const A = toPage('qntm');
-  journey.pull = { A, to: new THREE.Vector3(0, 0, pageDist(PAGE_FOV)), load: loadWorld(FINAL_WORLD).catch((e) => console.warn('world unavailable', e)) };
-  journey.phase = 'pull'; journey.t = 0;
-  if (!sound.sfxPlay('whoosh-3', { gain: 0.6 })) sound.blip();   // back to the whole page
-}
-function updatePull() {
-  const P = journey.pull, u = clamp(journey.t / PULL_DUR, 0, 1), e = ease(u);
-  camera.position.lerpVectors(P.A.to, P.to, e);
-  camera.fov = lerp(P.A.fov, PAGE_FOV, e); camera.updateProjectionMatrix();
-  pageMat.uniforms.uOpacity.value = smooth(0, 0.35, u);
-  if (u >= 1 && !P.done) {
-    P.done = true;
-    P.load.then(() => {
-      card.visible = false; cardState.target = 0; rideCard();
-      journey.phase = 'end'; journey.done = true;
-      worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.3;
-      state.stage = 'read';
-      breach();
-    });
-  }
-}
-
 // CRSSHKKKKK! cuts straight into the next space (Paul: "should play into next scene without
 // animation"): the static runs on while the next world loads, the old one shearing, then a hard cut
 function cutTo(i) {
@@ -2848,7 +2923,6 @@ function leave(nextWorld, then, dur = OUT_DUR, keepCard = false) {
 function finalBreach() {
   if (journey.phase !== 'space') return;
   $('sr').textContent = 'Initiating QNTM CTRL. The space breaks apart and you fall through the singularity.';
-  if (!reducedMotion) { leave(null, startPull, OUT_DUR, true); return; }
   sound.breach(FINAL_DUR);
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
   leave(FINAL_WORLD, () => {
@@ -2887,7 +2961,6 @@ function updateJourney(rawDt, dt) {
     journeyNext();
   }
   if (journey.phase === 'hop') updateHop();
-  if (journey.phase === 'pull') updatePull();
   // the old world keeps shearing on the static until the cut
   if (journey.phase === 'load' && journey.cut) worlds.jitter = 1;
   if (journey.phase === 'out') {
@@ -2973,7 +3046,9 @@ function pointerEnd(e) {
     if (journey.phase === 'idle' && state.stage === 'read') { enterSpace(); return; }
     if (journey.phase === 'space') {
       const beat = BEATS[state.beat];
-      if (beat.trigger) { if (hitCard(e.clientX, e.clientY)) finalBreach(); else nudge(); return; }
+      // Paul: the first bleep of his UI confirm tone when a text box is clicked to move on
+      if (beat.trigger) { if (hitCard(e.clientX, e.clientY)) { sound.sfxPlay('bleep', { gain: 0.6 }); finalBreach(); } else nudge(); return; }
+      if (!beat.hold) sound.sfxPlay('bleep', { gain: 0.6 });
       journeyNext();
     }
     return;
@@ -3002,8 +3077,8 @@ addEventListener('keydown', (e) => {
     if (journey.phase !== 'space') return;
     const beat = BEATS[state.beat];
     if (beat.hold) { if (!keyHold && !e.repeat) { keyHold = true; startHold(innerWidth / 2, innerHeight / 2); } return; }
-    if (beat.trigger) { if (e.key === 'Enter' || e.key === ' ') finalBreach(); return; }
-    if (!e.repeat) journeyNext();
+    if (beat.trigger) { if (e.key === 'Enter' || e.key === ' ') { sound.sfxPlay('bleep', { gain: 0.6 }); finalBreach(); } return; }
+    if (!e.repeat) { sound.sfxPlay('bleep', { gain: 0.6 }); journeyNext(); }
     return;
   }
   if (state.stage !== 'read') return;
@@ -3302,7 +3377,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst, endReady, s8 };
+  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
