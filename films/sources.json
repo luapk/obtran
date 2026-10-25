@@ -137,6 +137,12 @@
       "job": "7187f65f-d7bf-47bc-b87f-39bb706d50d4",
       "comic": "obtran001",
       "note": "OBTRAN 001: extreme wide of Lyra in ruins, the tiny ship shooting off the planet (Paul: before the close up of the ship); Seedance 2.5 from still o1-lyra-wide-1 (9f8c9f54, Paul's pick), 16:9, 5 s"
+    },
+    "o1-patrol": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_192804_2cb9ef7d-9f86-443a-9ffe-6682ad6f2e11.mp4",
+      "job": "2cb9ef7d-9f86-443a-9ffe-6682ad6f2e11",
+      "comic": "obtran001",
+      "note": "OBTRAN 001: the scout patrol watching the ship fall (Paul: \"render this scene as video\", still o1-patrol-1); Seedance 2.5, 16:9, 5 s (the first try, with a rider pointing his pole, failed)"
     }
   },
   "stills": {
