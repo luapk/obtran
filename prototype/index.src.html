@@ -174,6 +174,16 @@
   #ring { position: fixed; width: 96px; height: 96px; margin: -48px 0 0 -48px; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.2s; }
   #ring.on { opacity: 1; }
   #ring { --p: 0; transition: opacity 0.2s, transform 0.08s; filter: drop-shadow(0 0 calc(4px + 14px * var(--p)) rgba(239, 233, 223, calc(0.35 + 0.6 * var(--p)))); }
+  /* the breach's glyphs (glyphVeilShow): pre-drawn scrambles cycled by CSS, so they keep moving whatever the page is doing */
+  #glyphVeil { position: fixed; inset: 0; z-index: 2; pointer-events: none; visibility: hidden; opacity: 0; background: #050403; will-change: opacity; }
+  #glyphVeil.on { visibility: visible; opacity: 1; }
+  #glyphVeil.out { opacity: 0; transition: opacity 1.4s ease-out; }
+  #glyphVeil canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; will-change: opacity; animation: glyphFrame 0.3s step-end infinite; }
+  @keyframes glyphFrame { 0% { opacity: 1; } 16.6667% { opacity: 0; } }
+  #glyphVeil .ring { position: absolute; left: 50%; top: 50%; width: 150vmax; height: 150vmax; margin: -75vmax 0 0 -75vmax; border-radius: 50%; will-change: transform, opacity;
+    background: radial-gradient(circle, rgba(239,233,223,0) 60%, rgba(239,233,223,0.28) 66%, rgba(239,233,223,0) 71%); mix-blend-mode: screen; animation: glyphRing 0.9s linear infinite; }
+  @keyframes glyphRing { 0% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(0.02); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { #glyphVeil canvas { animation: none; } #glyphVeil canvas:first-child { opacity: 1; } #glyphVeil .ring { display: none; } }
   #fx { position: fixed; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }   /* over the pad and films, as they are raised */
   #ring circle { fill: none; stroke-width: 4; }
   #ring .track { stroke: rgba(239,233,223,0.2); }
@@ -222,6 +232,7 @@
   </div>
 </div>
 
+<div id="glyphVeil" aria-hidden="true"></div>
 <div id="hint" class="off">Tap to continue</div>
 <button id="mute" class="ui-btn" type="button" aria-pressed="false" aria-label="Sound"><span class="lbl">Sound on</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="on" d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 6.5c2.6 3 2.6 8 0 11"/><path class="x" d="M16 9l5 6M21 9l-5 6"/></svg></button>
 <div id="music" hidden>
@@ -852,7 +863,7 @@ const worlds = {
   Spark: null, ok: false, list: [], views: {}, id: null, mesh: null, loading: null,
   limits: { yaw: [-Math.PI, Math.PI], pitch: [-1.3, 1.3] }, parallax: 2.0, offset: new THREE.Vector3(),
   radius: 1.2, wander: new THREE.Vector3(), wanderT: null, suctionTarget: 0, suctionRate: 0.18, echoes: [], extrudeOn: params.get('extrude') !== '0', lastTick: -1,
-  sandMesh: null, sandOn: params.get('sand') !== '0',
+  sandMesh: null, sandOn: params.get('sand') !== '0', prepared: {},
   u: null, suction: 0, jitter: 0, nextCrackle: 0, drift: new THREE.Vector3(),
 };
 
@@ -1054,12 +1065,8 @@ function loadWorld(id) {
     const lowMemory = (navigator.deviceMemory || 8) < 4;
     const url = (lowMemory && files['100k']) || files['500k'];
     if (worlds.mesh && worlds.id === id) return worlds.mesh;
-    const mesh = new worlds.Spark.SplatMesh({ url, objectModifier: inkModifier() });
-    // echo layers: the lighter file again, nearer and fainter, bright ink only (not for reliefs)
-    const echoes = entry.relief ? [] : [[0.8, 0.14], [0.64, 0.07]].map(([depth, alpha]) =>
-      new worlds.Spark.SplatMesh({ url: files['100k'] || url, objectModifier: inkModifier({ depth, alpha, brightOnly: 1 }) }));
-    const sandMesh = worlds.sandOn || REVIEW ? new worlds.Spark.SplatMesh({ url: files['100k'] || url, objectModifier: sandModifier() }) : null;
-    await Promise.all([mesh.initialized, ...echoes.map((e) => e.initialized), ...(sandMesh ? [sandMesh.initialized] : [])]);
+    const { mesh, echoes, sandMesh } = await (worlds.prepared[id] || makeWorldMeshes(entry, files, url));
+    delete worlds.prepared[id];
     // swap only once the new world is ready, so there is never a gap
     for (const old of worldMeshes()) { scene.remove(old); old.dispose?.(); }
     for (const m of [mesh, ...echoes, ...(sandMesh ? [sandMesh] : [])]) {
@@ -1089,6 +1096,28 @@ function loadWorld(id) {
     return mesh;
   })();
   return worlds.loading;
+}
+
+// a world's meshes: the splats, two echo layers (the lighter file again, nearer and fainter, bright ink only; not for
+// reliefs) and the sand, decoded and ready
+async function makeWorldMeshes(entry, files, url) {
+  const mesh = new worlds.Spark.SplatMesh({ url, objectModifier: inkModifier() });
+  const echoes = entry.relief ? [] : [[0.8, 0.14], [0.64, 0.07]].map(([depth, alpha]) =>
+    new worlds.Spark.SplatMesh({ url: files['100k'] || url, objectModifier: inkModifier({ depth, alpha, brightOnly: 1 }) }));
+  const sandMesh = worlds.sandOn || REVIEW ? new worlds.Spark.SplatMesh({ url: files['100k'] || url, objectModifier: sandModifier() }) : null;
+  await Promise.all([mesh.initialized, ...echoes.map((e) => e.initialized), ...(sandMesh ? [sandMesh.initialized] : [])]);
+  return { mesh, echoes, sandMesh };
+}
+// build a world ahead of when it is needed (Paul: the glyphs after "Initiating QNTM CTRL..." froze while the
+// singularity loaded and decoded): the singularity is prepared while the reader is on the biometric pad
+function prepareWorld(id) {
+  if (worlds.prepared[id] || (worlds.mesh && worlds.id === id) || !worlds.list.length || !worlds.Spark) return;
+  const entry = worlds.list.find((w) => w.id === id);
+  if (!entry) return;
+  const view = entry.relief ? entry : worlds.views[id] || {}, files = view.files || entry.splats;
+  const url = ((navigator.deviceMemory || 8) < 4 && files['100k']) || files['500k'];
+  worlds.prepared[id] = makeWorldMeshes(entry, files, url);
+  worlds.prepared[id].catch(() => { delete worlds.prepared[id]; });
 }
 
 function useWorld(on) {
@@ -3191,7 +3220,7 @@ function showStep(i, keepCard = false) {
   // the tap hint only on the first scene, pointing at the card, so the story's way through is clear
   // from the start (Paul); after that only the hold, a gesture nobody would guess, is named, and
   // a card left waiting 10 s pulses once instead
-  if (beat.hold) { setHint('Press and hold to unlock'); padShow(beat.b); }
+  if (beat.hold) { setHint('Press and hold to unlock'); padShow(beat.b); prefetchWorld(FINAL_WORLD); prepareWorld(FINAL_WORLD); }
   else if (i === 0) setHint(`${tapWord} to continue`, true);
   else setHint('');
   journey.stepAt = performance.now(); journey.pulsed = false;
@@ -3340,22 +3369,67 @@ function leave(nextWorld, then, dur = OUT_DUR, keepCard = false) {
   worlds.suctionTarget = 1; worlds.suctionRate = 1 / dur;
 }
 
+// the breach (Paul: the glyphs should fill the screen, keep moving, then go straight into the singularity, with
+// nothing in between): the glyphs move to a layer of pre-drawn scrambles that the browser cycles by itself
+// (glyphVeil), so they keep moving even while the singularity is swapped in; on the breach sound's drop they fade
+// and the singularity is already there, open, with no flash and no unwinding out of its core
 function finalBreach() {
   if (journey.phase !== 'space') return;
   $('sr').textContent = 'Initiating QNTM CTRL. The space breaks apart and you fall through the singularity.';
   sound.breach(FINAL_DUR);
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
-  glyphFieldHold();
+  glyphVeilShow();
+  prepareWorld(FINAL_WORLD);                        // normally done on the pad; here in case it was skipped
+  journey.outBy = performance.now() + FINAL_DUR * 0.72 * 1000;   // the reveal keeps to the breach sound's drop by the clock, however slow the frames
   leave(FINAL_WORLD, () => {
     journey.phase = 'end'; journey.done = true;
-    glyphFieldEnd();
     enterVoid();
     useWorld(true);
-    worlds.suction = 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.3;
+    worlds.suction = 0; worlds.suctionTarget = 0; worlds.jitter = 0;
     look.yaw = 0; look.pitch = 0;
-    flash(0.5);
     state.endT = 0;
+    // let the singularity draw once under the glyphs, then lift them
+    requestAnimationFrame(() => requestAnimationFrame(glyphVeilHide));
   }, FINAL_DUR * 0.72);
+}
+// the glyph veil: GLYPH_FRAMES full screen scrambles drawn once, shown one after another by a CSS animation, and a
+// bright ring running in to the centre; opacity and transform animations run off the main thread
+const GLYPH_FRAMES = 6;
+function glyphVeilShow() {
+  const veil = $('glyphVeil');
+  if (!veil.childElementCount) {
+    const scale = 0.6, W = Math.round(innerWidth * scale), H = Math.round(innerHeight * scale), cs = 15, s = cs * 0.7 / 3;
+    const cols = Math.ceil(W / cs), rows = Math.ceil(H / cs), maxD = Math.hypot(W, H) / 2;
+    for (let f = 0; f < GLYPH_FRAMES; f++) {
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      cv.style.animationDelay = (-f * 0.05).toFixed(2) + 's';
+      const c = cv.getContext('2d');
+      c.fillStyle = '#050403'; c.fillRect(0, 0, W, H);
+      c.lineWidth = 1.2; c.lineCap = 'round';
+      for (let i = 0; i < cols * rows; i++) {
+        const x = (i % cols + 0.5) * cs, y = (Math.floor(i / cols) + 0.5) * cs, r = Math.hypot(x - W / 2, y - H / 2) / maxD;
+        const a = Math.min(1, (0.3 + 0.6 * Math.random()) * (0.55 + 0.45 * (1 - r)));
+        c.strokeStyle = c.fillStyle = `rgba(239,233,223,${a.toFixed(2)})`;
+        const g = cctv.glyphs[Math.floor(Math.random() * cctv.glyphs.length)], gx = x - cs * 0.35, gy = y - cs * 0.4;
+        c.beginPath();
+        for (const [a0, b0, d0, e0] of g.strokes) { c.moveTo(gx + a0 * s, gy + b0 * s * 0.8); c.lineTo(gx + d0 * s, gy + e0 * s * 0.8); }
+        c.stroke();
+        if (g.dot) c.fillRect(gx + g.dot[0] * s - 1, gy + g.dot[1] * s * 0.8 - 1, 2, 2);
+        c.fillStyle = '#050403';
+      }
+      veil.append(cv);
+    }
+    const ring = document.createElement('div'); ring.className = 'ring'; veil.append(ring);
+  }
+  veil.classList.remove('out'); veil.classList.add('on');
+  // the field drawn in 3D gives way to the veil, which looks the same
+  glyphField.mode = 'off'; glyphField.mesh.visible = false;
+}
+function glyphVeilHide() {
+  const veil = $('glyphVeil');
+  if (!veil.classList.contains('on')) return;
+  veil.classList.add('out');
+  setTimeout(() => { veil.classList.remove('on', 'out'); }, 1500);
 }
 
 function updateJourney(rawDt, dt) {
@@ -3388,8 +3462,8 @@ function updateJourney(rawDt, dt) {
   if (journey.phase === 'out') {
     worlds.drift.addScaledVector(tmpV.set(0, 0, -1).applyQuaternion(camera.quaternion), rawDt * 2.5);
     worlds.jitter = Math.max(worlds.jitter, smooth(0.5, 1, journey.t / journey.outDur) * 0.8);
-    if (journey.t >= journey.outDur) {
-      journey.phase = 'load';
+    if (journey.t >= journey.outDur || (journey.outBy && performance.now() >= journey.outBy)) {
+      journey.phase = 'load'; journey.outBy = 0;
       const then = journey.then;
       if (!journey.nextWorld) then();
       else loadWorld(journey.nextWorld).then(then).catch((e) => { console.warn(e); then(); });
@@ -3806,7 +3880,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
+  window.__ot = { glyphVeilShow, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
