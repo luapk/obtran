@@ -36,16 +36,21 @@ jobs:
       - name: Fetch and prepare
         run: |
           set -euo pipefail
-          out=prototype/assets/films
-          mkdir -p "$out"
           for id in $(jq -r '.films | keys[]' films/sources.json); do
             case "$id" in *[!a-z0-9-]*) echo "::error::bad film id $id"; exit 1 ;; esac
             url=$(jq -r --arg id "$id" '.films[$id].url' films/sources.json)
+            # a film for another comic ("comic": its id) goes to comics/<id>/assets/films and keeps its colour
+            # unless it says "colour": false; OBTRAN 003's films are black and white (Paul)
+            comic=$(jq -r --arg id "$id" '.films[$id].comic // "obtran003"' films/sources.json)
+            case "$comic" in *[!a-z0-9-]*) echo "::error::$id: bad comic id"; exit 1 ;; esac
+            if [ "$comic" = "obtran003" ]; then out=prototype/assets/films; grade="hue=s=0"; else out="comics/$comic/assets/films"; grade="null"; fi
+            [ "$(jq -r --arg id "$id" '.films[$id].colour // empty' films/sources.json)" = "false" ] && grade="hue=s=0"
+            mkdir -p "$out"
             case "$url" in https://*) ;; *) echo "::error::$id: url must be https"; exit 1 ;; esac
             stamp="$out/$id.source"
             if [ -f "$out/$id.mp4" ] && [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$url" ]; then echo "$id up to date"; continue; fi
             curl -fsSL --retry 3 -o "/tmp/$id.src.mp4" "$url"
-            ffmpeg -loglevel error -y -i "/tmp/$id.src.mp4" -an -vf "hue=s=0" -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 22 -preset slow -movflags +faststart "$out/$id.mp4"
+            ffmpeg -loglevel error -y -i "/tmp/$id.src.mp4" -an -vf "$grade" -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 22 -preset slow -movflags +faststart "$out/$id.mp4"
             dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$out/$id.mp4")
             ffmpeg -loglevel error -y -i "$out/$id.mp4" -vf "fps=6/$dur,scale=240:-2,tile=6x1" -frames:v 1 "$out/$id.sheet.jpg"
             printf '%s' "$url" > "$stamp"
@@ -86,7 +91,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add prototype/assets/films films/stills
+          git add -A prototype/assets/films films/stills comics
           if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
           git commit -m "Fetch films"
           for i in 1 2 3 4; do
