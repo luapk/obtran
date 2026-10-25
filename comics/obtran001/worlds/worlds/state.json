@@ -10,10 +10,11 @@
     "marble_url": "https://marble.worldlabs.ai/world/f73fcfab-726d-4f7c-8718-f6b3c805202e",
     "metric_scale_factor": null,
     "caption": "The scene is a vividly hand-painted comic art depiction of a devastated alien landscape, characterized by bold black ink outlines over saturated colors, evoking a sense of dramatic destruction and otherworldly desolation. The overall tone is apocalyptic and foreboding, with intense hues of magenta, orange, and violet dominating the sky. Numerous toppled, angular towers and broken buildings, scarred with deep red and orange burns, are scattered across the terrain, indicating a catastrophic event. Piles of stark white skulls are visible in the foreground, forming macabre mounds. A colossal, cratered pink moon looms prominently in the magenta sky, casting an eerie glow over the scene. Billowing smoke and dust ascend from the burning ruins, further obscuring parts of the chaotic panorama. A small spaceship streaks across the sky, emitting a glowing mint green light as it rapidly departs into the deep violet and teal expanse of space. Visible brush and pencil textures enhance the graphic novel aesthetic. The 360 scene is faultless.",
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}",
     "files": {
       "lyra-ruins.spz": 6636547,
-      "lyra-ruins.100k.spz": 1398096
+      "lyra-ruins.100k.spz": 1398096,
+      "lyra-ruins.pano.png": 3600443
     }
   },
   "vessel": {
@@ -27,10 +28,11 @@
     "marble_url": "https://marble.worldlabs.ai/world/a861b0c1-aca0-4aeb-92d8-c46e6180f816",
     "metric_scale_factor": null,
     "caption": "The scene is a hand-painted comic art depiction of deep space, characterized by bold black ink outlines over saturated painted colors, creating a vibrant and slightly fantastical atmosphere. The overall tone is adventurous and dynamic, with bright light emanating from the spaceship against the cosmic backdrop. A long, segmented green spaceship with glowing mint green engines is prominently displayed, flying through deep violet space. A bright white vapor trail curls dynamically behind the spaceship, emphasizing its rapid movement. Below the spaceship, a striking ringed pink planet dominates the lower part of the scene, its rings a distinct feature. Several small moons are visible orbiting the pink planet, adding to the celestial landscape. Scattered stars of various sizes twinkle across the deep violet and teal expanse of space, providing depth and further enhancing the cosmic setting. The painted comic look is consistent throughout, with visible brush and pencil textures adding to its artistic quality. The spaceship's forward section, including its cockpit, extends into the violet void. The glowing mint green light from the engines illuminates the vapor trail. The planet's rings extend far into the cosmic space. The 360 scene is faultless.",
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}",
     "files": {
       "vessel.spz": 5570219,
-      "vessel.100k.spz": 1212290
+      "vessel.100k.spz": 1212290,
+      "vessel.pano.png": 3013107
     }
   },
   "cryptid-cockpit": {
@@ -44,10 +46,11 @@
     "marble_url": "https://marble.worldlabs.ai/world/3b50c67a-1541-40cc-a8fc-96c0530387f7",
     "metric_scale_factor": null,
     "caption": "The scene is a vibrant, hand-painted comic art illustration with saturated colors and bold black ink outlines, creating a dynamic and otherworldly atmosphere. The overall tone is one of futuristic mystery and alien technology, highlighted by glowing mint green light and the visible brush and pencil textures throughout the artwork. The cramped spaceship cockpit extends around the seated alien, revealing further consoles and intricate wiring beyond the visible area. To the left, a series of control panels with glowing magenta buttons and indicators line the curved interior of the cockpit, illuminated by the deep violet and teal space outside. More bundles of cables snake across the floor and up the walls, connecting various parts of the ship's internal machinery. The large, curved pink window behind the alien continues to wrap around the cockpit, offering panoramic views of distant, swirling magenta, orange, and violet skies, blending into the deep cosmic expanse. On the right, the giant DNA helix structure, with its shimmering violet and teal components, continues its upward and backward curve, disappearing into more unseen machinery that pulsates with mint green light. Additional elements of the alien technology, perhaps navigation screens displaying complex genetic data or celestial charts, are integrated into the walls and ceiling of the cockpit. The 360 scene is faultless.",
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}",
     "files": {
       "cryptid-cockpit.spz": 6166720,
-      "cryptid-cockpit.100k.spz": 1301918
+      "cryptid-cockpit.100k.spz": 1301918,
+      "cryptid-cockpit.pano.png": 4719867
     }
   },
   "manifold": {
@@ -61,10 +64,11 @@
     "marble_url": "https://marble.worldlabs.ai/world/009ab2ad-599e-4c98-962e-8201fb0ea123",
     "metric_scale_factor": null,
     "caption": "The scene is a cosmic vista rendered in a hand-painted comic art style, characterized by bold black ink outlines over saturated colors, creating a dynamic and fantastical atmosphere. The overall tone is adventurous and energetic, with glowing mint green light trails emphasizing motion across the vibrant celestial tapestry. The space is folded into giant angled slabs, resembling a zig-zag of tall panels, each acting as a distinct window onto a different starfield and nebula, painted in hues of blue, green, and violet. Small, colorful planets are interspersed between these cosmic panels, appearing as spherical objects within the vastness of space. A glowing green spaceship, emitting a brilliant white light trail, traverses through these folded cosmic panels, its trajectory clearly defined across the various celestial backdrops. The glowing mint green light from the spaceship illuminates portions of the surrounding space, highlighting the rich textures of the painted nebulae and stars. The distinct brush and pencil textures are visible throughout the artwork, reinforcing the hand-painted comic aesthetic. The folded space extends around, revealing additional panels with unique starfield and nebula combinations, some showcasing deep violet and teal skies, while others display magenta and orange cosmic formations. The small planets continue to appear as accents in these further reaches of space, maintaining a consistent scale and artistic style. The 360 scene is faultless.",
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}",
     "files": {
       "manifold.spz": 6480413,
-      "manifold.100k.spz": 1361457
+      "manifold.100k.spz": 1361457,
+      "manifold.pano.png": 3907117
     }
   },
   "crash-forest": {
@@ -78,10 +82,11 @@
     "marble_url": "https://marble.worldlabs.ai/world/ead5c0ca-05cb-4581-972b-fc2e393720e7",
     "metric_scale_factor": null,
     "caption": "The scene is a stylized, hand-painted comic art rendering of a forest clearing at dusk, imbued with a dramatic and otherworldly tone. The entire environment maintains bold black ink outlines over saturated painted colors, featuring magenta, orange, and violet skies, along with deep violet and teal elements. A large, crashed green spaceship, partially buried in the ground, dominates the central area of the clearing. Wisps of white smoke rise from various points on its hull, and sections of the spaceship emit a glowing mint-green light, contrasting with the vibrant sky. The spaceship's metallic surface exhibits visible brush and pencil texture, reinforcing the artistic style. On a ridge overlooking the crash site, a line of tribal warriors, silhouetted against the intensely colored sky, stands in watchful formation, each holding a spear. Pine trees, rendered in deep purples and dark greens, line the perimeter of the clearing, their shadowy forms extending towards a sky that shifts from a fiery orange near the horizon to a deep violet overhead. The ground beneath the spaceship is churned earth and scattered debris, indicating the force of the impact. The dense forest extends on all sides, with thick undergrowth and gnarled tree trunks suggesting a wild, untamed landscape. The 360 scene is faultless.",
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}",
     "files": {
       "crash-forest.spz": 6180440,
-      "crash-forest.100k.spz": 1319044
+      "crash-forest.100k.spz": 1319044,
+      "crash-forest.pano.png": 3517911
     }
   },
   "pod": {
@@ -95,10 +100,11 @@
     "marble_url": "https://marble.worldlabs.ai/world/9f81646f-ce66-495d-99ad-8b24100f235c",
     "metric_scale_factor": null,
     "caption": "The scene is a hand-painted comic art illustration, characterized by bold black ink outlines over saturated colors, evoking a dramatic and emotionally charged tone. The environment suggests an alien, possibly desert, landscape under a dramatically colored sky. The ground beneath the figures is uneven and rocky, with purplish hues suggesting a strange mineral composition or the lingering light of a magenta and orange sky that extends across the horizon. Scattered amongst the rocks are sparse, alien flora, perhaps glowing faintly with bioluminescence in the dim light. Far in the distance, jagged peaks of violet mountains rise against the deep violet and teal expanse of space, punctuated by glowing mint green celestial bodies, indicating a cosmic backdrop. Other tribespeople, their faces etched with concern and curiosity, stand in a loose semi-circle around the central figures, their traditional garments and head coverings blending with the muted tones of the alien twilight. Their forms are partially obscured by the ambient violet light, casting long, dramatic shadows across the uneven terrain. The air is still and silent, filled with the palpable tension of the moment. The 360 scene is faultless.",
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}",
     "files": {
       "pod.spz": 6003204,
-      "pod.100k.spz": 1285701
+      "pod.100k.spz": 1285701,
+      "pod.pano.png": 3484946
     }
   },
   "bonfire": {
@@ -112,10 +118,11 @@
     "marble_url": "https://marble.worldlabs.ai/world/5cdf6b51-dc2a-4a0b-a5a0-ffaf347b0e97",
     "metric_scale_factor": null,
     "caption": "The scene is a hand-painted comic art illustration, characterized by bold black ink outlines over saturated painted colors, evoking a whimsical and vibrant tone. The tent is large and circular, with its ceiling tapering to a central point from which a wooden pole rises, supporting the structure. The red and purple cloth walls hang in soft folds, their textures rendered with visible brush and pencil marks, creating a dynamic interplay of light and shadow. The flickering warmth of the campfire casts deep red and blue shadows that dance across the interior of the tent, extending outward to illuminate the surrounding ground, which is covered in a soft, sandy texture. Near the tent's entrance, several wooden crates are stacked, offering a convenient surface for various items, including a water skin made of stitched animal hide and a small, metallic cup. Further away, a coil of thick rope is neatly laid out on the ground, suggesting preparations for travel or storage. The warm glow of the fire is concentrated in the center of the tent, radiating outwards and gradually fading into the cooler, darker hues of the deep violet and teal skies that are visible through the tent's open flap, where glowing mint green light is cast by the moons and stars above. The 360 scene is faultless.",
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}",
     "files": {
       "bonfire.spz": 5377043,
-      "bonfire.100k.spz": 1156499
+      "bonfire.100k.spz": 1156499,
+      "bonfire.pano.png": 2405013
     }
   },
   "decode-helix": {
@@ -129,10 +136,11 @@
     "marble_url": "https://marble.worldlabs.ai/world/89013226-b110-4cba-9596-beafbd3c311f",
     "metric_scale_factor": null,
     "caption": "The scene is a vividly illustrated cosmic landscape, rendered in a hand-painted comic art style with bold black ink outlines and saturated colors, conveying an intense and fantastical tone. A giant, glowing orange alien eye, reflecting flames in its pupil, dominates the left side of the scene. Across the scene, a bright mint green DNA double helix twists gracefully, traversing tall vertical panels that glow with orange fire and warm light. The sky above is a tumultuous mix of magenta, orange, and violet hues, suggesting an otherworldly sunset or an energetic celestial event. Deep violet and teal define the vastness of space, which surrounds the fiery panels and the colossal eye. Glowing mint green light emanates from various points, illuminating the cosmic elements with an ethereal glow. Visible brush and pencil textures throughout the scene emphasize its artistic, non-photographic quality. The DNA helix continues its elegant spiral, extending into the unseen parts of the panorama, with sections of its structure appearing and disappearing behind the flaming vertical panels. These panels, like towering columns of fire and light, delineate the expansive cosmic environment, their intensity varying to create dynamic visual interest. The alien eye, with its fiery reflection, remains a central, captivating element, its gaze directed outward into the cosmic expanse, its intricate details and vibrant color maintained. The entire scene is awash in these dramatic, bold colors, consistent with the initial vibrant portrayal. The 360 scene is faultless.",
-    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt:{text_prompt,type,image_prompt:{uri,data_base64,extension},is_pano},world_marble_url,model}",
     "files": {
       "decode-helix.spz": 6559155,
-      "decode-helix.100k.spz": 1385589
+      "decode-helix.100k.spz": 1385589,
+      "decode-helix.pano.png": 4187345
     }
   }
 }

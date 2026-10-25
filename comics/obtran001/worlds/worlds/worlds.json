@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-25T13:01:16.339Z",
+  "updated": "2026-10-25T13:02:33.512Z",
   "worlds": [
     {
       "id": "lyra-ruins",
@@ -11,7 +11,7 @@
         "500k": "worlds/lyra-ruins.spz",
         "100k": "worlds/lyra-ruins.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/lyra-ruins.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.013008913514815708,
@@ -30,7 +30,7 @@
         "500k": "worlds/vessel.spz",
         "100k": "worlds/vessel.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/vessel.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.5680558901469526,
@@ -49,7 +49,7 @@
         "500k": "worlds/cryptid-cockpit.spz",
         "100k": "worlds/cryptid-cockpit.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/cryptid-cockpit.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.35991327390990124,
@@ -68,7 +68,7 @@
         "500k": "worlds/manifold.spz",
         "100k": "worlds/manifold.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/manifold.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.013008913514815708,
@@ -87,7 +87,7 @@
         "500k": "worlds/crash-forest.spz",
         "100k": "worlds/crash-forest.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/crash-forest.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.46494820525174657,
@@ -106,7 +106,7 @@
         "500k": "worlds/pod.spz",
         "100k": "worlds/pod.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/pod.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.013008913514815708,
@@ -125,7 +125,7 @@
         "500k": "worlds/bonfire.spz",
         "100k": "worlds/bonfire.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/bonfire.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.7159720549265237,
@@ -144,7 +144,7 @@
         "500k": "worlds/decode-helix.spz",
         "100k": "worlds/decode-helix.100k.spz"
       },
-      "pano": null,
+      "pano": "worlds/decode-helix.pano.png",
       "metric_scale_factor": null,
       "crop_uv": [
         0.4280896169597687,
