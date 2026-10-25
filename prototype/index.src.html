@@ -3462,6 +3462,7 @@ function drawSuper8(dt) {
 // while the singularity loads the field stays full and scrambling, with rings running inwards, and it
 // fades as the singularity unwinds.
 // Drawn on a canvas used as a texture on a plane just behind the card, so the card stays on top.
+const GLYPH_COL = COMIC.glyphColours || null;
 const glyphField = { canvas: document.createElement('canvas'), ctx: null, tex: null, mesh: null, mode: 'off', t: 0, dur: 1, next: 0, cells: null, opacity: 0 };
 {
   glyphField.ctx = glyphField.canvas.getContext('2d');
@@ -3509,7 +3510,13 @@ function updateGlyphField(dt) {
     if (Math.random() < 0.15) cell.b = 0.3 + 0.6 * Math.random();
     const edge = Math.max(0, 1 - Math.abs(ringAt - cell.r) / 0.08);                    // the front of the ring
     const a = Math.min(1, cell.b * (0.55 + 0.45 * (1 - cell.r)) + edge * 0.8);
-    c.strokeStyle = `rgba(239,233,223,${a.toFixed(2)})`; c.fillStyle = c.strokeStyle;
+    // a comic's own colours (COMIC.glyphColours: from, to and the ring; OBTRAN 001: the cryptid's fiery eyes), else paper
+    if (GLYPH_COL) {
+      const [c0, c1, cr] = GLYPH_COL, q = cell.h ??= Math.random(), e = Math.min(1, edge * 1.4);
+      const r = (c0[0] + (c1[0] - c0[0]) * q) * (1 - e) + cr[0] * e, g = (c0[1] + (c1[1] - c0[1]) * q) * (1 - e) + cr[1] * e, bl = (c0[2] + (c1[2] - c0[2]) * q) * (1 - e) + cr[2] * e;
+      c.strokeStyle = `rgba(${r | 0},${g | 0},${bl | 0},${a.toFixed(2)})`;
+    } else c.strokeStyle = `rgba(239,233,223,${a.toFixed(2)})`;
+    c.fillStyle = c.strokeStyle;
     const g = cctv.glyphs[cell.g], gx = cell.x - cs * 0.35, gy = cell.y - cs * 0.4;
     c.beginPath();
     for (const [a0, b0, d0, e0] of g.strokes) { c.moveTo(gx + a0 * s, gy + b0 * s * 0.8); c.lineTo(gx + d0 * s, gy + e0 * s * 0.8); }

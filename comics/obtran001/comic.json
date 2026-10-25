@@ -2159,5 +2159,23 @@
     "spin": 1.2,
     "endImage": "assets/props/tbc-end.webp",
     "endDelay": 0.9
-  }
+  },
+  "glyphColours": [
+    [
+      255,
+      150,
+      30
+    ],
+    [
+      215,
+      40,
+      18
+    ],
+    [
+      255,
+      214,
+      110
+    ]
+  ],
+  "glyphColoursNote": "Paul, 25 October: the glyph field in the cryptid's eye colours: each glyph between fiery orange and deep red, the bright front ring hot yellow-orange"
 }
