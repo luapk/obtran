@@ -102,10 +102,18 @@
   "finalWorld": "decode-helix",
   "endBeat": "decode",
   "cardAspect": 3.9,
+  "atmosphere": {
+    "note": "Paul, 25 October: sand was used too often; mist as the alternative, or no effect at all. Mist where the painting has smoke or night air; none in open space, the cockpit and the decode.",
+    "default": "none",
+    "lyra-ruins": "mist",
+    "crash-forest": "mist",
+    "pod": "mist",
+    "bonfire": "mist"
+  },
   "speakerGain": {},
   "setPieces": {
     "helix": {
-      "note": "Paul, 25 October: the twisting DNA strands built precisely in 3D for the final scene. from/to are [yaw, pitch, distance] in the world's frame (Marble units): near the ends of the world's own helix, measured from its mint splats (it arcs round the viewer about 2 units out), lowered about 9 and 5 degrees so the 3D one crosses the middle of the view; the 3D one runs along the chord between them, so it passes a little nearer. radius from the spread of those splats. fadeHue: [hue from, hue to, least brightness, fade] for the world's own helix splats.",
+      "note": "Paul, 25 October: the twisting DNA strands built precisely in 3D for the final scene. from/to are [yaw, pitch, distance] in the world's frame (Marble units): near the ends of the world's own helix, measured from its mint splats (it arcs round the viewer about 2 units out), lowered about 9 and 5 degrees so the 3D one crosses the middle of the view; the 3D one runs along the chord between them, so it passes a little nearer. radius from the spread of those splats. fadeHue: [hue from, hue to, least brightness, fade] for the world's own helix splats. colours: sampled from the panel's own helix (Paul: the same colour as the original, with the grade): its mid, shadow (15-30% luminance) and light (85-100%) mint, and the panel's darkest ink (luminance under 0.08).",
       "world": "decode-helix",
       "from": [
         -12,
@@ -131,26 +139,131 @@
       ],
       "colours": {
         "base": [
-          0.17,
-          0.7,
-          0.53
+          0.167,
+          0.656,
+          0.51
         ],
         "shade": [
-          0.06,
-          0.33,
-          0.31
+          0.144,
+          0.419,
+          0.374
         ],
         "light": [
-          0.52,
-          0.93,
-          0.76
+          0.2,
+          0.869,
+          0.53
         ],
         "ink": [
-          0.04,
-          0.035,
-          0.06
+          0.052,
+          0.045,
+          0.038
         ]
       }
-    }
+    },
+    "animate": [
+      {
+        "note": "Paul, 25 October: the smoke from the wreck animated in code. The world's own pale, unsaturated splats above the wreck rise (rise: share of their distance per cycle), sway and thin out, then start again.",
+        "world": "crash-forest",
+        "kind": "smoke",
+        "yaw": [
+          -50,
+          45
+        ],
+        "pitch": [
+          0,
+          60
+        ],
+        "dist": [
+          0,
+          6
+        ],
+        "lum": 0.55,
+        "sat": 0.25,
+        "rise": 0.18,
+        "speed": 0.07
+      },
+      {
+        "note": "The ship's vapour loop: shimmer with pulses running along it (freq: ripple frequency, speed: how fast the pulses run).",
+        "world": "vessel",
+        "kind": "trail",
+        "yaw": [
+          -80,
+          80
+        ],
+        "pitch": [
+          -60,
+          30
+        ],
+        "dist": [
+          0,
+          6
+        ],
+        "lum": 0.6,
+        "sat": 0.22,
+        "freq": 1.0,
+        "speed": 0.25
+      },
+      {
+        "note": "The escaping ship's trail over the ruins.",
+        "world": "lyra-ruins",
+        "kind": "trail",
+        "yaw": [
+          -15,
+          40
+        ],
+        "pitch": [
+          12,
+          70
+        ],
+        "dist": [
+          0,
+          40
+        ],
+        "lum": 0.6,
+        "sat": 0.22,
+        "freq": 0.6,
+        "speed": 0.25
+      },
+      {
+        "note": "The manifold's white floor (the page's gutters, which Marble turned into ground under the slabs): cut.",
+        "world": "manifold",
+        "kind": "cut",
+        "yaw": [
+          -180,
+          180
+        ],
+        "pitch": [
+          -90,
+          -30
+        ],
+        "dist": [
+          0,
+          40
+        ],
+        "lum": 0.62,
+        "sat": 0.18
+      },
+      {
+        "note": "The ship's trail through the folds.",
+        "world": "manifold",
+        "kind": "trail",
+        "yaw": [
+          -180,
+          180
+        ],
+        "pitch": [
+          -30,
+          10
+        ],
+        "dist": [
+          0,
+          40
+        ],
+        "lum": 0.62,
+        "sat": 0.22,
+        "freq": 0.8,
+        "speed": 0.25
+      }
+    ]
   }
 }

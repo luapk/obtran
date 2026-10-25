@@ -832,6 +832,15 @@ const WORLD_SCALE = 12;
 const SLAB = SP.slab || { card: { view: [0, 0], offset: [0, 0], size: [0.5, 0.5] }, hide: { centre: [0, 0], angle: 0, half: [0, 0], dist: [0, 0] } };   // no slab: nothing is cut
 // share of the sand shown over a relief (Bob's head): enough to drift past, not enough to hide his face
 const RELIEF_SAND = 0.35;
+// each world's atmosphere: sand (OBTRAN 003 everywhere), mist, or none (comic.json "atmosphere": a default and
+// per world ids; Paul, 25 October: sand used too often, mist as the alternative or nothing at all)
+const ATMOS = COMIC.atmosphere || {};
+const atmosOf = (id) => ATMOS[id] || ATMOS.default || 'sand';
+function sandLevel() {
+  const a = atmosOf(worlds.id);
+  if (!worlds.sandOn || reducedMotion || a === 'none') return 0;
+  return worlds.relief ? RELIEF_SAND : 1;
+}
 const DEG = Math.PI / 180;
 const PAL_N = 8;   // most colours a palette grade can hold
 const worlds = {
@@ -849,9 +858,13 @@ async function loadSpark() {
   worlds.u = {
     time: dyno.dynoFloat(0), grade: dyno.dynoFloat(1), suction: dyno.dynoFloat(0), jitter: dyno.dynoFloat(0),
     lo: dyno.dynoFloat(0.15), hi: dyno.dynoFloat(0.3), grit: dyno.dynoFloat(0.04), grain: dyno.dynoFloat(0.22), size: dyno.dynoFloat(0.88),
-    extrude: dyno.dynoFloat(1), sand: dyno.dynoFloat(1), cut: dyno.dynoFloat(0),
+    extrude: dyno.dynoFloat(1), sand: dyno.dynoFloat(1), mist: dyno.dynoFloat(0), cut: dyno.dynoFloat(0),
     // fade splats of one colour (hue from, hue to, least brightness, how much): the world's own helix under the 3D one
     fade: dyno.dynoVec4(new THREE.Vector4(0, 0, 1, 0)),
+    // up to two regions of a world animated or cut (comic.json setPieces.animate): direction box (yaw from, to,
+    // pitch from, to, degrees), then distance from, to, least luminance, most saturation; kind 1 smoke, 2 trail, 3 cut
+    r0a: dyno.dynoVec4(new THREE.Vector4()), r0b: dyno.dynoVec4(new THREE.Vector4()), r0k: dyno.dynoVec4(new THREE.Vector4()),
+    r1a: dyno.dynoVec4(new THREE.Vector4()), r1b: dyno.dynoVec4(new THREE.Vector4()), r1k: dyno.dynoVec4(new THREE.Vector4()),
     ink: dyno.dynoVec3(new THREE.Vector3(0.020, 0.016, 0.012)),
     mid: dyno.dynoVec3(new THREE.Vector3(0.300, 0.300, 0.270)),
     paper: dyno.dynoVec3(new THREE.Vector3(0.937, 0.914, 0.875)),
@@ -886,7 +899,7 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
         gsplat: dyno.Gsplat, time: 'float', grade: 'float', suction: 'float', jitter: 'float', lo: 'float', hi: 'float',
         grit: 'float', grain: 'float', size: 'float', ink: 'vec3', mid: 'vec3', paper: 'vec3',
         extrude: 'float', depth: 'float', alpha: 'float', brightOnly: 'float', cut: 'float',
-        fade: 'vec4', gmode: 'float', transfer: 'float', pull: 'float', soft: 'float', npal: 'float', mw: 'vec3', sw: 'vec3', mc: 'vec3', sc: 'vec3',
+        fade: 'vec4', r0a: 'vec4', r0b: 'vec4', r0k: 'vec4', r1a: 'vec4', r1b: 'vec4', r1k: 'vec4', gmode: 'float', transfer: 'float', pull: 'float', soft: 'float', npal: 'float', mw: 'vec3', sw: 'vec3', mc: 'vec3', sc: 'vec3',
         ...Object.fromEntries(Array.from({ length: PAL_N }, (_, k) => [`pal${k}`, 'vec3'])),
       },
       outTypes: { gsplat: dyno.Gsplat },
@@ -929,6 +942,34 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
           c.z += (otHash(id + floor(${i.time} * 30.0)) - 0.5) * ${i.jitter} * 0.01;
         }
         vec3 rgb = ${o.gsplat}.rgba.rgb;
+        ${[0, 1].map((r) => `
+        if (${i['r' + r + 'k']}.x > 0.0) {
+          // an animated region (setPieces.animate): smoke rises and thins, trails shimmer, a cut is dropped
+          float rd = max(length(c), 1e-4);
+          float ry = degrees(atan(c.x, c.z)), rp = degrees(asin(clamp(-c.y / rd, -1.0, 1.0)));
+          float rl = dot(rgb, vec3(0.299, 0.587, 0.114)), rmx = max(rgb.r, max(rgb.g, rgb.b)), rmn = min(rgb.r, min(rgb.g, rgb.b));
+          vec4 ra = ${i['r' + r + 'a']}, rb = ${i['r' + r + 'b']}, rk = ${i['r' + r + 'k']};
+          if (ry > ra.x && ry < ra.y && rp > ra.z && rp < ra.w && rd > rb.x && rd < rb.y && rl >= rb.z && (rmx - rmn) <= rb.w * max(rmx, 1e-4)) {
+            float h1 = otHash(id * 0.37 + ${r}.0), h2 = otHash(id * 1.71 + ${r}.0);
+            if (rk.x < 1.5) {
+              // smoke: each puff rises (Marble's y is down), drifts and swells, fading in and out, then starts again
+              float ph = fract(${i.time} * rk.z * (0.6 + 0.8 * h1) + h2);
+              c += vec3(sin(${i.time} * 0.6 + h1 * 6.28) * 0.04 * rd * ph, -ph * rk.y * rd, cos(${i.time} * 0.5 + h2 * 6.28) * 0.02 * rd * ph);
+              ${o.gsplat}.scales *= 1.0 + 1.3 * ph;
+              ${o.gsplat}.rgba.a *= sin(3.14159 * ph) * 1.1;
+            } else if (rk.x < 2.5) {
+              // trail: a shimmer and pulses of light running along it
+              float w = sin(dot(c, vec3(17.0, 11.0, 13.0)) * rk.y + ${i.time} * 3.0);
+              c += normalize(vec3(c.y, -c.x, 0.3)) * w * 0.006 * rd;
+              float pulse = 0.5 + 0.5 * sin(dot(c, vec3(9.0, 7.0, 5.0)) * rk.y * 0.5 - ${i.time} * rk.z * 4.0);
+              ${o.gsplat}.rgba.a *= 0.65 + 0.35 * pulse;
+              rgb *= 0.9 + 0.25 * pulse;
+            } else {
+              ${o.gsplat}.rgba.a = 0.0;
+              ${o.gsplat}.scales *= 0.0;
+            }
+          }
+        }`).join('')}
         if (${i.fade}.w > 0.0) {
           float mxc = max(rgb.r, max(rgb.g, rgb.b)), mnc = min(rgb.r, min(rgb.g, rgb.b));
           float hue = mod(degrees(atan(1.7320508 * (rgb.g - rgb.b), 2.0 * rgb.r - rgb.g - rgb.b)) + 360.0, 360.0);
@@ -1009,9 +1050,9 @@ function sandModifier() {
   const { dyno } = worlds.Spark, u = worlds.u;
   return dyno.dynoBlock({ gsplat: dyno.Gsplat }, { gsplat: dyno.Gsplat }, ({ gsplat }) => {
     const node = dyno.dyno({
-      inTypes: { gsplat: dyno.Gsplat, time: 'float', sand: 'float', paper: 'vec3' },
+      inTypes: { gsplat: dyno.Gsplat, time: 'float', sand: 'float', mist: 'float', paper: 'vec3' },
       outTypes: { gsplat: dyno.Gsplat },
-      inputs: { gsplat, time: u.time, sand: u.sand, paper: u.paper },
+      inputs: { gsplat, time: u.time, sand: u.sand, mist: u.mist, paper: u.paper },
       globals: () => [dyno.defineGsplat, `
         float otSandHash(float n) { return fract(sin(n) * 43758.5453123); }
       `],
@@ -1047,6 +1088,22 @@ function sandModifier() {
         // no grains right at the viewpoint, where they would fill the screen
         float near = smoothstep(0.22, 0.38, len);
         ${o.gsplat}.rgba = vec4(col, keep * near * sin(3.14159 * cyc) * 1.8);
+        if (${i.mist} > 0.5) {
+          // mist (Paul, 25 October: sand was used too often): a few large, soft, faint puffs drifting slowly
+          // sideways and up through the space, in the palette's light colour
+          float keepM = step(1.0 - ${i.sand} * 0.06, h4);
+          vec3 q0 = dir * d * mix(0.35, 0.9, h1);
+          float cm = fract(${i.time} * (0.006 + 0.01 * h2) + h3);
+          vec3 cen = q0 + vec3((cm - 0.5) * 0.3 * d * (h2 - 0.5), -cm * 0.08 * d, 0.0);
+          float lm = length(cen);
+          float sz = (0.035 + 0.05 * h1) * lm;
+          float ang = h3 * 6.2832;
+          ${o.gsplat}.center = cen;
+          ${o.gsplat}.quaternion = vec4(0.0, 0.0, sin(ang * 0.5), cos(ang * 0.5));
+          ${o.gsplat}.scales = vec3(sz, sz * 0.55, sz);
+          vec3 mc = mix(${i.paper}, vec3(dot(${i.paper}, vec3(0.299, 0.587, 0.114))), 0.35) * 0.9;
+          ${o.gsplat}.rgba = vec4(mc, keepM * smoothstep(0.45, 0.9, lm) * sin(3.14159 * cm) * 0.13);
+        }
       `],
     });
     return { gsplat: node.outputs.gsplat };
@@ -1086,8 +1143,18 @@ function loadWorld(id) {
       scene.add(m);
     }
     worlds.mesh = mesh; worlds.echoes = echoes; worlds.sandMesh = sandMesh; worlds.id = id; worlds.ok = true;
-    worlds.u.sand.value = worlds.sandOn && !reducedMotion ? (entry.relief ? RELIEF_SAND : 1) : 0;
+    worlds.relief = !!entry.relief;
+    worlds.u.sand.value = sandLevel();
+    worlds.u.mist.value = atmosOf(id) === 'mist' ? 1 : 0;
     worlds.u.cut.value = id === STORY_WORLD && SP.slab ? 1 : 0;   // Marble's white slab is cut out of the singularity
+    // animated or cut regions of this world (setPieces.animate)
+    const regs = (SP.animate || []).filter((a) => a.world === id).slice(0, 2);
+    [0, 1].forEach((r) => {
+      const a = regs[r], K = { smoke: 1, trail: 2, cut: 3 };
+      worlds.u[`r${r}a`].value.set(...(a ? [...(a.yaw || [-180, 180]), ...(a.pitch || [-90, 90])] : [0, 0, 0, 0]));
+      worlds.u[`r${r}b`].value.set(...(a ? [...(a.dist || [0, 1e4]), a.lum ?? 0, a.sat ?? 1] : [0, 0, 0, 0]));
+      worlds.u[`r${r}k`].value.set(a ? K[a.kind] || 0 : 0, a ? a.rise ?? a.freq ?? 1 : 0, a ? a.speed ?? 0.1 : 0, 0);
+    });
     const fh = SP.helix && helix.on && id === SP.helix.world && SP.helix.fadeHue;
     worlds.u.fade.value.set(fh ? fh[0] : 0, fh ? fh[1] : 0, fh ? fh[2] ?? 0.5 : 1, fh ? fh[3] ?? 0.85 : 0);
     // the grade measured from the world's crop by tools/clean_worlds.py; a relief is the page's own ink
@@ -1161,7 +1228,9 @@ function updateWorld(dt, t) {
   }
   worlds.jitter = Math.max(0, worlds.jitter - dt * 1.6);
   // the extrusion's blocks jump on a clock, so it needs a refresh about ten times a second
-  const tick = u.extrude.value > 0 ? Math.floor(t * 10) : -1;
+  // animated regions (smoke, trails) move smoothly at 24 refreshes a second
+  const animated = u.r0k.value.x > 0 || u.r1k.value.x > 0;
+  const tick = animated ? Math.floor(t * 24) : u.extrude.value > 0 ? Math.floor(t * 10) : -1;
   const changed = u.suction.value !== worlds.suction || worlds.jitter > 0 || u.jitter.value > 0 || tick !== worlds.lastTick;
   worlds.lastTick = tick;
   u.time.value = t; u.suction.value = worlds.suction; u.jitter.value = worlds.jitter;
@@ -3051,7 +3120,7 @@ function backdropHideWorld(hide) {
   backdrop.hidWorld = hide;
   const show = !hide && (state.stage === 'breach' || state.stage === 'void');
   for (const m of [worlds.mesh, ...worlds.echoes]) m.visible = show;
-  const full = worlds.sandOn && !reducedMotion ? (worlds.relief ? RELIEF_SAND : 1) : 0;
+  const full = sandLevel();
   worlds.u.sand.value = hide ? Math.min(full, BACKDROP_SAND) : full;
   worlds.sandMesh?.updateVersion();
 }
@@ -3786,7 +3855,7 @@ async function startReview() {
   sb.className = 'ui-btn'; sb.type = 'button'; sb.textContent = 'Sand'; sb.setAttribute('aria-pressed', String(worlds.sandOn));
   sb.addEventListener('click', () => {
     worlds.sandOn = !worlds.sandOn; sb.setAttribute('aria-pressed', String(worlds.sandOn));
-    worlds.u.sand.value = worlds.sandOn && !reducedMotion ? (worlds.relief ? RELIEF_SAND : 1) : 0;
+    worlds.u.sand.value = sandLevel();
     worlds.sandMesh?.updateVersion();
   });
   panel.append(sb);

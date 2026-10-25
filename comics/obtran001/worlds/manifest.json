@@ -108,6 +108,19 @@
         477
       ],
       "prompt": "A giant glowing orange alien eye with flames reflected in its pupil, a bright mint green DNA double helix twisting across tall vertical panels of orange fire and warm light."
+    },
+    {
+      "id": "decode-clean",
+      "title": "The decode (no helix)",
+      "crop": "crops/decode-clean.jpg",
+      "crop_px": [
+        1777,
+        5417,
+        1453,
+        477
+      ],
+      "prompt": "A giant glowing orange alien eye with a black vertical slit pupil and blue skin around it, beside tall vertical panels of orange and pale yellow firelight with black ink outlines and white gaps between them.",
+      "note": "Paul, 25 October: remove the painted helix so the 3D one stands alone. The decode crop with the helix painted out by Nano Banana (films/sources.json stills o1-decode-clean-b, chosen over take a, which kept a sliver of helix in the pupil); crop_px is the original crop's, for its place on the page."
     }
   ]
 }

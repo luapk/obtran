@@ -1,9 +1,11 @@
 {
   "comic": "obtran001",
   "quality": "draft",
-  "only": [],
+  "only": [
+    "decode-clean"
+  ],
   "force": false,
-  "refresh": true,
+  "refresh": false,
   "credits": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: refresh (free) to fetch the eight panoramas, which were not ready when generation finished. All eight drafts done on 25 October (1,840 credits; 23,160 left)."
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: a draft of the decode world from the crop with the painted helix removed (230 credits), 25 October; 23,160 credits before it."
 }
