@@ -2,15 +2,15 @@
   "lines": {
     "caption": {
       "file": "caption.mp3",
-      "hash": "e32d062145a9b44a",
-      "bytes": 159703,
+      "hash": "31d52c5646414ff9",
+      "bytes": 162211,
       "speaker": "narrator",
       "radio": false
     },
     "smoke1": {
       "file": "smoke1.mp3",
-      "hash": "c7f353ee91edcd55",
-      "bytes": 113727,
+      "hash": "0d7689ff4c5160cb",
+      "bytes": 112474,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -23,8 +23,8 @@
     },
     "engage": {
       "file": "engage.mp3",
-      "hash": "cc58beca07d593c9",
-      "bytes": 47272,
+      "hash": "6cb75bffea524cab",
+      "bytes": 48526,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -44,8 +44,8 @@
     },
     "drill": {
       "file": "drill.mp3",
-      "hash": "1a5fe0c20ce7d4fd",
-      "bytes": 108712,
+      "hash": "fd2b1b6acdac653d",
+      "bytes": 113727,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -58,8 +58,8 @@
     },
     "unlock": {
       "file": "unlock.mp3",
-      "hash": "a9b3c3a38779ccaf",
-      "bytes": 40585,
+      "hash": "ab00f51f95533285",
+      "bytes": 38077,
       "speaker": "smokehouse",
       "radio": {
         "low": 420,
@@ -86,8 +86,8 @@
     },
     "tbc": {
       "file": "tbc.mp3",
-      "hash": "90a71a88e9011816",
-      "bytes": 24284,
+      "hash": "a2a15ac0e06ee1de",
+      "bytes": 28046,
       "speaker": "narrator",
       "radio": false
     }
