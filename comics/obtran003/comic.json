@@ -1,0 +1,449 @@
+{
+  "note": "OBTRAN 003's content for the engine in prototype/index.src.html, embedded at build time by tools/build.mjs (--comic obtran003, the default). Everything comic-specific lives here or in the asset folders named under paths; the engine holds no story. Set pieces are optional: a comic without one of them simply does not build it. See .claude/skills/comic-experience/SKILL.md for what each field does and how a new comic is made.",
+  "id": "obtran003",
+  "paths": {
+    "assets": "prototype/assets",
+    "worlds": "worlds/worlds"
+  },
+  "text": {
+    "title": "Oblivious Transfer 003",
+    "description": "OBTRAN 003 comic page from Oblivious Transfer, read as an interactive 3D page.",
+    "heading": "Oblivious Transfer: OBTRAN 003",
+    "code": "OBTRAN003",
+    "lead": "Turn your sound on and follow the story, exploring to unlock tracks.",
+    "musicTab": "QNTM CTRL",
+    "musicBuy": "The Smokehouse Shift EP on Bandcamp",
+    "triggerHint": "INITIATING QNTM CTRL",
+    "breachPage": "Initiating QNTM CTRL. The page breaks apart and you fall through the singularity.",
+    "breachSpace": "Initiating QNTM CTRL. The space breaks apart and you fall through the singularity.",
+    "cctvDate": "3091.11.22"
+  },
+  "beats": [
+    {
+      "b": "caption"
+    },
+    {
+      "b": "crsh",
+      "fx": "static",
+      "cut": 0.9
+    },
+    {
+      "b": "smoke1",
+      "fx": "blip",
+      "auto": 1.1
+    },
+    {
+      "b": "engage",
+      "fx": "blip"
+    },
+    {
+      "b": "bob1"
+    },
+    {
+      "b": "drill",
+      "fx": "blip",
+      "invert": true
+    },
+    {
+      "b": "holy",
+      "auto": 0.01,
+      "filmOnly": true
+    },
+    {
+      "b": "unlock",
+      "fx": "blip",
+      "hold": true
+    },
+    {
+      "b": "qntm",
+      "trigger": true,
+      "auto": 1.8
+    }
+  ],
+  "journey": [
+    {
+      "world": "bob-cockpit",
+      "beats": [
+        0,
+        1
+      ]
+    },
+    {
+      "world": "hull-machinery",
+      "beats": [
+        2
+      ]
+    },
+    {
+      "world": "ribbon-loops",
+      "beats": [
+        3
+      ]
+    },
+    {
+      "world": "bob-head-relief",
+      "beats": [
+        4
+      ]
+    },
+    {
+      "world": "monolith-slabs",
+      "beats": [
+        5
+      ]
+    },
+    {
+      "world": "bob",
+      "beats": [
+        6,
+        7,
+        8
+      ]
+    }
+  ],
+  "finalWorld": "singularity-core",
+  "endBeat": "tbc",
+  "cardAspect": 3.9,
+  "speakerGain": {
+    "smokehouse": 0.75
+  },
+  "setPieces": {
+    "panel": {
+      "world": "bob-cockpit",
+      "on": false,
+      "uv": [
+        0,
+        0.1456,
+        0.43973,
+        0.55078
+      ],
+      "layers": [
+        [
+          "back",
+          7
+        ],
+        [
+          "figure",
+          6.4
+        ],
+        [
+          "front",
+          5.7
+        ]
+      ],
+      "note": "Bob's panel cut into layers (tools/make_panel_layers.py, assets/props/panel-*.webp); off since Paul's \"lose panel of cutout illustrated bob\" (?panel=1 brings it back)"
+    },
+    "shards": {
+      "outlines": [
+        [
+          [
+            71.9,
+            1143.6
+          ],
+          [
+            98,
+            1119.8
+          ],
+          [
+            171.7,
+            1180.7
+          ],
+          [
+            100,
+            1263.1
+          ]
+        ],
+        [
+          [
+            46.4,
+            1073.4
+          ],
+          [
+            92.2,
+            1113.2
+          ],
+          [
+            76.9,
+            1129.7
+          ],
+          [
+            43.5,
+            1094.3
+          ]
+        ],
+        [
+          [
+            110.2,
+            976.9
+          ],
+          [
+            143.6,
+            955.1
+          ],
+          [
+            158.9,
+            976.9
+          ],
+          [
+            127,
+            994.5
+          ]
+        ],
+        [
+          [
+            365.7,
+            1002.1
+          ],
+          [
+            442.6,
+            1147.1
+          ],
+          [
+            397.6,
+            1285.7
+          ],
+          [
+            270,
+            1216
+          ]
+        ],
+        [
+          [
+            296.1,
+            1322
+          ],
+          [
+            367.2,
+            1317.6
+          ],
+          [
+            357,
+            1342.3
+          ],
+          [
+            302,
+            1341
+          ]
+        ]
+      ],
+      "note": "slabs traced from the bottom left of the page, 1000 wide grid; they spiral out of the final world's core"
+    },
+    "ribbons": {
+      "world": "ribbon-loops",
+      "lines": [
+        {
+          "path": [
+            [
+              21.17,
+              47.41,
+              1.374
+            ],
+            [
+              17.28,
+              42.28,
+              1.392
+            ],
+            [
+              10.86,
+              36.79,
+              1.336
+            ],
+            [
+              1.43,
+              31.23,
+              1.238
+            ],
+            [
+              -9.41,
+              24.58,
+              1.219
+            ],
+            [
+              -17.77,
+              16.98,
+              1.201
+            ],
+            [
+              -22,
+              9.35,
+              1.192
+            ],
+            [
+              -19.85,
+              3.78,
+              1.181
+            ],
+            [
+              -13.34,
+              1.26,
+              1.143
+            ],
+            [
+              -4.02,
+              1.29,
+              1.127
+            ],
+            [
+              5.51,
+              4,
+              1.138
+            ]
+          ],
+          "near": 0.16,
+          "sway": 1.6
+        },
+        {
+          "path": [
+            [
+              6.19,
+              4.67,
+              1.139
+            ],
+            [
+              12.17,
+              7.24,
+              1.163
+            ],
+            [
+              19.73,
+              7.86,
+              1.201
+            ],
+            [
+              25.54,
+              5.47,
+              1.246
+            ],
+            [
+              27.19,
+              -0.06,
+              1.257
+            ],
+            [
+              26.1,
+              -7.38,
+              1.282
+            ],
+            [
+              22.12,
+              -12.51,
+              1.252
+            ],
+            [
+              14.76,
+              -14.91,
+              1.224
+            ],
+            [
+              8.87,
+              -13.06,
+              1.171
+            ],
+            [
+              4.84,
+              -7.51,
+              1.152
+            ],
+            [
+              4.16,
+              -0.75,
+              1.137
+            ],
+            [
+              6.19,
+              4.4,
+              1.139
+            ]
+          ],
+          "sway": 0.8
+        }
+      ],
+      "return": [
+        [
+          9.5,
+          11,
+          1.25
+        ],
+        [
+          4,
+          18,
+          1.45
+        ],
+        [
+          -12,
+          32,
+          1.6
+        ],
+        [
+          -35,
+          55,
+          1.5
+        ],
+        [
+          -90,
+          70,
+          1.3
+        ],
+        [
+          -170,
+          60,
+          1.2
+        ],
+        [
+          110,
+          65,
+          1.25
+        ],
+        [
+          55,
+          62,
+          1.3
+        ],
+        [
+          33,
+          54,
+          1.35
+        ]
+      ],
+      "note": "traced from the ribbon world's panorama: [yaw, pitch, distance] per point; return closes the ring behind the viewer"
+    },
+    "nucleus": {
+      "yaw": -4.2,
+      "pitch": 7.8,
+      "dist": 1.379,
+      "note": "over the drawn nucleus in the final world, measured from its splats (degrees, Marble units)"
+    },
+    "slab": {
+      "card": {
+        "view": [
+          -29.3,
+          21
+        ],
+        "offset": [
+          -0.0658,
+          -0.0083
+        ],
+        "size": [
+          0.5492,
+          0.8847
+        ]
+      },
+      "hide": {
+        "centre": [
+          -30.73,
+          18.71
+        ],
+        "angle": 72.58,
+        "half": [
+          26.36,
+          11.97
+        ],
+        "dist": [
+          1.08,
+          1.48
+        ]
+      },
+      "note": "the slab Marble invented in the singularity, cut out of its splats (tools/cut_slab.py); the floating card is off unless ?slab=1"
+    }
+  }
+}

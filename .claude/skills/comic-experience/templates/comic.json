@@ -1,0 +1,32 @@
+{
+  "note": "A new comic, made by tools/new_comic.mjs. Fill it in phase by phase (see .claude/skills/comic-experience/SKILL.md and references/comic-json.md). Beat ids must match the lettering box ids in assets/meta.json and the beat ids in the voice script.",
+  "id": "__ID__",
+  "text": {
+    "title": "__TITLE__",
+    "description": "__TITLE__: a comic page read as an interactive 3D page.",
+    "heading": "__TITLE__",
+    "code": "__CODE__",
+    "lead": "Turn your sound on and follow the story, exploring to unlock tracks.",
+    "musicTab": "TRACKS",
+    "musicBuy": "The release on Bandcamp",
+    "triggerHint": "TAP THE PANEL",
+    "breachPage": "The page breaks apart and you fall through it.",
+    "breachSpace": "The space breaks apart and you fall through it.",
+    "cctvDate": "3091.01.01"
+  },
+  "beats": [
+    { "b": "caption" },
+    { "b": "line1" },
+    { "b": "trigger", "trigger": true, "auto": 1.8 },
+    { "b": "end" }
+  ],
+  "journey": [
+    { "world": "space-1", "beats": [0, 1] },
+    { "world": "space-2", "beats": [2] }
+  ],
+  "finalWorld": "final-space",
+  "endBeat": "end",
+  "cardAspect": 3.9,
+  "speakerGain": {},
+  "setPieces": {}
+}

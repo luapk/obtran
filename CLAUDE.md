@@ -52,8 +52,16 @@ source/
   OBTRAN_003_comic_AW.pdf     the artwork (2 pages; page 1 is the comic, page 2 is blank)
   original-brief.md           the Gemini-era handoff (not uploaded yet)
   page_rgb.png                full resolution page from extract_page.py (gitignored)
+comics/
+  obtran003/comic.json        OBTRAN 003's content: beats, journey, final world, end beat, card width, speaker gains,
+                              set pieces (panel, shards, ribbons, nucleus, slab) and the page's words; its assets
+                              stay in prototype/assets and worlds/worlds (paths in the file)
+  <id>/                       further comics (tools/new_comic.mjs): comic.json, assets/, worlds/
+.claude/skills/comic-experience/  the playbook for a new comic: SKILL.md, references (comic.json fields, prompts,
+                              pitfalls), templates/comic.json
 prototype/
-  index.src.html              the experience (single file, placeholders filled at build)
+  index.src.html              the engine (single file, placeholders filled at build; the comic's content comes from
+                              comics/<id>/comic.json as COMIC)
   assets/page.jpg             page texture, 1800x2434, sRGB
   assets/depth.png            depth map 512x692 (R = depth, G = lettering box index x 20, B = Bob's panel mask)
   assets/meta.json            page aspect, singularity centre, bubble rects, panel polygon (all in page UV, origin top left)
@@ -67,9 +75,11 @@ voices/
 tools/
   extract_page.py             PDF to source/page_rgb.png (handles Adobe inverted CMYK)
   make_assets.py              page_rgb.png to the three files in prototype/assets; --crops recuts worlds/crops
-  build.py / build.mjs        index.src.html to dist/ (same output; Vercel uses build.mjs)
+  build.mjs                   index.src.html plus comics/<id>/comic.json to dist/ (Vercel runs it; build.py calls it)
                               default: assets and worlds as files; --inline: one file, base64 assets;
-                              --local: three.js and Spark from /node_modules; --out <dir>: build elsewhere
+                              --local: three.js and Spark from /node_modules; --out <dir>: build elsewhere;
+                              --comic <id> or COMIC=<id>: which comic (obtran003 by default)
+  new_comic.mjs               scaffold comics/<id>/ for a new comic from the skill's template
   clean_worlds.py             prune each world's splats to <id>.clean.spz, and write views.json:
                               per-world ink grade (palette and thresholds from its crop) and look limits
   make_bob_head.py            Bob's head as a relief of splats from the scan, plus reliefs.json
@@ -350,7 +360,7 @@ Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the b
 
 Paul asked (25 October) how a second single page comic would become an experience like this one. The full write-up is a shareable doc: https://claude.ai/artifact/XDLjNg5GxZfCRWAH11vZMm. The short version, for any session picking it up:
 
-- **First, split the engine from the content (about 1 day, once).** Everything comic-specific in `index.src.html` (`JOURNEY`, `BEATS`, film cues, backdrops, shard outlines, `NUC_DIR`, `RIBBON_LINES`, panel layers) moves to `comics/<id>/comic.json` beside its assets; set pieces become optional modules switched on per space; `build.mjs`, the workflows and `vercel.json` take a comic folder. OBTRAN 003 must run identically from its `comic.json` (smoke test, both sizes) before the new page is touched.
+- **The engine split is done for the page and the build (25 October).** `index.src.html` holds no story: beats, journey, final world, end beat, card width, speaker gains, set pieces and the page's words come from `comics/<id>/comic.json`, embedded by `build.mjs --comic <id>` as `COMIC` (no fetch at run time; `note` keys are left out). Set pieces are optional: a comic without `setPieces.shards` (or ribbons, nucleus, panel, slab) does not build it. OBTRAN 003 keeps its asset folders (`paths` in its comic.json); a new comic's default to `comics/<id>/assets` and `comics/<id>/worlds`. Still to do when the second comic starts (phase 0 of the skill): the workflows and the page tools (`make_assets.py`, `trace_bubbles.py`, `clean_worlds.py` and others) still have OBTRAN 003's paths and content inside. The playbook is the skill `.claude/skills/comic-experience/` (load it for any new comic); `tools/new_comic.mjs <id>` scaffolds the folder.
 - **Ask Paul for:** layered PSD or ink scans with lettering separate (best) or the print PDF; the dialogue in reading order with speakers; a look reference per character on film; ElevenLabs voice ids and reads; 25 to 35 s music excerpts (and full tracks); effects; logo and release links; a credit cap per service. Decide at kickoff: which regions become spaces and their order, which characters get films and lipsync, which gestures, the finale, one repo per comic or a folder per comic.
 - **Phases:** 0 engine split; 1 intake and extraction (`extract_page.py`, check for Adobe inverted CMYK); 2 reading the page (beats, `trace_bubbles.py`, `make_assets.py`, crops, `meta.json`); 3 shaping the journey (storyboard); then side by side 4 worlds (drafts first, `preview_splats.py`, full quality only where it earns it, `clean_worlds.py`, depth from page-cut layers, reliefs and set pieces), 5 cards and camera (`CARD_ASPECT`, hops tuned on a phone first), 6 films (Nano Banana Pro stills, Seedance 2.5, lipsync with the film's own audio, `sources.json` and Fetch films), 7 voices (`script.json`, v4 tags and punctuation, spoken spellings), 8 music and sound (`make_music.py`, `make_sfx.py`, levels measured in an OfflineAudioContext); then 9 interactions and finale (`prepareWorld`, CSS layers for anything that must not freeze), 10 build and deploy, 11 testing (smoke test at both sizes, WebM copies for films, simulated sound block, real phones, flash limits, reduced motion).
 - **Review points with Paul:** 1 beat list; 2 storyboard (no credits spent before this); 3 drafts reviewed, which earn full quality; 4 stills picked; 5 first voice render by ear; 6 phone check and sign off.

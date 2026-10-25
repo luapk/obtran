@@ -5,15 +5,24 @@
 //   node tools/build.mjs --local    load three.js and Spark from /node_modules instead of jsDelivr (offline testing)
 //
 //   --out <dir>    write somewhere other than dist/ (relative to the repo root)
-// The flags combine. tools/build.py produces the same output.
+//   --comic <id>   build comics/<id>/comic.json (or set COMIC; obtran003 by default): its content is embedded in
+//                  the page and its asset folders (paths in comic.json) are the ones served
+// The flags combine. tools/build.py runs this.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'prototype', 'index.src.html');
-const ASSETS = join(ROOT, 'prototype', 'assets');
-const WORLDS = join(ROOT, 'worlds', 'worlds');
+const comicAt = process.argv.indexOf('--comic');
+const COMIC_ID = comicAt > 0 ? process.argv[comicAt + 1] : process.env.COMIC || 'obtran003';
+const COMIC_FILE = join(ROOT, 'comics', COMIC_ID, 'comic.json');
+if (!existsSync(COMIC_FILE)) throw new Error(`no comic ${COMIC_ID}: ${COMIC_FILE} is missing`);
+const comic = JSON.parse(readFileSync(COMIC_FILE, 'utf8'));
+for (const k of ['beats', 'journey', 'finalWorld', 'endBeat', 'text']) if (!comic[k]) throw new Error(`comic ${COMIC_ID}: ${k} is missing`);
+// the comic's own folders, beside its comic.json unless it names others (OBTRAN 003 keeps its original ones)
+const ASSETS = join(ROOT, comic.paths?.assets || join('comics', COMIC_ID, 'assets'));
+const WORLDS = join(ROOT, comic.paths?.worlds || join('comics', COMIC_ID, 'worlds'));
 const outAt = process.argv.indexOf('--out');
 const DIST = outAt > 0 ? join(ROOT, process.argv[outAt + 1]) : join(ROOT, 'dist');
 
@@ -39,8 +48,16 @@ const dataUri = (file, mime) => `data:${mime};base64,${readFileSync(join(ASSETS,
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(DIST, { recursive: true });
 
+for (const f of ['page.jpg', 'depth.png', 'meta.json']) if (!existsSync(join(ASSETS, f))) throw new Error(`comic ${COMIC_ID}: ${f} is missing from ${ASSETS.slice(ROOT.length + 1)} (tools/extract_page.py, then tools/make_assets.py)`);
 const meta = JSON.stringify(JSON.parse(readFileSync(join(ASSETS, 'meta.json'), 'utf8')));
+// notes are for people: left out of the page
+const strip = (v) => Array.isArray(v) ? v.map(strip) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([k]) => k !== 'note').map(([k, x]) => [k, strip(x)])) : v;
+const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const text = (k) => esc(comic.text[k]);
 const fill = {
+  '%%COMIC%%': JSON.stringify(strip(comic)).replace(/</g, '\\u003c'),
+  '%%TEXT_TITLE%%': text('title'), '%%TEXT_DESCRIPTION%%': text('description'), '%%TEXT_HEADING%%': text('heading'),
+  '%%TEXT_CODE%%': text('code'), '%%TEXT_LEAD%%': text('lead'), '%%TEXT_MUSICTAB%%': text('musicTab'), '%%TEXT_MUSICBUY%%': text('musicBuy'),
   '%%THREE_URL%%': local ? THREE_LOCAL : THREE_CDN,
   '%%THREE_ADDONS_URL%%': local ? THREE_ADDONS_LOCAL : THREE_ADDONS_CDN,
   '%%SPARK_URL%%': local ? SPARK_LOCAL : SPARK_CDN,
@@ -108,4 +125,4 @@ if (!inline) {
 }
 
 const kb = (Buffer.byteLength(html) / 1024).toFixed(0);
-console.log(`${DIST.slice(ROOT.length + 1)}/index.html ${kb} KB (${inline ? 'inline' : 'files'}${local ? ', local three' : ''})${inline ? '' : `, ${copied} world files`}`);
+console.log(`${COMIC_ID}: ${DIST.slice(ROOT.length + 1)}/index.html ${kb} KB (${inline ? 'inline' : 'files'}${local ? ', local three' : ''})${inline ? '' : `, ${copied} world files`}`);

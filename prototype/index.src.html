@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Oblivious Transfer 003</title>
+<title>%%TEXT_TITLE%%</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23060504'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%238a6a4a' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23efe9df'/%3E%3C/svg%3E">
-<meta name="description" content="OBTRAN 003 comic page from Oblivious Transfer, read as an interactive 3D page.">
+<meta name="description" content="%%TEXT_DESCRIPTION%%">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -221,12 +221,12 @@
 
 <div id="gate" role="dialog" aria-label="Start">
   <div class="gate-card">
-    <h1 class="sr-only">Oblivious Transfer: OBTRAN 003</h1>
+    <h1 class="sr-only">%%TEXT_HEADING%%</h1>
     <!-- after the logo (Paul, 24 October): OBTRAN003 decrypts like a code, then one sentence and
          the Enter button, drawn as one of the comic's black panels with its word cut from the
          comic's own lettering (tools/cut_enter_label.py) -->
-    <p class="code" id="code" aria-hidden="true">OBTRAN003</p>
-    <p class="lead" id="note">Turn your sound on and follow the story, exploring to unlock tracks.</p>
+    <p class="code" id="code" aria-hidden="true">%%TEXT_CODE%%</p>
+    <p class="lead" id="note">%%TEXT_LEAD%%</p>
     <button id="start" type="button"><span class="lbl">ENTER</span><svg class="arr" viewBox="0 0 24 12" aria-hidden="true"><path d="M0 6h21M16 1l5 5-5 5"/></svg></button>
   </div>
 </div>
@@ -237,11 +237,11 @@
 <div id="music" hidden>
   <button id="musicOn" class="ui-btn" type="button" aria-pressed="true" aria-label="Music"><span class="lbl">Music on</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/><path class="x" d="M4 4l16 16"/></svg></button>
   <label id="musicVolBox" class="ui-btn"><span aria-hidden="true">Vol</span><input id="musicVol" type="range" min="0" max="1" step="0.02" value="0.9" aria-label="Music volume"></label>
-  <button id="musicTab" class="ui-btn" type="button" aria-expanded="false" aria-controls="musicList"><span class="mt-name">QNTM CTRL</span> <span id="musicCount">0/3</span></button>
+  <button id="musicTab" class="ui-btn" type="button" aria-expanded="false" aria-controls="musicList"><span class="mt-name">%%TEXT_MUSICTAB%%</span> <span id="musicCount">0/3</span></button>
   <div id="musicList" hidden>
     <p class="mt-head">Explore to unlock tracks</p>
     <ol id="musicTracks"></ol>
-    <a id="musicBuy" href="#" target="_blank" rel="noopener" hidden>The Smokehouse Shift EP on Bandcamp</a>
+    <a id="musicBuy" href="#" target="_blank" rel="noopener" hidden>%%TEXT_MUSICBUY%%</a>
   </div>
 </div>
 <div id="toast" aria-live="polite"></div>
@@ -256,6 +256,9 @@ import * as THREE from 'three';
 const PAGE_SRC = '%%PAGE_SRC%%';
 const DEPTH_SRC = '%%DEPTH_SRC%%';
 const META = %%META%%;
+// the comic's content (comics/<id>/comic.json, embedded by tools/build.mjs): beats, journey, worlds, set pieces, words
+const COMIC = %%COMIC%%;
+const SP = COMIC.setPieces || {};
 
 /* ---------- constants ---------- */
 const PW = 2.0;
@@ -268,26 +271,18 @@ const BREACH_DUR = 4.8;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isTouch = matchMedia('(pointer: coarse)').matches;
 
-const SPEAKER_GAIN = { smokehouse: 0.75 };   // per speaker, after the radio and its limiter (about -2.5 dB)
+const SPEAKER_GAIN = COMIC.speakerGain || {};   // per speaker, after the radio and its limiter
 const HOLD_DUR = 1.4;                     // seconds of press and hold to unlock
-const BEATS = [
-  { b: 'caption' },
-  { b: 'crsh', fx: 'static', cut: 0.9 },          // cut: cuts straight into the next space this many seconds in, on its static
-  { b: 'smoke1', fx: 'blip', auto: 1.1 },          // auto: moves on by itself this many seconds after its line (and film) end
-  { b: 'engage', fx: 'blip' },
-  { b: 'bob1' },
-  { b: 'drill', fx: 'blip', invert: true },     // invert: the card flashes negative while its line plays (Paul)
-  { b: 'holy', auto: 0.01, filmOnly: true },       // filmOnly: its panel shows only over its film, and the story moves on as the film ends (Paul)
-  { b: 'unlock', fx: 'blip', hold: true },         // after Holy smokes (Paul, 24 October: "switch biometric key entry and holy smokes")
-  { b: 'qntm', trigger: true, auto: 1.8 },
-];
+const BEATS = COMIC.beats;                // flags: fx, cut, auto, hold, trigger, filmOnly, invert (see the comic skill)
+const END_BEAT = COMIC.endBeat;            // the ending's lettering (To be continued...)
+const TRIGGER_BEAT = BEATS.find((b) => b.trigger)?.b;
 
 const $ = (id) => document.getElementById(id);
 
 // OBTRAN003 decrypts like a code as the logo glitches out (Paul, 24 October): each character cycles
 // through code glyphs and settles, left to right, then the sentence and the Enter button come in
 function decryptCode() {
-  const el = $('code'), gate = $('gate'), word = 'OBTRAN003', glyphs = '#%&/<>=+*01ABCDEFKLMNXZ';
+  const el = $('code'), gate = $('gate'), word = COMIC.text.code, glyphs = '#%&/<>=+*01ABCDEFKLMNXZ';
   if (!el || gate.classList.contains('ready')) { gate.classList.add('ready'); return; }
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = word; gate.classList.add('ready'); return; }
   const t0 = performance.now() + 450, settle = (i) => 380 + i * 120;        // starts as the logo collapses
@@ -776,7 +771,7 @@ sing.position.set(CX, CY, VOID_Z - 95); sing.scale.setScalar(46);
 voidGroup.add(sing);
 
 /* ---------- "to be continued" card ---------- */
-const tbc = bubbleById.tbc;
+const tbc = bubbleById[END_BEAT];
 const tbcCard = new THREE.Mesh(tbc.mesh.geometry, tbc.mat.clone());
 tbcCard.material.uniforms.uPage = shared.uPage;
 tbcCard.material.uniforms.uTime = shared.uTime;
@@ -827,11 +822,11 @@ function updateEndNav(rawDt) {
 // If Spark or the world fails to load, the procedural void above is used instead.
 const params = new URLSearchParams(location.search);
 const REVIEW = params.get('world');
-const STORY_WORLD = 'singularity-core';
+const STORY_WORLD = COMIC.finalWorld;
 const WORLD_SCALE = 12;
 // the white slab Marble invented in the singularity, cut out to float as a card: tools/cut_slab.py
 // prints these (the card's place on the flat view it was cut from, and the box its splats fall in)
-const SLAB = {"card": {"view": [-29.3, 21.0], "offset": [-0.0658, -0.0083], "size": [0.5492, 0.8847]}, "hide": {"centre": [-30.73, 18.71], "angle": 72.58, "half": [26.36, 11.97], "dist": [1.08, 1.48]}};
+const SLAB = SP.slab || { card: { view: [0, 0], offset: [0, 0], size: [0.5, 0.5] }, hide: { centre: [0, 0], angle: 0, half: [0, 0], dist: [0, 0] } };   // no slab: nothing is cut
 // share of the sand shown over a relief (Bob's head): enough to drift past, not enough to hide his face
 const RELIEF_SAND = 0.35;
 const DEG = Math.PI / 180;
@@ -1541,7 +1536,7 @@ function showBeat(n) {
   if (BEATS[n + 1]) { sound.prefetchVoice(BEATS[n + 1].b); prefetchFilm(BEATS[n + 1].b); }
   if (navigator.vibrate && beat.fx === 'static') navigator.vibrate([30, 40, 30]);
   if (beat.hold) setHint('Press and hold to unlock');
-  else if (beat.trigger) setHint(`${tapWord} INITIATING QNTM CTRL`);
+  else if (beat.trigger) setHint(`${tapWord} ${COMIC.text.triggerHint}`);
   else setHint(`${tapWord} to continue`);
 }
 function advance() {
@@ -1557,7 +1552,7 @@ function breach() {
   if (state.stage !== 'read') return;
   state.stage = 'breach'; state.breachT = 0;
   setHint('');
-  $('sr').textContent = 'Initiating QNTM CTRL. The page breaks apart and you fall through the singularity.';
+  $('sr').textContent = COMIC.text.breachPage;
   sound.breach(BREACH_DUR);
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
   pagePts.visible = true;
@@ -1595,16 +1590,10 @@ function enterVoid() {
 // the page texture with a thin paper rim, and many copies at different sizes, stretches and
 // tumbles spiral out of the core: small and fast near the axis, wider and slower as they are flung
 // out and come past the viewer, then they start again.
-const SHARD_OUTLINES = [
-  [[71.9, 1143.6], [98, 1119.8], [171.7, 1180.7], [100, 1263.1]],          // the wedge
-  [[46.4, 1073.4], [92.2, 1113.2], [76.9, 1129.7], [43.5, 1094.3]],        // the small parallelogram
-  [[110.2, 976.9], [143.6, 955.1], [158.9, 976.9], [127, 994.5]],          // the trapezoid under the lettering
-  [[365.7, 1002.1], [442.6, 1147.1], [397.6, 1285.7], [270, 1216]],        // the big slab
-  [[296.1, 1322], [367.2, 1317.6], [357, 1342.3], [302, 1341]],            // the sliver at the foot
-];
+const SHARD_OUTLINES = SP.shards?.outlines || [];
 const SHARD_COUNT = reducedMotion ? 12 : 44;
-const shards = { group: new THREE.Group(), list: [], on: params.get('shards') !== '0', level: 0 };
-{
+const shards = { group: new THREE.Group(), list: [], on: params.get('shards') !== '0' && SHARD_OUTLINES.length > 0, level: 0 };
+if (SHARD_OUTLINES.length) {
   const H = 1000 * META.aspect;
   const shardMat = new THREE.ShaderMaterial({
     uniforms: { uPage: shared.uPage, uOpacity: { value: 1 } },
@@ -1727,20 +1716,16 @@ const _sv = new THREE.Vector3();
 // sit on the world's own ribbons and move with them. A third of the way along, the near ribbon
 // dips to 16% of its distance (about 1.8 units), so it leaves its band, swoops close past the
 // camera in the upper middle of the view, and returns to the band.
-const RIBBON_LINES = [
-  { path: [[21.17, 47.41, 1.374], [17.28, 42.28, 1.392], [10.86, 36.79, 1.336], [1.43, 31.23, 1.238], [-9.41, 24.58, 1.219], [-17.77, 16.98, 1.201], [-22.0, 9.35, 1.192], [-19.85, 3.78, 1.181], [-13.34, 1.26, 1.143], [-4.02, 1.29, 1.127], [5.51, 4.0, 1.138]], near: 0.16, sway: 1.6 },   // the long band from the top, curling along the bottom of the left loop
-  { path: [[6.19, 4.67, 1.139], [12.17, 7.24, 1.163], [19.73, 7.86, 1.201], [25.54, 5.47, 1.246], [27.19, -0.06, 1.257], [26.1, -7.38, 1.282], [22.12, -12.51, 1.252], [14.76, -14.91, 1.224], [8.87, -13.06, 1.171], [4.84, -7.51, 1.152], [4.16, -0.75, 1.137], [6.19, 4.4, 1.139]], sway: 0.8 },               // the loop on the right
-];
+const RIBBON_LINES = SP.ribbons?.lines || [];
 // Paul, 24 October: "should never see the ends of 3D ribbons, they are continuous". After the loop the
 // ribbon carries on up behind the band, over the top and round behind the viewer (outside the look
 // limits), and back into its start from above, so it is one closed ring with no ends. [yaw, pitch, dist]
-const RIBBON_RETURN = [[9.5, 11, 1.25], [4, 18, 1.45], [-12, 32, 1.6], [-35, 55, 1.5], [-90, 70, 1.3], [-170, 60, 1.2],
-  [110, 65, 1.25], [55, 62, 1.3], [33, 54, 1.35]];
-const RIBBON_WORLD = 'ribbon-loops';
+const RIBBON_RETURN = SP.ribbons?.return || [];
+const RIBBON_WORLD = SP.ribbons?.world || null;
 const RIB = { radius: 0.12 };
-const ribbons = { group: new THREE.Group(), list: [], on: params.get('ribbons') !== '0', level: { value: 0 }, t: 0, id: null,
+const ribbons = { group: new THREE.Group(), list: [], on: params.get('ribbons') !== '0' && RIBBON_LINES.length > 0, level: { value: 0 }, t: 0, id: null,
   sway: new THREE.Vector3(), swayV: new THREE.Vector3(), lastCam: new THREE.Vector3(), lastYaw: 0, lastPitch: 0 };
-{
+if (RIBBON_LINES.length) {
   const mat = new THREE.ShaderMaterial({
     uniforms: { uTime: shared.uTime, uLevel: ribbons.level, uGrow: { value: 0 }, uPhase: { value: 0 }, uSway: { value: ribbons.sway }, uSwayK: { value: 1 }, uJoin: { value: 0.5 } },
     transparent: true,
@@ -1848,11 +1833,11 @@ function updateRibbons(dt, rawDt) {
 // so that from the resting viewpoint they line up as drawn; they follow the camera's slow wander,
 // so they float against the world behind, while the pointer or tilt moves the camera against them
 // and the layers part. CRSSHKKKKK! shears them with the world's signal.
-const PANEL_WORLD = 'bob-cockpit';
-const PANEL_UV = [0.0, 0.1456, 0.43973, 0.55078];   // the layers' canvas on the page (make_panel_layers.py)
-const PANEL_LAYERS = [['back', 7.0], ['figure', 6.4], ['front', 5.7]];   // file, distance ahead
-const panelFloat = { group: new THREE.Group(), layers: [], on: params.get('panel') === '1', level: 0 };   // off since Paul's "lose panel of cutout illustrated bob"; ?panel=1 brings it back
-{
+const PANEL_WORLD = SP.panel?.world || null;
+const PANEL_UV = SP.panel?.uv || [0, 0, 1, 1];   // the layers' canvas on the page (make_panel_layers.py)
+const PANEL_LAYERS = SP.panel?.layers || [];   // file, distance ahead
+const panelFloat = { group: new THREE.Group(), layers: [], on: !!SP.panel && (params.get('panel') === '1' || (params.get('panel') !== '0' && !!SP.panel.on)), level: 0 };   // off since Paul's "lose panel of cutout illustrated bob"; ?panel=1 brings it back
+if (SP.panel) {
   const loader = new THREE.TextureLoader(), aspect = (PANEL_UV[3] - PANEL_UV[1]) * META.aspect / (PANEL_UV[2] - PANEL_UV[0]);
   PANEL_LAYERS.forEach(([name, d], i) => {
     const tex = loader.load(`assets/props/panel-${name}.webp`);
@@ -2004,8 +1989,8 @@ function updatePanelGrains(here) {
 // brings paper forward), then eases into a slow drift and turn.
 // Paul, 24 October: "remove the large white 3D panel in singularity": the card is off (?slab=1 brings it
 // back), and Marble's white slab stays cut out of the world's splats
-const slab = { on: params.get('slab') === '1', level: 0, t: 0, id: null, mesh: null, base: new THREE.Vector3(), basis: new THREE.Quaternion(), right: new THREE.Vector3(), up: new THREE.Vector3(), fwd: new THREE.Vector3() };
-{
+const slab = { on: params.get('slab') === '1' && !!SP.slab, level: 0, t: 0, id: null, mesh: null, base: new THREE.Vector3(), basis: new THREE.Quaternion(), right: new THREE.Vector3(), up: new THREE.Vector3(), fwd: new THREE.Vector3() };
+if (SP.slab) {
   const tex = new THREE.TextureLoader().load('assets/props/slab.png');
   tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide, opacity: 0 });
@@ -2059,6 +2044,7 @@ function updateStrobe(rawDt) {
 }
 
 function updateSlab(dt, rawDt) {
+  if (!slab.mesh) return;
   const here = slab.on && state.stage === 'void' && worlds.ok && worlds.id === STORY_WORLD;
   if (worlds.id !== slab.id) { slab.id = worlds.id; slab.t = 0; }
   slab.level += ((here ? 1 - worlds.suction : 0) - slab.level) * (1 - Math.exp(-dt * 2));
@@ -2090,10 +2076,11 @@ function updateSlab(dt, rawDt) {
 // extrusion brings the world's paper splats forward, so the 3D nucleus sits exactly over it and
 // moves with it as the camera drifts. It is drawn over the splats (no depth test), and the shards
 // and the slab are drawn over it.
-const NUC_DIR = (() => { const y = -4.2 * DEG, p = 7.8 * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)); })();
-const NUC_D = 1.379 * WORLD_SCALE * 0.74;
+const NUC = SP.nucleus || { yaw: 0, pitch: 0, dist: 1 };   // without one, the shards fly out of the centre
+const NUC_DIR = (() => { const y = NUC.yaw * DEG, p = NUC.pitch * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)); })();
+const NUC_D = NUC.dist * WORLD_SCALE * 0.74;
 const NUC_TENDRILS = reducedMotion ? 9 : 29;   // 30% fewer (Paul, 24 October)
-const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), slow: new THREE.Group(), on: params.get('nucleus') !== '0', level: { value: 0 }, tendrils: [] };
+const nucleus = { group: new THREE.Group(), spin: new THREE.Group(), slow: new THREE.Group(), on: params.get('nucleus') !== '0' && !!SP.nucleus, level: { value: 0 }, tendrils: [] };
 {
   const body = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 6), new THREE.ShaderMaterial({
     uniforms: { uTime: shared.uTime, uLevel: nucleus.level },
@@ -2202,22 +2189,15 @@ function updateNucleus(dt) {
 // it. "Initiating QNTM CTRL..." ends in the singularity. ?classic=1 keeps the old flow:
 // beats on the page, then one breach into the singularity.
 const CLASSIC = params.get('classic') === '1';
-const JOURNEY = [
-  { world: 'bob-cockpit', beats: [0, 1] },        // caption, CRSSHKKKKK!
-  { world: 'hull-machinery', beats: [2] },        // Smokehouse Shift for Bob
-  { world: 'ribbon-loops', beats: [3] },          // Engage Chemical Digital Cryptoflage!
-  { world: 'bob-head-relief', beats: [4] },       // W-what the hell Smokehouse?
-  { world: 'monolith-slabs', beats: [5] },        // This is not a drill: the Spomenik Transfer Protocol
-  { world: 'bob', beats: [6, 7, 8] },             // Holy smokes!, unlock (hold), Initiating QNTM CTRL...
-];
-const FINAL_WORLD = 'singularity-core';
+const JOURNEY = COMIC.journey;            // a space (world id) per run of beats (indexes into BEATS)
+const FINAL_WORLD = COMIC.finalWorld;
 const STEPS = JOURNEY.flatMap((j) => j.beats.map((beat) => ({ world: j.world, beat })));
 const ENTER_DUR = 2.6, OUT_DUR = 0.9, FINAL_DUR = BREACH_DUR;
 const IDENTITY_Q = new THREE.Quaternion();
 const journey = { on: !CLASSIC && !REVIEW, step: -1, phase: 'idle', t: 0, done: false, cardT: 0 };
 
 // one lettering card, cut from the page like the lifted boxes, carried in front of the camera
-const cardMat = bubbleById.caption.mat.clone();
+const cardMat = bubbleById[BEATS[0].b].mat.clone();
 cardMat.uniforms.uPage = shared.uPage;
 cardMat.uniforms.uTime = shared.uTime;
 cardMat.depthTest = false;
@@ -2274,7 +2254,7 @@ function setCard(beatIndex, keep = false) {
 // taller than a quarter of the view, low in the frame
 // long one-line boxes are held to the width of the others (Paul: "reduce width of holy smokes and unlock your key
 // panels to match width of the other text panels"): the width is worked out as if no box were wider than CARD_ASPECT
-const CARD_ASPECT = 3.9;                    // Smokehouse's first line; trims holy, unlock and qntm, and a little crsh and tbc
+const CARD_ASPECT = COMIC.cardAspect ?? 3.9;   // the widest box shape a card's width is worked out for
 function cardPose(fov, aspect = cardState.aspect) {
   const dist = 2.4, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)), visW = visH * camera.aspect;
   const w = Math.min(visW * 0.86, visH * 0.26 * Math.min(aspect, CARD_ASPECT));
@@ -2465,7 +2445,7 @@ function toast(text) {
 // a beat has played: unlock any track waiting for it
 function musicBeat(beat) {
   if (!music.index) return;
-  if (!music.started && beat === (music.index.startAt || 'caption')) { music.started = true; musicLoop(music.loopKey, true, 0.4); }
+  if (!music.started && beat === (music.index.startAt || BEATS[0].b)) { music.started = true; musicLoop(music.loopKey, true, 0.4); }
   musicCue(beat);
   for (const t of music.index.tracks) {
     if (t.unlockAt !== beat || music.unlocked.has(t.id)) continue;
@@ -2836,7 +2816,7 @@ function cctvPaint(c, W, H, t, dt) {
   if (Math.floor(t * 1.6) % 2 === 0) { c.beginPath(); c.arc(m + 14, m + 20, 4, 0, 6.283); c.fill(); }
   c.fillText('REC', m + 24, m + 15);
   const sec = 15453 + t, hh = Math.floor(sec / 3600) % 24, mm = Math.floor(sec / 60) % 60, ss = Math.floor(sec) % 60, ff = Math.floor((sec % 1) * 24);
-  const ts = `3091.11.22 ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}:${String(ff).padStart(2, '0')}`;
+  const ts = `${COMIC.text.cctvDate} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}:${String(ff).padStart(2, '0')}`;
   c.textAlign = 'right'; c.fillText(ts, W - m - 10, m + 15); c.textAlign = 'left';
   // glyph rows: change a few glyphs every so often, like data passing
   if (!cctv.rows.length) for (let r = 0; r < 4; r++) cctv.rows.push(Array.from({ length: 14 }, () => Math.floor(Math.random() * 28)));
@@ -3207,7 +3187,7 @@ function showStep(i, keepCard = false) {
   journey.stepAt = performance.now(); journey.pulsed = false;
   scheduleAuto(i, beat);
   const next = STEPS[i + 1];
-  sound.prefetchVoice(next ? BEATS[next.beat].b : 'tbc');
+  sound.prefetchVoice(next ? BEATS[next.beat].b : END_BEAT);
   if (next) prefetchFilm(BEATS[next.beat].b);
   prefetchWorld(next ? next.world : FINAL_WORLD);
 }
@@ -3368,7 +3348,7 @@ function leave(nextWorld, then, dur = OUT_DUR, keepCard = false) {
 // and the singularity is already there, open, with no flash and no unwinding out of its core
 function finalBreach() {
   if (journey.phase !== 'space') return;
-  $('sr').textContent = 'Initiating QNTM CTRL. The space breaks apart and you fall through the singularity.';
+  $('sr').textContent = COMIC.text.breachSpace;
   sound.breach(FINAL_DUR);
   if (navigator.vibrate) navigator.vibrate([20, 60, 20, 60, 120]);
   glyphVeilShow();
@@ -3544,7 +3524,7 @@ function pointerEnd(e) {
   }
   if (state.stage !== 'read') return;
   const beat = BEATS[state.beat];
-  if (beat.trigger) { if (hitBubble(bubbleById.qntm, e.clientX, e.clientY)) breach(); else nudge(); return; }
+  if (beat.trigger) { if (hitBubble(bubbleById[TRIGGER_BEAT], e.clientX, e.clientY)) breach(); else nudge(); return; }
   advance();
 }
 canvas.addEventListener('pointerup', pointerEnd);
@@ -3704,7 +3684,7 @@ function frame() {
 
   // bubble lift and flicker
   bubbles.forEach((b) => {
-    if (b.id === 'tbc' && state.stage !== 'read') return;
+    if (b.id === END_BEAT && state.stage !== 'read') return;
     // a sprung jump towards the reader: quick, with a small overshoot and settle
     b.vel += ((b.target - b.lift) * 95 - b.vel * 12) * dt;
     b.lift += b.vel * dt;
@@ -3720,7 +3700,7 @@ function frame() {
     b.mesh.scale.setScalar(1 + Math.max(0, b.lift) * (reducedMotion ? 0.04 : 0.12));
     b.mesh.rotation.z = reducedMotion ? 0 : b.lift * b.tilt;
     b.mat.uniforms.uFlick.value = b.flickT > 0 ? 1 : 0;
-    const isTrigger = state.stage === 'read' && BEATS[state.beat]?.trigger && b.id === 'qntm';
+    const isTrigger = state.stage === 'read' && BEATS[state.beat]?.trigger && b.id === TRIGGER_BEAT;
     b.mat.uniforms.uGlow.value = isTrigger ? 0.35 + 0.35 * Math.sin(t * 5) : 0;
   });
 
@@ -3827,8 +3807,8 @@ function frame() {
     // To be continued... comes 8 s into the ending (Paul: five seconds later than it was)
     if (state.endT > 8 && !tbcCard.visible && !REVIEW && (!journey.on || journey.done)) {
       tbcCard.visible = true;
-      sound.playVoice('tbc');
-      musicBeat('tbc');
+      sound.playVoice(END_BEAT);
+      musicBeat(END_BEAT);
       const gp = tbc.mesh.geometry.parameters, visW = 2 * 2.4 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
       const s = Math.min(0.34 / gp.height, (visW * 0.78) / gp.width);
       tbcCard.scale.setScalar(s);
