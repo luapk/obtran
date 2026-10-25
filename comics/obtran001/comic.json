@@ -20,11 +20,14 @@
       "note": "EPSILON CYGNI, 3089 AD. ALL LIFE ON THE EXOPLANET LYRA HAS BEEN OBLITERATED...",
       "outSpin": {
         "prop": "skulls",
-        "secs": 2.5,
+        "secs": 3.0,
         "size": 0.5,
-        "rate": 0.8
+        "rate": 0.8,
+        "face": true,
+        "hold": 1.6,
+        "dissolve": true
       },
-      "outSpinWhy": "Paul, 25 October: leaving the skull planet, a giant skull spinning in the vortex of the transition"
+      "outSpinWhy": "Paul, 25 October: leaving the skull planet, a giant skull in the vortex; it faces forward at the start, then turns, then disappears into wisps of soft dots"
     },
     {
       "b": "vessel",

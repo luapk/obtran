@@ -2392,7 +2392,55 @@ function propOccluder(id, dirOf) {
   }).catch(() => null);
   return occluders[id].then((m) => (m && !m.parent ? m : m ? m.clone() : null));
 }
+// a prop breaking into wisps of soft dots (the giant skull leaving Lyra, Paul: "disappear into wisps of gaussian dots"):
+// points sampled from its surface where it is, each drifting outward and up on its own curl, swelling and fading
+function propDots(obj, sp) {
+  const pts = [], v = new THREE.Vector3();
+  obj.updateMatrixWorld(true);
+  obj.traverse((m) => {
+    if (!m.isMesh || m.material?.side === THREE.BackSide) return;
+    const a = m.geometry.attributes.position, step = Math.max(1, Math.floor(a.count / 2500));
+    for (let i = 0; i < a.count; i += step) { v.fromBufferAttribute(a, i).applyMatrix4(m.matrixWorld); pts.push(v.x, v.y, v.z); }
+  });
+  const n = pts.length / 3, seed = new Float32Array(n * 4);
+  for (let i = 0; i < n * 4; i++) seed[i] = Math.random();
+  const centre = new THREE.Vector3().setFromMatrixPosition(obj.matrixWorld);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
+  geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 4));
+  const tone = (SP.props.find((p) => p.id === sp.id)?.tones?.light) || [0.95, 0.93, 0.86];
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uT: { value: 0 }, uC: { value: centre }, uScale: particles.scale, uCol: { value: new THREE.Vector3(...tone) }, uTime: shared.uTime },
+    transparent: true, depthTest: false, depthWrite: false, blending: THREE.NormalBlending,
+    vertexShader: `uniform float uT; uniform vec3 uC; uniform float uScale; uniform float uTime; attribute vec4 aSeed; varying float vA;
+      void main(){
+        vec3 p = position, out = normalize(p - uC + 0.001);
+        float t = clamp(uT * (0.7 + 0.6 * aSeed.x) - aSeed.y * 0.25, 0.0, 1.0);    // each dot lets go at its own moment
+        float sw = aSeed.z * 6.2832 + uTime * (0.6 + aSeed.w);
+        vec3 curl = vec3(sin(sw + p.y * 0.3), 0.6 + 0.4 * cos(sw * 0.7), cos(sw + p.x * 0.3));
+        p += (out * (2.0 + 4.0 * aSeed.w) + curl * 3.0) * t * t * 3.0;
+        vA = (t > 0.0 ? 1.0 - t * t : 1.0) * (0.75 + 0.25 * aSeed.z);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_PointSize = clamp((0.22 + 0.55 * t) * (0.5 + aSeed.x) * uScale / max(-mv.z, 0.1), 1.5, 96.0);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `uniform vec3 uCol; varying float vA;
+      void main(){ vec2 q = gl_PointCoord - 0.5; float g = exp(-dot(q, q) * 14.0); gl_FragColor = vec4(uCol, g * vA); }`,
+  });
+  const dots = new THREE.Points(geo, mat);
+  dots.frustumCulled = false; dots.renderOrder = 4.5;
+  scene.add(dots);
+  return { dots, t: 0 };
+}
+function updatePropDots(dt) {
+  const d = props.dots;
+  if (!d) return;
+  d.t += dt;
+  d.dots.material.uniforms.uT.value = clamp(d.t / 2.2, 0, 1);
+  if (d.t > 2.4 || state.stage !== 'void') { scene.remove(d.dots); d.dots.geometry.dispose(); d.dots.material.dispose(); props.dots = null; }
+}
 function updateProps(dt) {
+  updatePropDots(dt);
   if (!props.list.length && !PROPS.length) return;
   const here = props.on && state.stage === 'void' && worlds.ok;
   if (here && !props.loaded) loadProps();
@@ -2400,6 +2448,7 @@ function updateProps(dt) {
   for (const p of props.list) { p.group.visible = here && worlds.id === p.pr.world; any ||= p.group.visible; }
   const sp = props.spin;
   props.level.value += ((any ? (sp ? 1 : 1 - 0.9 * worlds.suction) : 0) - props.level.value) * (1 - Math.exp(-dt * 3));
+  if (sp?.dissolve && sp.obj) props.level.value = Math.min(props.level.value, 1 - clamp((sp.t - (sp.dur - 1.6)) / 1.2, 0, 1));   // fading as it turns to dots
   props.root.visible = props.level.value > 0.01;
   props.root.position.copy(P0);
   // a prop rising over the vortex and turning there as the space collapses (outSpin), then home again. With several
@@ -2422,8 +2471,18 @@ function updateProps(dt) {
         const visH = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
         const to = sp.size ? h.scale * (visH * sp.size) / obj.userData.size : h.scale * 0.45;
         obj.scale.setScalar(h.scale + (to - h.scale) * k);
-        const turn = new THREE.Quaternion().setFromAxisAngle(up, sp.t * (sp.rate ?? 0.7));   // slowly, about the vertical
-        obj.quaternion.copy(h.quat).premultiply(turn);
+        if (sp.face) {
+          // face the reader as it rises (Paul: "have the skull face forward at start"), then turn in the vortex
+          const look = new THREE.Matrix4().lookAt(obj.position.clone().add(P0), camera.position, up);
+          const facing = new THREE.Quaternion().setFromRotationMatrix(look).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI));
+          const ts = Math.max(0, sp.t - (sp.hold ?? 1.6));
+          obj.quaternion.copy(h.quat).slerp(facing, k).premultiply(new THREE.Quaternion().setFromAxisAngle(up, ts * ts * 0.25 * (sp.rate ?? 0.7) + ts * 0.3));
+        } else {
+          const turn = new THREE.Quaternion().setFromAxisAngle(up, sp.t * (sp.rate ?? 0.7));   // slowly, about the vertical
+          obj.quaternion.copy(h.quat).premultiply(turn);
+        }
+        // dissolve: in its last moments it breaks into soft drifting dots taken from its own surface
+        if (sp.dissolve && !sp.dots && sp.t > sp.dur - 1.6) { sp.dots = true; props.dots = propDots(obj, sp); }
         obj.visible = true;
       } else {
         obj.visible = !spinning;

@@ -43,6 +43,32 @@
       "file": "o1-eye-final.mp4",
       "v": "13c939e1",
       "note": "the finale eye (Paul's still 1, outpainted to 16:9): it fills the screen, the pupil moves; the helix grows out of it"
+    },
+    "o1-lyra-wide": {
+      "file": "o1-lyra-wide.mp4",
+      "v": "10ebb68f",
+      "focus": [
+        0.55,
+        0.5
+      ],
+      "wide": {
+        "file": "o1-lyra-wide.mp4",
+        "v": "10ebb68f"
+      },
+      "note": "extreme wide of Lyra in ruins, the tiny ship shooting off the planet to the upper right (Paul: before the close up of the ship); 16:9"
+    },
+    "o1-patrol": {
+      "file": "o1-patrol.mp4",
+      "v": "6abd8ce5",
+      "focus": [
+        0.6,
+        0.5
+      ],
+      "wide": {
+        "file": "o1-patrol.mp4",
+        "v": "6abd8ce5"
+      },
+      "note": "the scout patrol on their mounts at dusk watching the ship streak down across the sky (Paul: \"render this scene as video\"); 16:9"
     }
   },
   "cues": {
@@ -63,15 +89,28 @@
       "note": "the bonfire ritual: the dancers' shadows (Paul: \"definitely a video render\"); the drum interaction follows the film once built"
     },
     "vessel": {
-      "clip": "o1-escape",
-      "at": 0.4,
+      "clip": "o1-lyra-wide",
+      "at": 0.3,
       "from": 0,
-      "len": 3.95,
+      "len": 5.0,
       "card": true,
-      "note": "...apart from the holosonic vessel QNTM CNTRL. It escapes the poisonous atmosphere: instead of the illustrated scene (Paul), the escape plays once, full screen, with the caption over it and the ship's sound, then rests on its last frame (hold) while the line finishes; a tap or the beat's auto advance moves on into the cockpit",
-      "hold": true,
-      "sfx": "spaceship",
-      "sfxGain": 0.9
+      "then": {
+        "clip": "o1-escape",
+        "from": 0,
+        "len": 3.95,
+        "hold": true,
+        "sfx": "spaceship",
+        "sfxGain": 0.9
+      },
+      "note": "...apart from the holosonic vessel QNTM CNTRL: instead of the illustrated scene, the wide shot of the ship leaving the ruined planet, then straight into the close up of it escaping with its sound, resting on its last frame until the line ends (Paul)"
+    },
+    "patrol": {
+      "clip": "o1-patrol",
+      "at": 0.3,
+      "from": 0,
+      "len": 5.0,
+      "card": true,
+      "note": "Our fallen ship is intercepted by a scout patrol: the scouts watch it fall (Paul), then the smoking wreck"
     }
   },
   "backdrops": {}
