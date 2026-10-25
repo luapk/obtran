@@ -364,8 +364,9 @@ Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the b
 - Full colour painted art. Paul: a bespoke ink grade and colours for each comic, more than three tones where the art needs them, matched to the page. The grade, the films' colour strip, the Super 8 pass and the set pieces' ink shading all assume black and white today and need a per-comic colour mode.
 - Eight narration captions, one beat each (`lyra`, `vessel`, `lifeform`, `manifold`, `patrol`, `plunder`, `ritual`, `decode`), agreed by Paul. Narrator only, the same voice as OBTRAN 003.
 - Music: QNTM CTRL, The Eagle and the Senses EP (OBTRAN001): Random Value, Endless Expansion, The Eagle and the Senses. Unlock beats in `comics/obtran001/assets/music/index.json` are provisional.
+- Interactions (Paul, 25 October): each comic gets its own gestures, not OBTRAN 003's press and hold. OBTRAN 001: **fold space** at `manifold` (drag pulls the panel's slabs together, a tick per crease, the ship slingshots through when they close) and a **drum** at `ritual` (tap in time with the music; on-beat taps flare the fire and the pod; about eight good hits trigger the decode). Flags `fold` and `drum` on those beats in comic.json; neither is built yet. The manifold scene is built from slabs cut from the page, each a window into a splat world, with the Marble draft as deep space behind.
 - Paul has a 3D file of the cryptid asleep in his escape pod, and concept art of him as a character (not uploaded yet).
-- Credits on 25 October: World Labs API 0 (needs a top-up before any draft; the minimum purchase is 6,250 credits, $5); Higgsfield 280.84. `worlds/run.json` with `credits: true` reads the World Labs balance for free into `worlds/worlds/credits.json`.
+- Credits on 25 October: World Labs API 0 (the first OBTRAN 001 draft run was refused with HTTP 402 and charged nothing; top up at https://platform.worldlabs.ai/billing; the minimum purchase is 6,250 credits, $5); Higgsfield 280.84. `worlds/run.json` with `credits: true` reads the World Labs balance for free into `worlds/worlds/credits.json`.
 
 ## Methodology for the next comic
 

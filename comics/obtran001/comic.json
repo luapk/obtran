@@ -29,7 +29,9 @@
     },
     {
       "b": "manifold",
-      "note": "FOUR-DIMENSIONAL MANIFOLD ENABLED, QNTM CNTRL TRAVERSES THE EXPANSE OF CYGNUS A..."
+      "note": "FOUR-DIMENSIONAL MANIFOLD ENABLED, QNTM CNTRL TRAVERSES THE EXPANSE OF CYGNUS A...",
+      "fold": true,
+      "why": "Paul, 25 October: the reader drags to fold the manifold's slabs together; when the creases meet the ship slingshots through (to build)"
     },
     {
       "b": "patrol",
@@ -42,7 +44,8 @@
     {
       "b": "ritual",
       "note": "IN METABOLIC STASIS, THE PSYCHEDELIC VIBRATIONS OF THEIR BONFIRE RITUAL...",
-      "hold": true
+      "drum": true,
+      "why": "Paul, 25 October: the reader taps in time with the music; on-beat taps flare the fire and the pod; about eight good hits trigger the decode (to build)"
     },
     {
       "b": "decode",
