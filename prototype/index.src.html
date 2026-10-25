@@ -1167,7 +1167,8 @@ function sandModifier() {
   });
 }
 
-const WORLD_WAIT = 18000;   // ms a step waits for its world before going on without it
+const WORLD_WAIT = 18000;
+const FIRST_WAIT = 2500;    // ms after the enter zoom before the first card's line plays, world or not   // ms a step waits for its world before going on without it
 async function fetchJson(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); }
 
 // Load a world by id. Resolves once the splats are ready, or rejects.
@@ -1201,7 +1202,7 @@ function loadWorld(id) {
     try { got = await Promise.race([prep, late]); }
     catch (e) {
       if (/still loading/.test(e.message)) prep.then(() => {
-        if (journey.on && STEPS[journey.step]?.world === id && worlds.id !== id && journey.phase === 'space') loadWorld(id).then(() => useWorld(true)).catch(() => {});
+        if (journey.on && STEPS[journey.step]?.world === id && worlds.id !== id && journey.phase === 'space') { journey.noWorld = id; loadWorld(id).then(() => useWorld(true)).catch(() => {}); }
       }).catch(() => {});
       throw e;
     } finally { clearTimeout(timer); }
@@ -1217,6 +1218,7 @@ function loadWorld(id) {
       scene.add(m);
     }
     worlds.mesh = mesh; worlds.echoes = echoes; worlds.sandMesh = sandMesh; worlds.id = id; worlds.ok = true;
+    if (journey.noWorld === id) { journey.noWorld = null; worlds.suction = 1; worlds.suctionTarget = 0; for (const m of worldMeshes()) m.visible = true; }
     worlds.relief = !!entry.relief;
     worlds.u.sand.value = sandLevel();
     worlds.u.mist.value = atmosOf(id) === 'mist' ? 1 : 0;
@@ -1671,7 +1673,7 @@ class Sound {
     let buf = await this.voiceBuffer(beat);
     if (!buf) buf = await this.voiceBuffer(beat);       // once more, in case the first download failed
     if (!buf || (beat !== END_BEAT && BEATS[state.beat]?.b !== beat)) return;   // the story moved on meanwhile
-    if (this.ctx.state !== 'running') await this.ctx.resume().catch(() => {});
+    if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});   // not waited on: the line is scheduled either way
     this.stopVoice();
     const ctx = this.ctx, t = this.now() + 0.05;
     const src = ctx.createBufferSource(); src.buffer = buf;
@@ -2338,7 +2340,7 @@ addEventListener('keydown', (e) => { if (finale.done && (e.key === 'Enter' || e.
 // units) and a turn (degrees about x, y, z) after facing the viewer. Shaded in three tones with crosshatching in
 // the shadow, and a solid ink outline (an enlarged back-face copy).
 const PROPS = SP.props || [];
-const props = { root: new THREE.Group(), list: [], level: { value: 0 }, on: params.get('props') !== '0' && PROPS.length > 0, loaded: false };
+const props = { root: new THREE.Group(), list: [], level: { value: 0 }, on: params.get('props') !== '0' && PROPS.length > 0, loadedFor: new Set() };
 props.root.visible = false;
 scene.add(props.root);
 function propMaterials(tones = {}) {
@@ -2406,13 +2408,16 @@ function propTextured(src, u) {
       }`,
   });
 }
-async function loadProps() {
-  if (props.loaded || !PROPS.length) return;
-  props.loaded = true;
+// each world's props are fetched only when that world is here or next (Paul, 26 October: a long wait at the start;
+// the pod alone is 5.6 MB and had been fetched with the first world)
+async function loadProps(wanted) {
+  const todo = PROPS.filter((pr) => wanted.has(pr.world) && !props.loadedFor.has(pr));
+  if (!todo.length) return;
+  for (const pr of todo) props.loadedFor.add(pr);
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
   const loader = new GLTFLoader();
   const dirOf = ([yw, pt, d]) => { const y = yw * DEG, p = pt * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)).multiplyScalar(d * WORLD_SCALE); };
-  for (const pr of PROPS) {
+  for (const pr of todo) {
     const files = [].concat(pr.files || pr.file);
     const models = await Promise.all(files.map((f) => loader.loadAsync(`assets/props/${f}`).then((g) => g.scene).catch((e) => { console.warn('prop', f, e); return null; })));
     const group = new THREE.Group(); group.visible = false;
@@ -2537,7 +2542,7 @@ function updateProps(dt) {
   updatePropDots(dt);
   if (!props.list.length && !PROPS.length) return;
   const here = props.on && state.stage === 'void' && worlds.ok;
-  if (here && !props.loaded) loadProps();
+  if (props.on && state.stage === 'void' && worlds.ok) loadProps(new Set([worlds.id, journey.on ? STEPS[journey.step + 1]?.world : null]));
   let any = false;
   for (const p of props.list) { p.group.visible = here && worlds.id === p.pr.world; any ||= p.group.visible; }
   const sp = props.spin;
@@ -4234,7 +4239,10 @@ const SHIP = SP.ship || null;
 const ship = { ready: false, obj: null, trail: null, t: 0, pos: new THREE.Vector3(), prev: new THREE.Vector3(), dash: null, emit: 0, head: 0, level: 0 };
 const TRAIL_N = 2400;
 const SHIP_PASS = 2.3;   // s from the fold closing until the ship is past the camera
-if (SHIP) {
+// fetched only once its world is here or next, not with the first world
+function loadShip() {
+  if (ship.asked) return;
+  ship.asked = true;
   (async () => {
     const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
     const g = await new GLTFLoader().loadAsync('assets/props/' + SHIP.file).catch((e) => { console.warn('ship', e); return null; });
@@ -4277,6 +4285,8 @@ if (SHIP) {
   })();
 }
 function updateShip(dt) {
+  if (!SHIP) return;
+  if (!ship.asked && state.stage === 'void' && (worlds.id === SHIP.world || (journey.on && STEPS[journey.step + 1]?.world === SHIP.world))) loadShip();
   if (!ship.ready) return;
   const here = state.stage === 'void' && worlds.ok && worlds.id === SHIP.world && (fold.on || ship.dash);
   ship.level += ((here ? 1 - 0.85 * Math.max(0, worlds.suction - (fold.on ? 0.4 : 0)) : 0) - ship.level) * (1 - Math.exp(-dt * 2.5));
@@ -4769,6 +4779,7 @@ function startJourney() {
 
 function enterSpace() {
   if (journey.phase !== 'idle') return;
+  sound.prefetchVoice(BEATS[STEPS[0].beat].b);       // the first line is on its way during the zoom
   journey.phase = 'enter'; journey.t = 0;
   state.stage = 'enter';
   state.camStart = camera.position.clone();
@@ -4910,7 +4921,13 @@ function updateJourney(rawDt, dt) {
       rideCard();
       journey.entered = true;
       journey.phase = 'load';
-      (worlds.loading || loadWorld(STEPS[0].world)).then(() => arrive(0, 'carried')).catch((e) => { console.warn(e); setHint('The space could not load'); });
+      // the first line and card go on at most FIRST_WAIT after the zoom, world or not (Paul, 26 October: a long gap after
+      // the first panel); a world still on its way unwinds in behind the card when it lands
+      const load = worlds.loading || loadWorld(STEPS[0].world);
+      let went = false;
+      const go = () => { if (went) return; went = true; if (!(worlds.ok && worlds.id === STEPS[0].world)) journey.noWorld = STEPS[0].world; arrive(0, 'carried'); };
+      load.then(go).catch((e) => { console.warn(e); go(); });
+      setTimeout(go, FIRST_WAIT);
     }
   }
   if (journey.phase === 'space' && journey.autoAt && performance.now() > journey.autoAt && !films.on && !state.holding) {
