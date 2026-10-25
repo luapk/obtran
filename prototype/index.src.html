@@ -2052,6 +2052,98 @@ function updateHelix(dt) {
   helix.root.position.copy(P0);
 }
 
+/* ---------- props: 3D models placed in a world, shaded in the comic's ink grade ---------- */
+// OBTRAN 001 (Paul, 25 October): three cryptid skulls modelled in 3D, ink graded, stacked to match the painted
+// heap in the Lyra panel; the same system places the pod. comic.json setPieces.props: each prop names its world,
+// its model (assets/props/<file>.glb), its tones (light, base, shade, ink) and its copies, each at [yaw, pitch,
+// distance] in the world's frame (Marble units, like the ribbons), with a size (its largest dimension, Marble
+// units) and a turn (degrees about x, y, z) after facing the viewer. Shaded in three tones with crosshatching in
+// the shadow, and a solid ink outline (an enlarged back-face copy).
+const PROPS = SP.props || [];
+const props = { root: new THREE.Group(), list: [], level: { value: 0 }, on: params.get('props') !== '0' && PROPS.length > 0, loaded: false };
+props.root.visible = false;
+scene.add(props.root);
+function propMaterials(tones = {}) {
+  const c3 = (v, d) => new THREE.Vector3(...(v || d));
+  const u = { uLevel: props.level, uLight: { value: c3(tones.light, [0.94, 0.92, 0.87]) }, uBase: { value: c3(tones.base, [0.74, 0.72, 0.70]) },
+    uShade: { value: c3(tones.shade, [0.45, 0.43, 0.44]) }, uInk: { value: c3(tones.ink, [0.04, 0.035, 0.03]) } };
+  const fill = new THREE.ShaderMaterial({
+    uniforms: u, transparent: true,
+    vertexShader: `varying vec3 vN; varying vec3 vV;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform float uLevel; uniform vec3 uLight; uniform vec3 uBase; uniform vec3 uShade; uniform vec3 uInk; varying vec3 vN; varying vec3 vV;
+      void main(){
+        vec3 n = normalize(vN);
+        float l = max(dot(n, normalize(vec3(-0.4, 0.7, 0.6))), 0.0);
+        float rim = 1.0 - abs(dot(n, normalize(vV)));
+        vec2 fc = gl_FragCoord.xy;
+        float hatchA = step(0.7, fract((fc.x + fc.y) / 4.0)), hatchB = step(0.7, fract((fc.x - fc.y) / 4.0));
+        vec3 c = uLight;
+        if (l < 0.62) c = uBase;
+        if (l < 0.36) c = mix(uShade, uInk, hatchA * 0.8);                   // hatched shadow, like the painted skulls
+        if (l < 0.14) c = mix(uShade * 0.6, uInk, max(hatchA, hatchB));     // cross-hatched where darkest
+        c = mix(c, uInk, smoothstep(0.72, 0.82, rim));
+        gl_FragColor = vec4(c, uLevel);
+        #include <colorspace_fragment>
+      }`,
+  });
+  const line = new THREE.ShaderMaterial({
+    uniforms: { ...u, uW: { value: 0.025 } }, side: THREE.BackSide, transparent: true,
+    vertexShader: `uniform float uW; void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position + normal * uW, 1.0); }`,
+    fragmentShader: `uniform float uLevel; uniform vec3 uInk; void main(){ gl_FragColor = vec4(uInk, uLevel); }`,
+  });
+  return { fill, line };
+}
+async function loadProps() {
+  if (props.loaded || !PROPS.length) return;
+  props.loaded = true;
+  const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+  const loader = new GLTFLoader();
+  const dirOf = ([yw, pt, d]) => { const y = yw * DEG, p = pt * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)).multiplyScalar(d * WORLD_SCALE); };
+  for (const pr of PROPS) {
+    const files = [].concat(pr.files || pr.file);
+    const models = await Promise.all(files.map((f) => loader.loadAsync(`assets/props/${f}`).then((g) => g.scene).catch((e) => { console.warn('prop', f, e); return null; })));
+    const group = new THREE.Group(); group.visible = false;
+    const mats = propMaterials(pr.tones);
+    // the outline's width, in the models' own units: a share of their size (line, 1 by default)
+    const m0 = models.find(Boolean);
+    if (m0) { const sz = new THREE.Box3().setFromObject(m0).getSize(new THREE.Vector3()); mats.line.uniforms.uW.value = 0.018 * Math.max(sz.x, sz.y, sz.z) * (pr.line ?? 1); }
+    (pr.copies || []).forEach((cp, k) => {
+      const src = models[(cp.model ?? k) % models.length];
+      if (!src) return;
+      const obj = new THREE.Group();
+      const holder = src.clone(true);
+      const box = new THREE.Box3().setFromObject(holder), size = box.getSize(new THREE.Vector3()), centre = box.getCenter(new THREE.Vector3());
+      holder.position.sub(centre);
+      const scale = (cp.size ?? 0.1) * WORLD_SCALE / Math.max(size.x, size.y, size.z, 1e-6);
+      holder.traverse((m) => {
+        if (!m.isMesh) return;
+        m.material = mats.fill; m.renderOrder = 4;
+        const o = new THREE.Mesh(m.geometry, mats.line); o.renderOrder = 3.9;
+        m.add(o);
+      });
+      obj.add(holder); obj.scale.setScalar(scale);
+      obj.position.copy(dirOf(cp.at));
+      obj.lookAt(0, 0, 0);
+      const r = cp.turn || [0, 0, 0];
+      obj.rotateX(r[0] * DEG); obj.rotateY(r[1] * DEG); obj.rotateZ(r[2] * DEG);
+      group.add(obj);
+    });
+    props.root.add(group);
+    props.list.push({ pr, group });
+  }
+}
+function updateProps(dt) {
+  if (!props.list.length && !PROPS.length) return;
+  const here = props.on && state.stage === 'void' && worlds.ok;
+  if (here && !props.loaded) loadProps();
+  let any = false;
+  for (const p of props.list) { p.group.visible = here && worlds.id === p.pr.world; any ||= p.group.visible; }
+  props.level.value += ((any ? 1 - 0.9 * worlds.suction : 0) - props.level.value) * (1 - Math.exp(-dt * 3));
+  props.root.visible = props.level.value > 0.01;
+  props.root.position.copy(P0);
+}
+
 /* ---------- Bob's panel: cut from the page, floating in the opening space in layers ---------- */
 // Paul, 24 October: in the opening space the illustration of Bob was unclear, so his black panel
 // is cut out to float above the splat background, with elements inside it sliced into layers for
@@ -4076,6 +4168,7 @@ function frame() {
   if (pad.on) drawPad(rawDt);
   updateRibbons(dt, rawDt);
   updateHelix(dt);
+  updateProps(dt);
   if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey);
   sound.update(dt, camera);
   renderer.render(scene, camera);
@@ -4088,7 +4181,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, helix, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
+  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, helix, props, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

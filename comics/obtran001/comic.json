@@ -258,6 +258,158 @@
         "sat": 0.22,
         "freq": 0.8,
         "speed": 0.25
+      },
+      {
+        "note": "The world's own foreground skulls, cut where the 3D heap stands.",
+        "world": "lyra-ruins",
+        "kind": "cut",
+        "yaw": [
+          -62,
+          -22
+        ],
+        "pitch": [
+          -45,
+          -12
+        ],
+        "dist": [
+          0,
+          1.6
+        ],
+        "lum": 0.6,
+        "sat": 0.25
+      }
+    ],
+    "props": [
+      {
+        "note": "Paul, 25 October: three cryptid skulls modelled in 3D (Nano Banana designs from the concept art, lifted to geometry by Tripo H3.1 on Higgsfield), ink graded and stacked to match the painted heap at the bottom left of the Lyra panel: seven copies placed from the panel's skull positions and sizes, mapped onto the world's foreground skull rows. Tones from the panel's skulls: off-white bone, grey, a darker grey, and the page's ink.",
+        "world": "lyra-ruins",
+        "files": [
+          "skull-1.glb",
+          "skull-2.glb",
+          "skull-3.glb"
+        ],
+        "tones": {
+          "light": [
+            0.94,
+            0.92,
+            0.87
+          ],
+          "base": [
+            0.76,
+            0.74,
+            0.72
+          ],
+          "shade": [
+            0.5,
+            0.48,
+            0.5
+          ],
+          "ink": [
+            0.052,
+            0.045,
+            0.038
+          ]
+        },
+        "copies": [
+          {
+            "at": [
+              -49.0,
+              -26.0,
+              0.72
+            ],
+            "size": 0.066,
+            "model": 0,
+            "turn": [
+              0,
+              25,
+              -8
+            ]
+          },
+          {
+            "at": [
+              -47.0,
+              -23.9,
+              0.8
+            ],
+            "size": 0.056,
+            "model": 1,
+            "turn": [
+              10,
+              -20,
+              6
+            ]
+          },
+          {
+            "at": [
+              -43.1,
+              -26.6,
+              0.75
+            ],
+            "size": 0.058,
+            "model": 2,
+            "turn": [
+              0,
+              40,
+              0
+            ]
+          },
+          {
+            "at": [
+              -37.8,
+              -25.0,
+              0.79
+            ],
+            "size": 0.068,
+            "model": 0,
+            "turn": [
+              -6,
+              -15,
+              4
+            ]
+          },
+          {
+            "at": [
+              -37.6,
+              -29.0,
+              0.69
+            ],
+            "size": 0.058,
+            "model": 1,
+            "turn": [
+              8,
+              10,
+              -10
+            ]
+          },
+          {
+            "at": [
+              -33.4,
+              -29.2,
+              0.7
+            ],
+            "size": 0.054,
+            "model": 2,
+            "turn": [
+              0,
+              -35,
+              5
+            ]
+          },
+          {
+            "at": [
+              -50.5,
+              -28.5,
+              0.67
+            ],
+            "size": 0.06,
+            "model": 1,
+            "turn": [
+              -10,
+              30,
+              12
+            ]
+          }
+        ]
       }
     ]
   }

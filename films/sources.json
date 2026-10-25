@@ -289,5 +289,22 @@
       "job": "25393096-78f9-4286-844f-793a9a5c4179",
       "note": "OBTRAN 001: cryptid skull design for 3D"
     }
+  },
+  "models": {
+    "o1-skull-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152419_b98625c1-2a5c-4328-b67b-3c2254b269a8.glb",
+      "dest": "comics/obtran001/assets/props/skull-1.glb",
+      "note": "OBTRAN 001: cryptid skull lifted to 3D by Tripo H3.1 (untextured; shaded in the page's ink grade)"
+    },
+    "o1-skull-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152421_0384fc52-a293-4858-899c-ee32f74b8c89.glb",
+      "dest": "comics/obtran001/assets/props/skull-2.glb",
+      "note": "OBTRAN 001: cryptid skull lifted to 3D by Tripo H3.1 (untextured; shaded in the page's ink grade)"
+    },
+    "o1-skull-3": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152423_dddcaed5-0155-421b-9785-14faf0908e9b.glb",
+      "dest": "comics/obtran001/assets/props/skull-3.glb",
+      "note": "OBTRAN 001: cryptid skull lifted to 3D by Tripo H3.1 (untextured; shaded in the page's ink grade)"
+    }
   }
 }
