@@ -21,7 +21,10 @@
     },
     {
       "b": "vessel",
-      "note": "...APART FROM THE HOLOSONIC VESSEL QNTM CNTRL..."
+      "note": "...APART FROM THE HOLOSONIC VESSEL QNTM CNTRL...",
+      "filmOnly": true,
+      "auto": 1.0,
+      "why": "Paul, 25 October: the escape film plays instead of the illustrated scene, once, full screen, its caption over it, resting on its last frame while the line finishes; then on into the cockpit (the vessel world is no longer in the walk)"
     },
     {
       "b": "lifeform",
@@ -62,14 +65,9 @@
       ]
     },
     {
-      "world": "vessel",
-      "beats": [
-        1
-      ]
-    },
-    {
       "world": "cryptid-cockpit",
       "beats": [
+        1,
         2
       ]
     },
@@ -1874,11 +1872,13 @@
       ]
     },
     "drum": {
-      "note": "the ritual (Paul, 25 October): tap in time with The Eagle and the Senses; about eight good hits trigger the decode. Locked to that loop's beat grid when it is playing (track; its bpm in the music index), else its own grid at bpm. window: seconds either side of a beat that count",
+      "note": "the ritual (Paul, 25 October): tap in time with The Eagle and the Senses; good hits flare the fire, enough of them trigger the decode. Locked to that loop's beat grid when it plays (track; its bpm in the music index), else its own grid at bpm. Made forgiving (Paul: \"too hard\"): a tap counts from early s before a beat to late s after (more room late: phones add audio delay), half as wide again after three misses in a row, hits needed 6, and after giveUp s it completes by itself",
       "bpm": 120,
-      "hits": 8,
-      "window": 0.13,
-      "track": "the-eagle-and-the-senses"
+      "hits": 6,
+      "track": "the-eagle-and-the-senses",
+      "early": 0.16,
+      "late": 0.3,
+      "giveUp": 25
     }
   },
   "sfxShared": {
@@ -1897,7 +1897,7 @@
     "note": "the label's own sounds, shared with OBTRAN 003 (the bleep, whooshes, transition hit, unlock chime and the decrypt); Bob's radio static, the biometric power-up and the singularity's bed stay OBTRAN 003's"
   },
   "sounds": {
-    "note": "Paul's sounds, 25 October (\"name is where they should be used\"), made by tools/make_ambience.py: loops per world with their levels, a world's one-shot as its space opens [name, gain, delay s], and the ship passing for the fold's slingshot",
+    "note": "Paul's sounds, 25 October (\"name is where they should be used\"), made by tools/make_ambience.py: loops per world with their levels, and the ship passing for the fold's slingshot",
     "ambience": {
       "bonfire": {
         "amb-chanting": 0.6,
@@ -1909,13 +1909,6 @@
       "cryptid-cockpit": {
         "amb-cockpit": 0.55
       }
-    },
-    "enter": {
-      "vessel": [
-        "spaceship",
-        0.85,
-        0.4
-      ]
     },
     "slingshot": "spaceship"
   }

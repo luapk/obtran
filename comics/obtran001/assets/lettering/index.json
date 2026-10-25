@@ -1,0 +1,106 @@
+{
+  "lyra": {
+    "file": "lyra.png",
+    "uv": [
+      0.01686,
+      0.01843,
+      0.21079,
+      0.04072
+    ],
+    "hand": true,
+    "from": "Screenshot 2026-10-25 at 18.30.29.png",
+    "match": 0.931,
+    "v": "55df54ab"
+  },
+  "vessel": {
+    "file": "vessel.png",
+    "uv": [
+      0.30956,
+      0.01726,
+      0.56155,
+      0.04692
+    ],
+    "hand": true,
+    "from": "Screenshot 2026-10-25 at 18.30.43.png",
+    "match": 0.727,
+    "v": "790ef4b8"
+  },
+  "lifeform": {
+    "file": "lifeform.png",
+    "uv": [
+      0.86389,
+      0.17694,
+      0.96001,
+      0.29675
+    ],
+    "hand": true,
+    "from": "Screenshot 2026-10-25 at 18.31.02.png",
+    "match": 0.947,
+    "v": "f3943ab3"
+  },
+  "manifold": {
+    "file": "manifold.png",
+    "uv": [
+      0.70513,
+      0.33143,
+      0.9723,
+      0.3626
+    ],
+    "hand": true,
+    "from": "Screenshot 2026-10-25 at 18.31.12.png",
+    "match": 0.81,
+    "v": "f17ebb1c"
+  },
+  "patrol": {
+    "file": "patrol.png",
+    "uv": [
+      0.46977,
+      0.63522,
+      0.65093,
+      0.656
+    ],
+    "hand": true,
+    "from": "Screenshot 2026-10-25 at 18.31.28.png",
+    "match": 0.959,
+    "v": "605f2728"
+  },
+  "plunder": {
+    "file": "plunder.png",
+    "uv": [
+      0.36329,
+      0.67376,
+      0.56878,
+      0.70694
+    ],
+    "hand": true,
+    "from": "Screenshot 2026-10-25 at 18.31.40.png",
+    "match": 0.836,
+    "v": "075296df"
+  },
+  "ritual": {
+    "file": "ritual.png",
+    "uv": [
+      0.21127,
+      0.82138,
+      0.33823,
+      0.85288
+    ],
+    "hand": true,
+    "from": "Screenshot 2026-10-25 at 18.31.51.png",
+    "match": 0.965,
+    "v": "ac9982b1"
+  },
+  "decode": {
+    "file": "decode.png",
+    "uv": [
+      0.01927,
+      0.97688,
+      0.35365,
+      0.98626
+    ],
+    "hand": true,
+    "from": "Screenshot 2026-10-25 at 18.32.09.png",
+    "match": 0.731,
+    "v": "1b7a8f22"
+  }
+}

@@ -477,18 +477,22 @@ const bubbles = META.bubbles.map((b, i) => {
   const poly = polyUniform(b.poly);
   const mat = new THREE.ShaderMaterial({
     uniforms: { uPage: shared.uPage, uRect: { value: new THREE.Vector4(u0, v0, u1, v1) }, uFlick: { value: 0 }, uTime: shared.uTime, uOpacity: { value: 1 }, uGlow: { value: 0 },
-      uPoly: { value: poly.pts }, uPolyN: { value: poly.n }, uAspect: { value: META.aspect }, uBlank: { value: b.blank ?? 2 }, uInvert: { value: 0 } },
+      uPoly: { value: poly.pts }, uPolyN: { value: poly.n }, uAspect: { value: META.aspect }, uBlank: { value: b.blank ?? 2 }, uInvert: { value: 0 },
+      uLetter: { value: null }, uHasLetter: { value: 0 }, uLRect: { value: new THREE.Vector4(0, 0, 1, 1) } },
     transparent: true,
     depthWrite: false,
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
       uniform sampler2D uPage; uniform vec4 uRect; uniform float uFlick; uniform float uTime; uniform float uOpacity; uniform float uGlow; uniform float uBlank; uniform float uInvert;
+      uniform sampler2D uLetter; uniform float uHasLetter; uniform vec4 uLRect;
       varying vec2 vUv;
       ${POLY_GLSL}
       void main(){
         vec2 p = mix(uRect.xy, uRect.zw, vec2(vUv.x, 1.0 - vUv.y));
         float inside = smoothstep(-0.0005, 0.0004, polyInside(vec2(p.x, p.y * uAspect)));
         vec3 col = texture2D(uPage, p).rgb;
+        // the box cut at full resolution (lettering/, tools/cut_lettering.py), over the page rect it covers
+        if (uHasLetter > 0.5) col = texture2D(uLetter, clamp((p - uLRect.xy) / (uLRect.zw - uLRect.xy), 0.0, 1.0)).rgb;
         if (p.y > uBlank) col = vec3(1.0);   // lettering cut from the line (meta.json blank): the box's white over it
         col = mix(col, vec3(1.0) - col, uInvert);   // negative: black type out of white (a beat's invert)
         float scan = 0.82 + 0.18 * sin(gl_FragCoord.y * 1.7 + uTime * 30.0);
@@ -512,6 +516,29 @@ const bubbles = META.bubbles.map((b, i) => {
   return { ...b, i, mesh, mat, hit, base: c, lift: 0, vel: 0, target: 0, flickT: 0, tilt: (Math.random() - 0.5) * 0.07 };
 });
 const bubbleById = Object.fromEntries(bubbles.map((b) => [b.id, b]));
+// sharp lettering (Paul: "all the text panels are extremely low res"): each box cut from the full resolution page
+// (tools/cut_lettering.py), or cut by hand, listed in assets/lettering/index.json with the page rect it covers. Loaded
+// up front; until one arrives (or where there is none) the box is drawn from the page as before.
+const lettering = { index: {}, tex: {}, img: {} };
+(async () => {
+  try { const r = await fetch('assets/lettering/index.json', { cache: 'no-cache' }); lettering.index = r.ok ? await r.json() : {}; } catch (e) { lettering.index = {}; }
+  const loader = new THREE.TextureLoader();
+  for (const [id, e] of Object.entries(lettering.index)) {
+    if (!e?.file || !bubbleById[id]) continue;
+    loader.load('assets/lettering/' + e.file + (e.v ? '?v=' + e.v : ''), (t) => {
+      t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); t.needsUpdate = true;   // page rows top down, as the page texture
+      lettering.tex[id] = t; lettering.img[id] = t.image;
+      const u = bubbleById[id].mat.uniforms;
+      u.uLetter.value = t; u.uHasLetter.value = 1; u.uLRect.value.set(...e.uv);
+      if (BEATS[state.beat]?.b === id && card.visible) setLetter(id);
+    });
+  }
+})();
+function setLetter(id) {
+  const t = lettering.tex[id], e = lettering.index[id];
+  cardMat.uniforms.uLetter.value = t || null; cardMat.uniforms.uHasLetter.value = t ? 1 : 0;
+  if (t) cardMat.uniforms.uLRect.value.set(...e.uv);
+}
 
 /* ---------- vortex inflow particles ---------- */
 const INFLOW = 1400;
@@ -2788,6 +2815,7 @@ function setCard(beatIndex, keep = false) {
   cardMat.uniforms.uPoly.value = b.mat.uniforms.uPoly.value;
   cardMat.uniforms.uPolyN.value = b.mat.uniforms.uPolyN.value;
   cardMat.uniforms.uBlank.value = b.mat.uniforms.uBlank.value;
+  setLetter(b.id);
   const gm = GLOW_M, gv = GLOW_M / META.aspect;
   glowMat.uniforms.uRect.value.set(u0 - gm, v0 - gv, u1 + gm, v1 + gv);
   glowMat.uniforms.uPoly.value = b.mat.uniforms.uPoly.value;
@@ -3155,7 +3183,10 @@ function showFilmCard(beat, el = $('filmCard')) {
   const b = bubbleById[beat], img = shared.uPage.value?.image;
   if (!b || !img) return;
   const [u0, v0, u1, v1] = b.uv, W = img.width, H = img.height;
-  const sw = (u1 - u0) * W, sh = (v1 - v0) * H, k = Math.min(1, 1400 / sw);
+  const sw = (u1 - u0) * W, sh = (v1 - v0) * H;
+  // drawn at the full resolution cut's size where there is one
+  const li = lettering.img[beat], le = lettering.index[beat];
+  const k = li ? Math.min(2400 / sw, li.width / ((le.uv[2] - le.uv[0]) * W)) : Math.min(1, 1400 / sw);
   el.width = Math.round(sw * k); el.height = Math.round(sh * k);
   el.style.setProperty('--a', (sw / sh).toFixed(3));
   el.style.setProperty('--aw', Math.min(sw / sh, CARD_ASPECT).toFixed(3));   // held to the others' width, as the 3D card is
@@ -3164,7 +3195,11 @@ function showFilmCard(beat, el = $('filmCard')) {
   c.save(); c.beginPath();
   (b.poly || [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]).forEach(([u, v], i) => { const x = (u - u0) * W * k, y = (v - v0) * H * k; i ? c.lineTo(x, y) : c.moveTo(x, y); });
   c.closePath(); c.clip();
-  c.drawImage(img, u0 * W, v0 * H, sw, sh, 0, 0, el.width, el.height);
+  if (li) {
+    // the letter image covers le.uv: place it so its rect lands where it sits in the box
+    const [a0, b0, a1, b1] = le.uv;
+    c.drawImage(li, (a0 - u0) * W * k, (b0 - v0) * H * k, (a1 - a0) * W * k, (b1 - b0) * H * k);
+  } else c.drawImage(img, u0 * W, v0 * H, sw, sh, 0, 0, el.width, el.height);
   if (b.blank != null) { c.fillStyle = '#fff'; c.fillRect(0, (b.blank - v0) * H * k, el.width, el.height); }   // lettering cut from the line
   c.restore();
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
@@ -3230,7 +3265,8 @@ function super8Init(el, preserve = false) {
         }
         if (uScratch >= 0.0) l = mix(l, 0.92, smoothstep(1.4 / uRes.x, 0.0, abs(v.x - uScratch - 0.002 * sin(v.y * 40.0 + uSeed))) * 0.7);
         // in colour, the frame's own hue carried at the graded brightness (a little faded, as film stock is)
-        vec3 col = mix(vec3(l), soft * min(l / l0, 3.0), uColour * 0.88);
+        vec3 chroma = soft - vec3(dot(soft, vec3(0.299, 0.587, 0.114)));
+        vec3 col = vec3(l) + chroma * uColour * 0.9 * smoothstep(0.0, 0.12, l0);   // the grain stays grey; near black has no colour to lift
         gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
       }`);
     if (vs && fs) {
@@ -3643,9 +3679,9 @@ function foldCreases() { return FOLD.facets.length - 1; }
 function foldShow() {
   if (!FOLD) return;
   foldLoad();
-  Object.assign(fold, { on: true, f: 0, target: 0, passed: 0, done: false, t: 0, doneT: 0, drag: null, flashes: [], level: 0 });
+  Object.assign(fold, { on: true, f: 0, target: 0, passed: 0, done: false, t: 0, doneT: 0, drag: null, flashes: [], level: 0, touched: false, seen: 0, lastAct: 0, autoNext: 0 });
   fold.el.classList.add('on');
-  setHint('Drag to fold space');
+  setHint('Swipe sideways to fold space');
 }
 function foldHide() {
   if (!fold.on) return;
@@ -3654,11 +3690,11 @@ function foldHide() {
 }
 // a beat with fold is waiting until the fold is done
 function foldWaiting(beat) { return !!(FOLD && beat?.fold && !fold.done); }
-function foldDragStart(x) { if (fold.on && !fold.done) fold.drag = { x, moved: 0 }; }
+function foldDragStart(x) { if (fold.on && !fold.done) { fold.drag = { x, moved: 0 }; fold.touched = true; fold.lastAct = fold.seen; } }
 function foldDragMove(x) {
   if (!fold.drag) return;
   const dx = x - fold.drag.x; fold.drag.x = x; fold.drag.moved += Math.abs(dx);
-  fold.target = clamp(fold.target + Math.abs(dx) / (innerWidth * 1.1), 0, 1);
+  fold.target = clamp(fold.target + Math.abs(dx) / (innerWidth * 0.6), 0, 1);
 }
 // released: the fold holds at the last crease it closed (or folds right through if it is nearly there)
 function foldDragEnd() {
@@ -3668,7 +3704,7 @@ function foldDragEnd() {
   fold.target = fold.target > 0.93 ? 1 : Math.floor(fold.target * n + 0.08) / n;
   return moved > 14;
 }
-function foldStep() { if (fold.on && !fold.done) { const n = foldCreases(); fold.target = Math.min(1, (Math.floor(fold.target * n + 1e-3) + 1) / n); } }
+function foldStep() { if (fold.on && !fold.done) { fold.touched = true; fold.lastAct = fold.seen; const n = foldCreases(); fold.target = Math.min(1, (Math.floor(fold.target * n + 1e-3) + 1) / n); } }
 function drawFold(dt) {
   const el = fold.el, dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
   if (el.width !== Math.round(W * dpr) || el.height !== Math.round(H * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
@@ -3677,14 +3713,27 @@ function drawFold(dt) {
   fold.t += dt;
   if (worlds.suction < 0.5 || fold.done) fold.level = Math.min(1, fold.level + dt * 2.2);   // up once the space has opened
   const img = fold.img;
-  if (!img?.complete || !img.naturalWidth) return;
+  if (!img?.complete || !img.naturalWidth) {
+    if (fold.t > 5 && !fold.done && journey.phase === 'space') { fold.done = true; foldHide(); journeyNext(); }   // never hold the story up
+    return;
+  }
   const n = foldCreases();
+  // Paul: "not clear what you have to do and has frozen the flow". Until the reader touches it, the panel shows
+  // them: it half folds and opens again in a slow breath, with chevrons sweeping sideways under it. Left alone
+  // (9 s untouched, or 10 s since the last touch), it folds itself a crease at a time, so the story never stalls.
+  if (fold.level > 0.5) fold.seen += dt;
+  if (!fold.done && !fold.drag && (fold.touched ? fold.seen - fold.lastAct > 10 : fold.seen > 9) && fold.seen > fold.autoNext) {
+    fold.autoNext = fold.seen + 0.9;
+    const k = Math.floor(fold.target * n + 1e-3) + 1;
+    fold.target = Math.min(1, k / n);
+  }
   // the fold follows the reader's drag on a short spring
   fold.f += (fold.target - fold.f) * (1 - Math.exp(-dt * 9));
   if (Math.abs(fold.target - fold.f) < 1e-3) fold.f = fold.target;
-  const f = fold.f;
+  const demo = !fold.touched && fold.target === 0 && !reducedMotion ? 0.16 * (0.5 - 0.5 * Math.cos(fold.seen * 2.4)) : 0;
+  const f = Math.max(fold.f, demo);
   // a crease closing: tick, flash along it, a shake of the signal
-  const passed = Math.min(n, Math.floor(f * n + 1e-3));
+  const passed = Math.min(n, Math.floor(fold.f * n + 1e-3));
   while (fold.passed < passed) {
     fold.passed++;
     sound.crease(fold.passed - 1, n);
@@ -3725,6 +3774,18 @@ function drawFold(dt) {
     else if (ef > 0) { c.fillStyle = `rgba(255,250,240,${0.08 * ef})`; c.fillRect(0, 0, Ws, Hs); }
     c.restore();
   });
+  // the gesture shown: chevrons sweeping in from both sides under the panel, until the reader has touched it
+  if (!fold.touched && !fold.done && fold.level > 0.5) {
+    const ph = (fold.seen * 0.9) % 1, y = cy + Hs * 0.62, span = Math.min(W * 0.36, 180);
+    c.save(); c.lineWidth = 3; c.lineCap = 'round'; c.lineJoin = 'round';
+    for (const side of [-1, 1]) for (let k = 0; k < 3; k++) {
+      const q = (ph + k / 3) % 1, x = cx + side * span * (1 - q);
+      c.globalAlpha = Math.sin(Math.PI * q) * 0.85 * fold.level;
+      c.strokeStyle = '#f4efe6';
+      c.beginPath(); c.moveTo(x + side * 8, y - 10); c.lineTo(x - side * 4, y); c.lineTo(x + side * 8, y + 10); c.stroke();
+    }
+    c.restore();
+  }
   // a crease flash: a bright line along the edge it closed on
   fold.flashes = fold.flashes.filter((fl) => (fl.t += dt) < 0.45);
   for (const fl of fold.flashes) {
@@ -3776,7 +3837,7 @@ const DRUM = SP.drum && params.get('drum') !== '0' ? SP.drum : null;
 const drum = { on: false, armAt: 0, started: false, t0: 0, iv: 0.5, next: 0, good: 0, done: false, doneAt: 0, pulse: 0, hitT: -9, missT: -9, lastBeat: -1, level: 0 };
 function drumShow() {
   if (!DRUM) return;
-  Object.assign(drum, { on: true, armAt: performance.now() + 900, started: false, next: 0, good: 0, done: false, doneAt: 0, pulse: 0, hitT: -9, missT: -9, lastBeat: -1, level: 0 });
+  Object.assign(drum, { on: true, armAt: performance.now() + 900, started: false, startedAt: 0, next: 0, good: 0, misses: 0, done: false, doneAt: 0, pulse: 0, hitT: -9, missT: -9, lastBeat: -1, level: 0 });
   drum.iv = 60 / (DRUM.bpm || 116);
   fold.el.classList.add('on');
 }
@@ -3785,10 +3846,12 @@ function drumWaiting(beat) { return !!(DRUM && beat?.drum && !drum.done); }
 function drumHeard() { const c = sound.ctx; return sound.now() - (c ? (c.outputLatency || c.baseLatency || 0) : 0); }
 function drumTap() {
   if (!drum.on || !drum.started || drum.done) return false;
-  const t = drumHeard(), k = Math.round((t - drum.t0) / drum.iv), off = t - (drum.t0 + k * drum.iv);
-  const win = DRUM.window ?? 0.13;
-  if (k >= 0 && Math.abs(off) <= win) {
-    drum.good++; drum.hitT = performance.now();
+  // Paul: "drum scene too hard". Forgiving: more room late than early (phones add audio delay they do not always
+  // report), and wider still after a run of misses
+  const t = drumHeard(), early = DRUM.early ?? 0.16, late = DRUM.late ?? 0.3, ease = drum.misses >= 3 ? 1.6 : 1;
+  const k = Math.round((t - drum.t0 - (late - early) / 2) / drum.iv), off = t - (drum.t0 + k * drum.iv);
+  if (k >= 0 && off >= -early * ease && off <= late * ease) {
+    drum.good++; drum.misses = 0; drum.hitT = performance.now();
     sound.drum('hit');
     particles.boost.value = Math.min(1.6, particles.boost.value + 0.8);
     worlds.jitter = Math.max(worlds.jitter, 0.25);
@@ -3800,7 +3863,7 @@ function drumTap() {
       particles.boost.value = 2; flash(0.55); setHint('');
       fxEmit(reducedMotion ? 60 : 300, g.cx, g.cy, 1000);
     }
-  } else { drum.missT = performance.now(); sound.drum('miss'); }
+  } else { drum.missT = performance.now(); drum.misses = (drum.misses || 0) + 1; sound.drum('miss'); }
   return true;
 }
 function drumGeom() { const W = innerWidth, H = innerHeight; return { cx: W / 2, cy: H * 0.42, R: Math.min(W, H) * 0.15 }; }
@@ -3812,7 +3875,7 @@ function drawDrum(dt) {
   // armed: the beating starts once the ritual's film has played and the space is open
   if (!drum.started) {
     if (films.on || performance.now() < drum.armAt || worlds.suction > 0.5 || !sound.ok) return;
-    drum.started = true; drum.next = 0;
+    drum.started = true; drum.next = 0; drum.startedAt = performance.now();
     // locked to the music when its loop is playing (it starts on a beat and holds whole bars), else a grid of its own
     const lp = music.loopNow, tr = music.index?.tracks?.find((t) => t.id === DRUM.track);
     if (lp && lp.id === DRUM.track && tr?.bpm && !music.off) {
@@ -3823,6 +3886,11 @@ function drawDrum(dt) {
   // the guide beat, scheduled a little ahead on the audio clock (four to a bar, the first accented); it stops when done
   if (!drum.done) while (drum.t0 + drum.next * drum.iv < sound.now() + 0.15) { sound.drum(drum.synced ? 'soft' : 'beat', drum.t0 + drum.next * drum.iv, drum.next % 4 === 0); drum.next++; }
   drum.level = Math.min(1, drum.level + dt * 2);
+  // never a dead end: after a while the ritual completes by itself
+  if (!drum.done && performance.now() - drum.startedAt > (DRUM.giveUp ?? 25) * 1000) {
+    drum.good = DRUM.hits || 6; drum.done = true; drum.doneAt = performance.now();
+    particles.boost.value = 2; flash(0.45); setHint(''); const g = drumGeom(); fxEmit(reducedMotion ? 60 : 300, g.cx, g.cy, 1000);
+  }
   const heard = drumHeard(), ph = (heard - drum.t0) / drum.iv, k = Math.floor(ph), frac = ph - k;
   if (k > drum.lastBeat && k >= 0) { drum.lastBeat = k; drum.pulse = 1; }
   drum.pulse *= Math.exp(-dt * 7);
@@ -3888,6 +3956,7 @@ function playFilm(beat) {
       for (const o of Object.values(films.videos)) o.classList.toggle('cur', o === v);
       box.classList.add('on'); films.on = true; cctv.t0 = 0;
       if (cue.card) showFilmCard(beat);
+      if (cue.sfx) sound.sfxPlay(cue.sfx, { gain: cue.sfxGain ?? 0.85, verb: 0.12 });
       flash(0.6);
       // starting playback takes a moment (about 0.2 s here), which shows on lips: once it is running, put it where the
       // voice is now (a little ahead, for the seek), and cut at the same point in the clip whenever it got there
@@ -3904,7 +3973,8 @@ function playFilm(beat) {
         v.addEventListener('timeupdate', films.sync.fn);
       }
       const hold = Math.max(0.3, (cue.len || 2.4) - (from - (cue.from || 0)));   // a synced film that started further in ends at the same point
-      films.timers.push(setTimeout(() => (cue.then ? filmThen(cue.then) : stopFilm(true)), hold * 1000));
+      // hold: the film plays once and rests on its last frame until the beat moves on (a tap or the auto advance)
+      films.timers.push(setTimeout(() => (cue.then ? filmThen(cue.then) : cue.hold ? (films.looping = true) : stopFilm(true)), hold * 1000));
     }).catch((e) => {
       console.warn('film not played:', cue.clip, e && e.name);   // the line still plays
       if (BEATS[state.beat]?.filmOnly && journey.phase === 'space') card.visible = true;   // and its panel shows in the space instead
@@ -3988,6 +4058,7 @@ function showStep(i, keepCard = false) {
   if (beat.fold && FOLD) foldShow(); else foldHide();
   if (beat.drum && DRUM) drumShow(); else drumHide();
   if (beat.hold) { setHint('Press and hold to unlock'); padShow(beat.b); prefetchWorld(FINAL_WORLD); prepareWorld(FINAL_WORLD); }
+  else if (beat.fold && FOLD) { /* foldShow set its own hint */ }
   else if (i === 0) setHint(`${tapWord} to continue`, true);
   else setHint('');
   journey.stepAt = performance.now(); journey.pulsed = false;
@@ -4308,7 +4379,7 @@ canvas.addEventListener('pointermove', (e) => {
 });
 function pointerEnd(e) {
   if (state.holding) endHold(false);
-  if (fold.drag) { const dragged = foldDragEnd(); down = null; if (!dragged) nudge(); return; }
+  if (fold.drag) { const dragged = foldDragEnd(); down = null; if (!dragged) foldStep(); return; }   // a tap folds one crease
   // the end: a tap or click on the panel reads it again
   if (state.stage === 'void' && endReady() && down) {
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t;
@@ -4656,7 +4727,7 @@ function frame() {
   updateStrobe(rawDt);
   if (COMIC.sounds?.ambience) {
     const here = state.stage === 'void' && worlds.ok ? COMIC.sounds.ambience[worlds.id] : null, open = 1 - worlds.suction, lv = {};
-    if (here) for (const [n, g] of Object.entries(here)) lv[n] = g * open;
+    if (here) for (const [n, g] of Object.entries(here)) lv[n] = g * open * (films.on ? 0.25 : 1);   // a film is another place
     sound.ambTo(lv);
   }
   sound.bedTo(state.stage === 'read' || (state.stage === 'void' && worlds.id === STORY_WORLD && (!journey.on || journey.done) && !REVIEW) ? 0.55 : 0);

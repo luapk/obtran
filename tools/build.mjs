@@ -115,6 +115,12 @@ if (!inline) {
     mkdirSync(join(DIST, 'assets', 'props'), { recursive: true });
     for (const f of readdirSync(PROPS).filter((f) => /\.(png|jpg|webp|json|glb)$/.test(f))) copyFileSync(join(PROPS, f), join(DIST, 'assets', 'props', f));
   }
+  // sharp lettering, each box at full resolution (tools/cut_lettering.py)
+  const LETTER = join(ASSETS, 'lettering');
+  if (existsSync(LETTER)) {
+    mkdirSync(join(DIST, 'assets', 'lettering'), { recursive: true });
+    for (const f of readdirSync(LETTER).filter((f) => /\.(png|jpg|webp|json)$/.test(f))) copyFileSync(join(LETTER, f), join(DIST, 'assets', 'lettering', f));
+  }
   // short films of Bob (films/README.md): start frames and approved clips
   const FILMS = join(ASSETS, 'films');
   if (existsSync(FILMS)) {

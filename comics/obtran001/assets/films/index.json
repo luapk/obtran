@@ -3,14 +3,71 @@
   "colour": true,
   "readout": "dna",
   "clips": {
-    "o1-cockpit": { "file": "o1-cockpit.mp4", "v": "1f58ec22", "note": "the cryptid at the controls: light pulses through his veins up into his head, his eyes turn glowing orange, slow push in" },
-    "o1-shadows": { "file": "o1-shadows.mp4", "v": "cc5b6e80", "note": "dancers round the fire inside the tent, smoke rising, their shadows moving across the cloth" },
-    "o1-eye": { "file": "o1-eye.mp4", "v": "bc9894e0", "note": "the cryptid's eye: the lid trembles, it snaps open in the first second and holds, the fire and dancers reflected" }
+    "o1-cockpit": {
+      "file": "o1-cockpit.mp4",
+      "v": "1f58ec22",
+      "note": "the cryptid at the controls: light pulses through his veins up into his head, his eyes turn glowing orange, slow push in"
+    },
+    "o1-shadows": {
+      "file": "o1-shadows.mp4",
+      "v": "cc5b6e80",
+      "note": "dancers round the fire inside the tent, smoke rising, their shadows moving across the cloth"
+    },
+    "o1-eye": {
+      "file": "o1-eye.mp4",
+      "v": "bc9894e0",
+      "note": "the cryptid's eye: the lid trembles, it snaps open in the first second and holds, the fire and dancers reflected"
+    },
+    "o1-escape": {
+      "file": "o1-escape.mp4",
+      "v": "23adc68d",
+      "focus": [
+        0.62,
+        0.5
+      ],
+      "wide": {
+        "file": "o1-escape.mp4",
+        "v": "23adc68d"
+      },
+      "note": "QNTM CNTRL escaping Lyra (Paul's film, 25 October: 4 s, 16:9, plays full screen once for its length): the ship fills the frame, its engines light and it pulls away; portrait screens cut it about the ship (focus), wide ones show it whole"
+    }
   },
   "cues": {
-    "lifeform": { "clip": "o1-cockpit", "at": 0.4, "from": 0, "len": 5.0, "card": true, "note": "...a DNA-encrypted lifeform! The light runs through his veins as the caption names him" },
-    "ritual": { "clip": "o1-shadows", "at": 0.4, "from": 0, "len": 5.0, "card": true, "note": "the bonfire ritual: the dancers' shadows (Paul: \"definitely a video render\"); the drum interaction follows the film once built" },
-    "decode": { "clip": "o1-eye", "at": 0.2, "from": 0, "len": 5.0, "card": true, "note": "...would soon trigger OBTRAN to begin its decode protocol: the eye snaps open, then the decode (the beat's auto advance waits for the film)" }
+    "lifeform": {
+      "clip": "o1-cockpit",
+      "at": 0.4,
+      "from": 0,
+      "len": 5.0,
+      "card": true,
+      "note": "...a DNA-encrypted lifeform! The light runs through his veins as the caption names him"
+    },
+    "ritual": {
+      "clip": "o1-shadows",
+      "at": 0.4,
+      "from": 0,
+      "len": 5.0,
+      "card": true,
+      "note": "the bonfire ritual: the dancers' shadows (Paul: \"definitely a video render\"); the drum interaction follows the film once built"
+    },
+    "decode": {
+      "clip": "o1-eye",
+      "at": 0.2,
+      "from": 0,
+      "len": 5.0,
+      "card": true,
+      "note": "...would soon trigger OBTRAN to begin its decode protocol: the eye snaps open, then the decode (the beat's auto advance waits for the film)"
+    },
+    "vessel": {
+      "clip": "o1-escape",
+      "at": 0.4,
+      "from": 0,
+      "len": 3.95,
+      "card": true,
+      "note": "...apart from the holosonic vessel QNTM CNTRL. It escapes the poisonous atmosphere: instead of the illustrated scene (Paul), the escape plays once, full screen, with the caption over it and the ship's sound, then rests on its last frame (hold) while the line finishes; a tap or the beat's auto advance moves on into the cockpit",
+      "hold": true,
+      "sfx": "spaceship",
+      "sfxGain": 0.9
+    }
   },
   "backdrops": {}
 }
