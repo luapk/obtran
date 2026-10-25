@@ -95,6 +95,24 @@
       "job": "a1b2040a-7514-4f00-86e0-9c47d2a8e572",
       "model": "seedance_2_5",
       "story": "Lipsync, 9:16: Alien Bob with his OT mug (start frame bob4-wide-2) says the first half of his line to camera, 'W-what the hell Smokehouse? I've been out here for like, 3 kalpas', from the audio reference prototype/assets/voice/bob1-half.mp3 (bob1.mp3, 0 to 5.08 s). Not cued yet"
+    },
+    "o1-cockpit": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_154707_a86e63de-79fa-4aad-b20b-69ca70124e0d.mp4",
+      "job": "a86e63de-79fa-4aad-b20b-69ca70124e0d",
+      "comic": "obtran001",
+      "note": "OBTRAN 001 film 1, 'A DNA-encrypted lifeform': light pulses through his veins at the controls. Seedance 2.5 from o1-live-cockpit-1, 9:16, 5 s."
+    },
+    "o1-shadows": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_154718_71a9280a-3d10-4894-baf8-6428869d20ff.mp4",
+      "job": "71a9280a-3d10-4894-baf8-6428869d20ff",
+      "comic": "obtran001",
+      "note": "OBTRAN 001 film 2, the bonfire ritual: dancers' shadows on the tent. Seedance 2.5 from o1-live-shadows-2, 9:16, 5 s."
+    },
+    "o1-eye": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_155017_fd598691-4171-4007-a8e9-0e9c8cb68710.mp4",
+      "job": "fd598691-4171-4007-a8e9-0e9c8cb68710",
+      "comic": "obtran001",
+      "note": "OBTRAN 001 film 3, the decode: the eye snaps open with the fire reflected. Seedance 2.5, start frame o1-live-eye-closed, end frame o1-live-eye-1, 9:16, 5 s."
     }
   },
   "stills": {

@@ -411,6 +411,221 @@
           }
         ]
       }
+    ],
+    "particles": [
+      {
+        "note": "Paul, 25 October: smoke and fire particles in Lyra's ruins. The blaze behind the central ruins (where the world's own fire splats are: yaw 0 to 12, pitch 5 to 20, about 5.3 units out). Colours from the panel: yellow to red flames, plum and brown smoke.",
+        "world": "lyra-ruins",
+        "kind": "fire",
+        "at": [
+          6,
+          6,
+          5.2
+        ],
+        "count": 150,
+        "spread": 4.5,
+        "life": 1.6,
+        "rise": 10,
+        "drift": [
+          1,
+          0,
+          0
+        ],
+        "size": [
+          2.8,
+          1.0
+        ],
+        "colours": [
+          [
+            1,
+            0.7,
+            0.25
+          ],
+          [
+            0.85,
+            0.18,
+            0.06
+          ]
+        ],
+        "alpha": 0.3
+      },
+      {
+        "world": "lyra-ruins",
+        "kind": "embers",
+        "at": [
+          6,
+          6,
+          5.2
+        ],
+        "count": 220,
+        "spread": 6,
+        "life": 6,
+        "rise": 38,
+        "drift": [
+          10,
+          0,
+          6
+        ],
+        "size": [
+          0.45,
+          0.25
+        ],
+        "colours": [
+          [
+            1,
+            0.75,
+            0.3
+          ],
+          [
+            1,
+            0.35,
+            0.1
+          ]
+        ],
+        "alpha": 1
+      },
+      {
+        "world": "lyra-ruins",
+        "kind": "smoke",
+        "at": [
+          6,
+          10,
+          5.4
+        ],
+        "count": 90,
+        "spread": 5,
+        "life": 14,
+        "rise": 45,
+        "drift": [
+          22,
+          0,
+          -6
+        ],
+        "size": [
+          10,
+          34
+        ],
+        "colours": [
+          [
+            0.22,
+            0.1,
+            0.14
+          ],
+          [
+            0.42,
+            0.22,
+            0.36
+          ]
+        ],
+        "alpha": 0.85
+      },
+      {
+        "note": "Smoke from the ruined towers on the left and right, as in the panel.",
+        "world": "lyra-ruins",
+        "kind": "smoke",
+        "at": [
+          -24,
+          6,
+          3.6
+        ],
+        "count": 40,
+        "spread": 2.5,
+        "life": 12,
+        "rise": 28,
+        "drift": [
+          12,
+          0,
+          -4
+        ],
+        "size": [
+          5,
+          18
+        ],
+        "colours": [
+          [
+            0.22,
+            0.1,
+            0.14
+          ],
+          [
+            0.42,
+            0.22,
+            0.36
+          ]
+        ],
+        "alpha": 0.85
+      },
+      {
+        "world": "lyra-ruins",
+        "kind": "smoke",
+        "at": [
+          32,
+          4,
+          4.2
+        ],
+        "count": 40,
+        "spread": 2.5,
+        "life": 12,
+        "rise": 28,
+        "drift": [
+          14,
+          0,
+          -4
+        ],
+        "size": [
+          5,
+          18
+        ],
+        "colours": [
+          [
+            0.22,
+            0.1,
+            0.14
+          ],
+          [
+            0.42,
+            0.22,
+            0.36
+          ]
+        ],
+        "alpha": 0.85
+      },
+      {
+        "note": "Embers drifting past close to the camera.",
+        "world": "lyra-ruins",
+        "kind": "embers",
+        "at": [
+          0,
+          -10,
+          0.9
+        ],
+        "count": 70,
+        "spread": 7,
+        "life": 7,
+        "rise": 9,
+        "drift": [
+          8,
+          0,
+          3
+        ],
+        "size": [
+          0.12,
+          0.06
+        ],
+        "colours": [
+          [
+            1,
+            0.7,
+            0.3
+          ],
+          [
+            1,
+            0.3,
+            0.1
+          ]
+        ],
+        "alpha": 1
+      }
     ]
   }
 }
