@@ -1208,6 +1208,7 @@ function loadWorld(id) {
     } finally { clearTimeout(timer); }
     const { mesh, echoes, sandMesh } = got;
     delete worlds.prepared[id];
+    if (worlds.mesh === mesh) return mesh;             // another load of this world swapped it in already
     // swap only once the new world is ready, so there is never a gap
     for (const old of worldMeshes()) { scene.remove(old); old.dispose?.(); }
     for (const m of [mesh, ...echoes, ...(sandMesh ? [sandMesh] : [])]) {
@@ -1383,12 +1384,24 @@ class Sound {
   }
   // Paul's sound effects (assets/sfx, tools/make_sfx.py), decoded once on the Start tap. Each has its
   // own level, as they arrive at different loudness. Where one is missing the synthesised sound stays.
+  // the shared sounds at the tap; a world's own (ambience loops, its entry sound, the slingshot) when that world is
+  // here or next (soundsFor), so they do not crowd the first world's download
   loadSfx() {
-    this.sfx = {};
-    const own = Object.values(COMIC.sounds?.ambience || {}).flatMap((l) => Object.keys(l)).concat(Object.values(COMIC.sounds?.enter || {}).map((e) => e[0]), COMIC.sounds?.slingshot || []);
-    for (const n of new Set(['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'airy-1', 'airy-2', 'power-up', 'bed', 'bleep', ...own]))
-      fetch(`assets/sfx/${n}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b))
-        .then((buf) => { this.sfx[n] = buf; }).catch(() => {});
+    this.sfx = {}; this.sfxP = {};
+    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'airy-1', 'airy-2', 'power-up', 'bed', 'bleep']) this.sfxFetch(n);
+  }
+  sfxFetch(n) {
+    if (!this.ok || !n || this.sfxP[n]) return;
+    this.sfxP[n] = fetch(`assets/sfx/${n}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b))
+      .then((buf) => { this.sfx[n] = buf; }).catch(() => { delete this.sfxP[n]; });
+  }
+  soundsFor(world) {
+    if (!world) return;
+    const S = COMIC.sounds || {};
+    for (const n of Object.keys(S.ambience?.[world] || {})) this.sfxFetch(n);
+    if (S.enter?.[world]) this.sfxFetch(S.enter[world][0]);
+    if (S.slingshot && SHIP && world === SHIP.world) this.sfxFetch(S.slingshot);
+    if (S.slingshot && STEPS.some((st) => st.world === world && BEATS[st.beat].fold)) this.sfxFetch(S.slingshot);
   }
   sfxPlay(name, { gain = 1, rate = 1, verb = 0, echo = 0 } = {}) {
     const buf = this.ok && this.sfx?.[name];
@@ -1476,6 +1489,7 @@ class Sound {
     for (const n of new Set([...Object.keys(levels), ...Object.keys(this.amb)])) {
       const want = this.muted ? 0 : levels[n] || 0;
       let a = this.amb[n];
+      if (!a && want > 0 && !this.sfx?.[n]) this.sfxFetch(n);   // not here yet: on its way, starts when it lands
       if (!a && want > 0 && this.sfx?.[n]) {
         const src = this.ctx.createBufferSource(), g = this.ctx.createGain();
         src.buffer = this.sfx[n]; src.loop = true;
@@ -2453,6 +2467,8 @@ async function loadProps(wanted) {
     const occ = await propOccluder(pr.world, dirOf);
     if (occ) group.add(occ);
     props.root.add(group);
+    // their shaders compiled ahead, off the moment they first show (a stall as the world opened)
+    if (renderer.compileAsync) { group.visible = true; try { await renderer.compileAsync(group, camera, scene); } catch (e) { /* compiled on first draw instead */ } group.visible = false; }
     props.list.push({ pr, group });
   }
 }
@@ -2704,7 +2720,9 @@ const PANEL_WORLD = SP.panel?.world || null;
 const PANEL_UV = SP.panel?.uv || [0, 0, 1, 1];   // the layers' canvas on the page (make_panel_layers.py)
 const PANEL_LAYERS = SP.panel?.layers || [];   // file, distance ahead
 const panelFloat = { group: new THREE.Group(), layers: [], on: !!SP.panel && (params.get('panel') === '1' || (params.get('panel') !== '0' && !!SP.panel.on)), level: 0 };   // off since Paul's "lose panel of cutout illustrated bob"; ?panel=1 brings it back
-if (SP.panel) {
+// only fetched when on (off since Paul's "lose panel of cutout illustrated bob"): its layers had been fetched at page
+// open anyway, half a megabyte competing with the page and the first world
+if (SP.panel && panelFloat.on) {
   const loader = new THREE.TextureLoader(), aspect = (PANEL_UV[3] - PANEL_UV[1]) * META.aspect / (PANEL_UV[2] - PANEL_UV[0]);
   PANEL_LAYERS.forEach(([name, d], i) => {
     const tex = loader.load(`assets/props/panel-${name}.webp`);
@@ -2757,7 +2775,7 @@ const PANEL_GRAINS = reducedMotion ? 0 : (navigator.deviceMemory && navigator.de
 const ASSEMBLE_MS = 2400;
 const panelGrains = { points: null, mat: null, t0: 0, built: false };
 function buildPanelGrains() {
-  if (panelGrains.built || !PANEL_GRAINS) return;
+  if (panelGrains.built || !PANEL_GRAINS || !panelFloat.layers.length) return;
   const imgs = panelFloat.layers.map((L) => L.mat.map?.image);
   if (imgs.some((im) => !im || !im.width)) return;
   panelGrains.built = true;
@@ -2857,7 +2875,7 @@ function updatePanelGrains(here) {
 // Paul, 24 October: "remove the large white 3D panel in singularity": the card is off (?slab=1 brings it
 // back), and Marble's white slab stays cut out of the world's splats
 const slab = { on: params.get('slab') === '1' && !!SP.slab, level: 0, t: 0, id: null, mesh: null, base: new THREE.Vector3(), basis: new THREE.Quaternion(), right: new THREE.Vector3(), up: new THREE.Vector3(), fwd: new THREE.Vector3() };
-if (SP.slab) {
+if (SP.slab && slab.on) {                           // only fetched when on (?slab=1)
   const tex = new THREE.TextureLoader().load('assets/props/slab.png');
   tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide, opacity: 0 });
@@ -3679,12 +3697,17 @@ function phoneFilmLayout(v) {
   if (v._lay === key) return;
   v._lay = key;
   const h = 100 / z;
-  Object.assign(v.style, { position: 'absolute', left: '0', width: '100%', height: h + '%', top: (50 - h / 2) + '%', objectPosition: `${fx * 100}% ${fy * 100}%` });
+  // transform none: the crop is in z already (the CSS scale from filmVideo had doubled it)
+  Object.assign(v.style, { position: 'absolute', left: '0', width: '100%', height: h + '%', top: (50 - h / 2) + '%', objectPosition: `${fx * 100}% ${fy * 100}%`, transform: 'none' });
 }
 function drawSuper8(dt) {
   const v = Object.values(films.videos).find((o) => o.classList.contains('cur'));
   if (S8_PHONE()) { s8.el.classList.remove('on'); if (v && v.videoWidth) phoneFilmLayout(v); return; }
-  if (v?._lay) { v._lay = null; for (const k of ['position', 'left', 'width', 'height', 'top', 'objectPosition']) v.style[k] = ''; }
+  if (v?._lay) {
+    v._lay = null; for (const k of ['position', 'left', 'width', 'height', 'top']) v.style[k] = '';
+    const [fx, fy] = (v.dataset.focus || '0.5,0.5').split(',').map(Number), c = +v.dataset.crop || 0;
+    v.style.objectPosition = `${fx * 100}% ${fy * 100}%`; v.style.transform = c ? `scale(${1 / (1 - c)})` : '';
+  }
   if (!s8.ok) return;
   if (!v || v.readyState < 2 || !v.videoWidth) return;
   const el = s8.el, dpr = Math.min(devicePixelRatio || 1, 1.5);
@@ -4521,8 +4544,12 @@ function drawDrum(dt) {
 // the films of a cue, its chained clip too, fetched in full ahead of time
 function filmClipsOf(beat) { const cue = filmCue(beat); return cue ? [cue.clip, cue.then?.clip].filter((c) => c && films.index.clips[c]) : []; }
 function prefetchFilm(beat) {
+  const cue = filmCue(beat);                           // its sounds come with it
+  if (cue?.sfx) sound.sfxFetch(cue.sfx);
+  if (cue?.then?.sfx) sound.sfxFetch(cue.then.sfx);
   for (const id of filmClipsOf(beat)) {
     const v = filmVideo(id);
+    if (v._priming) { v._wantAuto = true; continue; }   // fetched as soon as its unlock is done
     if (v.dataset.released) { v.src = v.dataset.released; delete v.dataset.released; }
     if (v.preload !== 'auto') { v.preload = 'auto'; v.load(); }
   }
@@ -4530,7 +4557,7 @@ function prefetchFilm(beat) {
 // films the story has passed are let go, so their memory and connections are free for the ones ahead
 function releaseFilms(keep) {
   for (const [id, v] of Object.entries(films.videos)) {
-    if (keep.has(id) || v.classList.contains('cur') || v.dataset.released || v.preload !== 'auto') continue;
+    if (keep.has(id) || v.classList.contains('cur') || v.dataset.released || v.preload !== 'auto' || v._priming) continue;
     v.pause(); v.dataset.released = v.getAttribute('src'); v.removeAttribute('src'); v.preload = 'none'; v.load();
   }
 }
@@ -4546,14 +4573,25 @@ function filmWindow(i) {
 }
 // called from the Start tap: starting and stopping each film inside the reader's own gesture
 // lets phones that block a page's own video playback (data saver, low power) play them later
+// Every film's player is unlocked in the tap by playing a blank clip of a few hundred bytes in it, then pointed back
+// at its film with nothing downloaded (Paul, 26 October: loading glitches; priming the real films had started 3 MB
+// of video at the same moment as the first world). A player played once in a gesture may play later whatever its
+// source; the films are fetched only when they are near (prefetchFilm)
+const BLANK_MP4 = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMrbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAAMgAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAlV0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAAMgAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAADIAAAAAAABAAAAAAHNbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAoAAAACABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABeG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAThzdGJsAAAAuHN0c2QAAAAAAAAAAQAAAKhhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAALmF2Y0MBQsAK/+EAFmdCwArZHsBEAAADAAQAAAMAUDxImSABAAVoy4PLIAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAGXgAABl4AAAABhzdHRzAAAAAAAAAAEAAAACAAAEAAAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAACAAAAAQAAABxzdHN6AAAAAAAAAAAAAAACAAACgwAAAAkAAAAUc3RjbwAAAAAAAAABAAADWwAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAAKUbWRhdAAAAnEGBf//bdxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTEwIHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAACmWIhA7yYoAAvv4AAAAFQZo4G+o=';
 function primeFilms() {
   if (!films.index?.clips || REVIEW) return;
-  // only the first few films: priming starts their download, and all of them at once crowded the line
-  const first = new Set();
-  for (let k = 0; k < STEPS.length && first.size < 3; k++) for (const id of filmClipsOf(BEATS[STEPS[k].beat].b)) first.add(id);
-  for (const id of first) {
+  for (const id of Object.keys(films.index.clips)) {
     const v = filmVideo(id);
-    v.play().then(() => { if (!films.on || !v.classList.contains('cur')) v.pause(); }).catch(() => { /* tried again at its cue */ });
+    if (v._primed || v.preload === 'auto') continue;   // already fetching: it plays later as it is
+    v._primed = true; v._priming = true;
+    const real = v.getAttribute('src');
+    v.src = BLANK_MP4;
+    const back = () => {
+      v.pause(); v._priming = false;
+      v.src = real;                                    // preload 'none': nothing is fetched until it is wanted
+      if (v._wantAuto) { v._wantAuto = false; v.preload = 'auto'; v.load(); }
+    };
+    v.play().then(back, back);
   }
 }
 // the flash as a film cuts in or out, far lighter on a phone, where it fills the hand (Paul: "heavy flashing")
@@ -4702,13 +4740,22 @@ function showStep(i, keepCard = false) {
   else setHint('');
   // a straight cut into a film comes next (noHop): its world is decoded now, while the reader is on this card, so
   // nothing heavy runs on the main thread while the film plays (Paul: the escape film glitched as the cockpit loaded)
-  { const nx = STEPS[i + 1]; if (nx && BEATS[nx.beat].noHop && nx.world !== worlds.id) prepareWorld(nx.world); }
+  // every next world, not only a straight cut's, is fetched and decoded now while the reader is on this card, so the
+  // hop or cut into it finds it ready (Paul, 26 October: transitions not smooth); its sounds and props come too
+  {
+    const nx = STEPS[i + 1];
+    if (nx && nx.world !== STEPS[i].world) {
+      const ready = () => { prepareWorld(nx.world); sound.soundsFor(nx.world); };
+      if (worlds.ok && worlds.id === STEPS[i].world) ready(); else (worlds.loading || Promise.resolve()).then(ready, ready);
+    }
+    sound.soundsFor(STEPS[i].world);
+  }
   journey.stepAt = performance.now(); journey.pulsed = false;
   scheduleAuto(i, beat);
   const next = STEPS[i + 1];
   sound.prefetchVoice(next ? BEATS[next.beat].b : END_BEAT);
   if (journey.on) filmWindow(i); else if (next) prefetchFilm(BEATS[next.beat].b);
-  prefetchWorld(next ? next.world : FINAL_WORLD);
+  if (!next) prefetchWorld(FINAL_WORLD);              // the next world is prepared above
 }
 
 // arrive in the world now loaded: it unwinds out of its core, then the step's card comes up.
@@ -4812,7 +4859,7 @@ function startJourney() {
   state.stage = 'read'; state.beat = -1;
   // no words on the page (Paul): the glow round Bob's panel is the cue; screen readers are told
   $('sr').textContent = `${tapWord} the page to enter.`;
-  loadWorld(STEPS[0].world).catch((e) => console.warn('world unavailable', e));
+  loadWorld(STEPS[0].world).catch((e) => console.warn('world unavailable', e));   // already on its way since the page opened: this joins it
 }
 
 function enterSpace() {
@@ -4961,7 +5008,7 @@ function updateJourney(rawDt, dt) {
       journey.phase = 'load';
       // the first line and card go on at most FIRST_WAIT after the zoom, world or not (Paul, 26 October: a long gap after
       // the first panel); a world still on its way unwinds in behind the card when it lands
-      const load = worlds.loading || loadWorld(STEPS[0].world);
+      const load = loadWorld(STEPS[0].world);           // joins the load under way, or returns the world already in
       let went = false;
       const go = () => { if (went) return; went = true; if (!(worlds.ok && worlds.id === STEPS[0].world)) journey.noWorld = STEPS[0].world; arrive(0, 'carried'); };
       load.then(go).catch((e) => { console.warn(e); go(); });
@@ -5125,6 +5172,9 @@ $('start').addEventListener('click', async () => {
   sound.start();
   if (music.index?.tracks?.length && !REVIEW) $('music').hidden = false;
   primeFilms(); primeBackdrops();
+  // the first music loop is fetched now, so it is ready for the narrator's first line (it had waited for the first card)
+  if (music.index?.loops && !REVIEW) { try { musicLoopBuffer(music.index.loops[STEPS[0]?.world] || music.index.loops.default); } catch (e) { /* no music yet */ } }
+  if (journey.on) sound.soundsFor(STEPS[0].world);
   try {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       const r = await DeviceOrientationEvent.requestPermission();
@@ -5438,6 +5488,9 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
+  // the first world is fetched and decoded while the logo and the gate show (Paul, 26 October: the first scene came in
+  // seconds after its line; it had only started on the Start tap), then its props
+  if (journey.on) loadWorld(STEPS[0].world).then(() => { if (props.on) loadProps(new Set([STEPS[0].world])); }).catch((e) => console.warn('first world', e));
   window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, fold, foldShow, ship, finale, finaleStart, drum, drumShow, drumTap, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
