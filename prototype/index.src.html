@@ -184,6 +184,10 @@
     background: radial-gradient(circle, rgba(239,233,223,0) 60%, rgba(239,233,223,0.28) 66%, rgba(239,233,223,0) 71%); mix-blend-mode: screen; animation: glyphRing 0.9s linear infinite; }
   @keyframes glyphRing { 0% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(0.02); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { #glyphVeil canvas { animation: none; } #glyphVeil canvas:first-child { opacity: 1; } #glyphVeil .ring { display: none; } }
+  #finaleEnd { position: fixed; inset: 0; z-index: 6; background: #000; display: none; place-items: center; cursor: pointer; }
+  #finaleEnd.on { display: grid; }
+  #finaleEnd img { width: min(78vw, 70vh * 4.6); opacity: 0; transition: opacity 0.9s; }
+  #finaleEnd.card img { opacity: 1; }
   #fold { position: fixed; inset: 0; top: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; display: none; }
   #fold.on { display: block; }
   #fx { position: fixed; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }   /* over the pad and films, as they are raised */
@@ -221,6 +225,7 @@
 <div class="flash" id="flash"></div>
 <div class="black" id="black"></div>
 <canvas id="fold" aria-hidden="true"></canvas>
+<div id="finaleEnd" aria-hidden="true"><img alt="" src=""></div>
 <canvas id="fx" aria-hidden="true"></canvas>
 
 <div id="gate" role="dialog" aria-label="Start">
@@ -2054,21 +2059,25 @@ const helix = { group: new THREE.Group(), mats: [], on: !!HELIX && params.get('h
 if (HELIX) {
   const dirOf = ([yw, pt, d]) => { const y = yw * DEG, p = pt * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)).multiplyScalar(d * WORLD_SCALE); };
   const A = dirOf(HELIX.from), B = dirOf(HELIX.to), len = A.distanceTo(B);
+  helix.len = len;
   const R = (HELIX.radius ?? 0.1) * WORLD_SCALE, turns = HELIX.turns ?? 6, rungsPerTurn = HELIX.rungs ?? 10;
   const tube = (HELIX.strand ?? 0.018) * WORLD_SCALE, rungR = tube * 0.45;
   const col = HELIX.colours || {};
   const c3 = (v, d) => new THREE.Vector3(...(v || d));
   // build along +y from the origin, then turn to the axis; the group spins about its own y
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uTime: shared.uTime, uLevel: helix.level, uGrow: { value: 0 },
+    uniforms: { uTime: shared.uTime, uLevel: helix.level, uGrow: { value: 0 }, uTail: { value: 0 },
       uBase: { value: c3(col.base, [0.25, 0.84, 0.62]) }, uShade: { value: c3(col.shade, [0.09, 0.42, 0.40]) },
       uLight: { value: c3(col.light, [0.78, 1.0, 0.90]) }, uInk: { value: c3(col.ink, [0.05, 0.04, 0.07]) } },
     transparent: true,
-    vertexShader: `uniform float uGrow; attribute float aS; attribute float aR; varying float vS; varying vec3 vN; varying vec3 vV;
+    vertexShader: `uniform float uGrow; uniform float uTail; attribute float aS; attribute float aR; varying float vS; varying vec3 vN; varying vec3 vV;
       void main(){
         vS = aS;
         // unspooling out of the pupil: a part thickens from nothing once the front (uGrow, 0 to 1 along it) passes
         float g = smoothstep(aS - 0.06, aS, uGrow * 1.06);
+        // uTail (the finale, Paul: "tail should shrink and disappear as it draws"): only the stretch behind the front
+        // stays, thinning away to nothing towards its end
+        if (uTail > 0.0) g *= smoothstep(uGrow * 1.06 - uTail, uGrow * 1.06 - uTail * 0.35, aS);
         vec3 p = position - normal * aR * (1.0 - g);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
@@ -2130,7 +2139,7 @@ if (HELIX) {
   scene.add(helix.root);
 }
 function updateHelix(dt) {
-  if (!HELIX) return;
+  if (!HELIX || finale.on) return;
   const here = helix.on && state.stage === 'void' && worlds.ok && worlds.id === HELIX.world;
   if (worlds.id !== helix.id) { helix.id = worlds.id; helix.t0 = null; }
   helix.level.value += ((here ? 1 - 0.9 * worlds.suction : 0) - helix.level.value) * (1 - Math.exp(-dt * 3));
@@ -2144,6 +2153,84 @@ function updateHelix(dt) {
   helix.spinGroup.rotation.y = helix.spin;
   helix.root.position.copy(P0);
 }
+
+/* ---------- the finale: the helix out of the eye (OBTRAN 001) ---------- */
+// COMIC.finale on a beat with finale: true (Paul, 25 October: "render a full screen single eye film for the 3D spiral to
+// emerge from. as soon as spiral has filled screen, cut to black end of story with to be continued"): the eye film
+// fills the screen behind everything (a video texture on a plane carried by the camera, mirrored with flip, Paul: "you
+// will have to flip to fit 3D helix"), the world hidden; the helix grows out of the pupil towards the camera, turning,
+// its tail thinning away behind the front; when the front reaches the camera, a hard cut to black, then the hand
+// lettered "To be continued..." (an image: OBTRAN 001 has none of its own, so the label's from OBTRAN 003), which a tap,
+// click or key reads again.
+const FINALE = COMIC.finale || null;
+const finale = { on: false, t: 0, done: false, video: null, plane: null, tex: null, home: null };
+function finaleStart() {
+  if (!FINALE || finale.on) return;
+  finale.on = true; finale.t = 0; finale.done = false;
+  if (FINALE.endImage) $('finaleEnd').querySelector('img').src = FINALE.endImage;
+  const clip = films.index?.clips?.[FINALE.clip];
+  if (clip) {
+    const v = finale.video = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.preload = 'auto';
+    v.src = 'assets/films/' + clip.file + (clip.v ? '?v=' + clip.v : '');
+    // kept in the page and barely visible, as some phones will not decode a hidden video
+    Object.assign(v.style, { position: 'fixed', left: '0', top: '0', width: '2px', height: '2px', opacity: '0.01', pointerEvents: 'none' });
+    document.body.appendChild(v);
+    v.play().catch((e) => console.warn('finale film not played:', e && e.name));
+    finale.tex = new THREE.VideoTexture(v); finale.tex.colorSpace = THREE.SRGBColorSpace;
+    if (FINALE.flip) { finale.tex.wrapS = THREE.RepeatWrapping; finale.tex.repeat.x = -1; finale.tex.offset.x = 1; }
+    finale.plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: finale.tex, depthTest: false, depthWrite: false, fog: false, toneMapped: false }));
+    finale.plane.renderOrder = -30; finale.plane.frustumCulled = false;
+    camera.add(finale.plane);
+  }
+  if (helix.root) finale.home = { pos: helix.group.position.clone(), quat: helix.group.quaternion.clone(), scale: helix.group.scale.x };
+}
+function updateFinale(dt) {
+  if (!finale.on) return;
+  if (!finale.freeze) finale.t += dt;
+  // the eye fills the view behind everything, cut to cover the screen; the world is hidden
+  if (finale.plane) {
+    const D = 60, h = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), w = h * camera.aspect;
+    const va = finale.video.videoWidth ? finale.video.videoWidth / finale.video.videoHeight : 16 / 9;
+    const sw = Math.max(w, h * va), sh = sw / va;
+    finale.plane.position.set(0, 0, -D); finale.plane.scale.set(sw, sh, 1);
+    finale.plane.visible = !finale.done;
+  }
+  if (worlds.spark) worlds.spark.visible = false;
+  props.root.visible = false; particles.root.visible = false;
+  // the helix: from the pupil far ahead to just past the camera, carried by the camera, turning as it grows
+  if (helix.root && !finale.done) {
+    const grow = FINALE.grow ?? 5.5, u = clamp(finale.t / grow, 0, 1);
+    helix.root.visible = true; helix.level.value = 1;
+    helix.root.position.copy(camera.position); helix.root.quaternion.copy(camera.quaternion);
+    const D0 = FINALE.depth ?? 40, dir = new THREE.Vector3(...(FINALE.axis || [0.05, 0.04, 1])).normalize();
+    const [fx, fy] = FINALE.pupil || [0, 0];                   // the pupil's place on screen (-1 to 1), after the flip
+    const hh = D0 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    helix.group.position.set(fx * hh * camera.aspect, fy * hh, -D0);
+    helix.group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    const len = helix.len || 1;
+    helix.group.scale.setScalar((D0 + 2) / len);
+    const m = helix.mats[0].uniforms;
+    m.uGrow.value = reducedMotion ? 1 : u * u * (3 - 2 * u) * 0.7 + u * 0.3;
+    m.uTail.value = FINALE.tail ?? 0.4;
+    helix.spin += dt * (FINALE.spin ?? 1.2);
+    helix.spinGroup.rotation.y = helix.spin;
+    // filled the screen: the front has reached the camera
+    if (u >= 1) finaleCut();
+  }
+}
+function finaleCut() {
+  finale.done = true;
+  helix.root.visible = false;
+  finale.video?.pause();
+  $('finaleEnd').classList.add('on');
+  card.visible = false; cardGlow.visible = false; setHint(''); stopFilm(false);
+  sound.thump(0.8);
+  $('sr').textContent = 'To be continued. Tap, click or press Enter to read again.';
+  setTimeout(() => $('finaleEnd').classList.add('card'), (FINALE.endDelay ?? 0.9) * 1000);
+}
+$('finaleEnd').addEventListener('pointerdown', (e) => { e.stopPropagation(); if ($('finaleEnd').classList.contains('card')) readAgain(); });
+addEventListener('keydown', (e) => { if (finale.done && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); readAgain(); } });
 
 /* ---------- props: 3D models placed in a world, shaded in the comic's ink grade ---------- */
 // OBTRAN 001 (Paul, 25 October): three cryptid skulls modelled in 3D, ink graded, stacked to match the painted
@@ -4137,6 +4224,7 @@ function showStep(i, keepCard = false) {
   // a card left waiting 10 s pulses once instead
   if (beat.fold && FOLD) foldShow(); else foldHide();
   if (beat.drum && DRUM) drumShow(); else drumHide();
+  if (beat.finale && FINALE) finaleStart();
   if (beat.hold) { setHint('Press and hold to unlock'); padShow(beat.b); prefetchWorld(FINAL_WORLD); prepareWorld(FINAL_WORLD); }
   else if (beat.fold && FOLD) { /* foldShow set its own hint */ }
   else if (i === 0) setHint(`${tapWord} to continue`, true);
@@ -4275,6 +4363,7 @@ function journeyNext() {
   if (journey.phase !== 'space') return;
   const i = journey.step, beat = BEATS[STEPS[i].beat];
   if (beat.hold || foldWaiting(beat) || drumWaiting(beat)) { nudge(); return; }
+  if (beat.finale && FINALE) return;                // the finale ends the story itself
   musicCue(beat.b + ':leave');
   if (beat.trigger) { finalBreach(); return; }
   const next = STEPS[i + 1];
@@ -4823,6 +4912,7 @@ function frame() {
   if (drum.on) drawDrum(rawDt);
   updateRibbons(dt, rawDt);
   updateHelix(dt);
+  updateFinale(rawDt);
   updateProps(dt);
   updateParticles(dt);
   if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey);
@@ -4837,7 +4927,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, fold, foldShow, drum, drumShow, drumTap, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
+  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, fold, foldShow, finale, finaleStart, drum, drumShow, drumTap, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

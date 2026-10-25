@@ -30,6 +30,11 @@
         "v": "23adc68d"
       },
       "note": "QNTM CNTRL escaping Lyra (Paul's film, 25 October: 4 s, 16:9, plays full screen once for its length): the ship fills the frame, its engines light and it pulls away; portrait screens cut it about the ship (focus), wide ones show it whole"
+    },
+    "o1-eye-final": {
+      "file": "o1-eye-final.mp4",
+      "v": "13c939e1",
+      "note": "the finale eye (Paul's still 1, outpainted to 16:9): it fills the screen, the pupil moves; the helix grows out of it"
     }
   },
   "cues": {
@@ -48,14 +53,6 @@
       "len": 5.0,
       "card": true,
       "note": "the bonfire ritual: the dancers' shadows (Paul: \"definitely a video render\"); the drum interaction follows the film once built"
-    },
-    "decode": {
-      "clip": "o1-eye",
-      "at": 0.2,
-      "from": 0,
-      "len": 5.0,
-      "card": true,
-      "note": "...would soon trigger OBTRAN to begin its decode protocol: the eye snaps open, then the decode (the beat's auto advance waits for the film)"
     },
     "vessel": {
       "clip": "o1-escape",

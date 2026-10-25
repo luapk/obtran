@@ -61,8 +61,8 @@
     {
       "b": "decode",
       "note": "...WOULD SOON TRIGGER OBTRAN TO BEGIN ITS DECODE PROTOCOL.",
-      "trigger": true,
-      "auto": 1.8
+      "finale": true,
+      "why": "the finale (Paul): the caption over the eye, the helix out of the pupil, black, To be continued"
     }
   ],
   "journey": [
@@ -2131,5 +2131,25 @@
       }
     },
     "slingshot": "spaceship"
+  },
+  "finale": {
+    "note": "Paul, 25 October: the decode ends on one huge eye filling the screen (o1-eye-final), mirrored to sit with the helix, the 3D helix growing out of its pupil towards the camera with its tail thinning away; when it fills the screen, black, then To be continued (OBTRAN 003's hand lettering; OBTRAN 001 has none of its own)",
+    "clip": "o1-eye-final",
+    "flip": true,
+    "pupil": [
+      0,
+      0
+    ],
+    "depth": 40,
+    "axis": [
+      0.05,
+      0.04,
+      1
+    ],
+    "grow": 5.5,
+    "tail": 0.4,
+    "spin": 1.2,
+    "endImage": "assets/props/tbc-end.webp",
+    "endDelay": 0.9
   }
 }
