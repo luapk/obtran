@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-25T12:58:31.711Z",
+  "updated": "2026-10-25T13:01:16.339Z",
   "worlds": [
     {
       "id": "lyra-ruins",
@@ -113,6 +113,25 @@
         0.6712466487935657,
         0.3500361358708745,
         0.8068029490616622
+      ]
+    },
+    {
+      "id": "bonfire",
+      "title": "The bonfire ritual",
+      "model": "marble-1.0-draft",
+      "world_id": "5cdf6b51-dc2a-4a0b-a5a0-ffaf347b0e97",
+      "marble_url": "https://marble.worldlabs.ai/world/5cdf6b51-dc2a-4a0b-a5a0-ffaf347b0e97",
+      "splats": {
+        "500k": "worlds/bonfire.spz",
+        "100k": "worlds/bonfire.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.7159720549265237,
+        0.6732573726541555,
+        0.8899060467357264,
+        0.7302278820375335
       ]
     },
     {

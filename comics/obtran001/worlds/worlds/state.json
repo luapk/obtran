@@ -102,8 +102,21 @@
     }
   },
   "bonfire": {
-    "error": "POST /marble/v1/worlds:generate: HTTP 403 {\"detail\":\"NSFW Content is not permitted by policy.  Violence\"}",
-    "status": "failed"
+    "status": "done",
+    "model": "marble-1.0-draft",
+    "media_asset_id": "099bc929-10f4-4048-8037-2c8e17aead92",
+    "operation_id": "4d1d542c-7f07-4871-a79a-35261b331326",
+    "started_at": "2026-10-25T13:00:44.187Z",
+    "world_id": "5cdf6b51-dc2a-4a0b-a5a0-ffaf347b0e97",
+    "finished_at": "2026-10-25T13:01:16.326Z",
+    "marble_url": "https://marble.worldlabs.ai/world/5cdf6b51-dc2a-4a0b-a5a0-ffaf347b0e97",
+    "metric_scale_factor": null,
+    "caption": "The scene is a hand-painted comic art illustration, characterized by bold black ink outlines over saturated painted colors, evoking a whimsical and vibrant tone. The tent is large and circular, with its ceiling tapering to a central point from which a wooden pole rises, supporting the structure. The red and purple cloth walls hang in soft folds, their textures rendered with visible brush and pencil marks, creating a dynamic interplay of light and shadow. The flickering warmth of the campfire casts deep red and blue shadows that dance across the interior of the tent, extending outward to illuminate the surrounding ground, which is covered in a soft, sandy texture. Near the tent's entrance, several wooden crates are stacked, offering a convenient surface for various items, including a water skin made of stitched animal hide and a small, metallic cup. Further away, a coil of thick rope is neatly laid out on the ground, suggesting preparations for travel or storage. The warm glow of the fire is concentrated in the center of the tent, radiating outwards and gradually fading into the cooler, darker hues of the deep violet and teal skies that are visible through the tent's open flap, where glowing mint green light is cast by the moons and stars above. The 360 scene is faultless.",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "files": {
+      "bonfire.spz": 5377043,
+      "bonfire.100k.spz": 1156499
+    }
   },
   "decode-helix": {
     "status": "done",
