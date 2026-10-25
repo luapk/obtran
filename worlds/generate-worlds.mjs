@@ -303,18 +303,24 @@ function writeWorldsJson() {
 
 // ---------- credits ----------
 // GET /marble/v1/credits returns { remaining_credits }. Recorded with the time it was read.
-async function readCredits() {
+// credits.json keeps the latest balance and a history: one entry each time it is read, before and after
+// every generation run, so each run's spend is on record.
+async function readCredits(label) {
   const r = await api('GET', '/marble/v1/credits');
   const left = pick(r, 'remaining_credits');
   if (typeof left !== 'number') throw new Error(`unexpected credits response ${shape(r)}`);
-  writeFileSync(join(OUT, 'credits.json'), JSON.stringify({ remaining_credits: left, usd: usd(left), checked: new Date().toISOString() }, null, 2) + '\n');
-  console.log(`credits left: ${left} (${usd(left)})`);
+  const f = join(OUT, 'credits.json');
+  const old = existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : {};
+  const checked = new Date().toISOString();
+  const history = [...(old.history || []), { checked, remaining_credits: left, at: label }];
+  writeFileSync(f, JSON.stringify({ remaining_credits: left, usd: usd(left), checked, history }, null, 2) + '\n');
+  console.log(`credits left (${label}): ${left} (${usd(left)})`);
   return left;
 }
 if (creditsOnly) {
   if (dryRun) { console.log('would read the credit balance'); process.exit(0); }
   if (!KEY) die('WORLDLABS_API_KEY is not set');
-  try { await readCredits(); } catch (err) { die(err.message); }
+  try { await readCredits('check'); } catch (err) { die(err.message); }
   process.exit(0);
 }
 
@@ -331,6 +337,11 @@ if (refresh) {
 }
 
 // ---------- main ----------
+try {
+  const left = await readCredits(`before ${quality} run`);
+  const need = newRuns * credits;
+  if (left < need) console.warn(`warning: ${need} credits needed for ${newRuns} new world(s), ${left} left`);
+} catch (err) { console.warn(`could not read the credit balance: ${err.message}`); }
 const queue = [...todo];
 const failures = [];
 await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
@@ -341,7 +352,7 @@ await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, as
 }));
 const n = writeWorldsJson();
 console.log(`worlds.json lists ${n} world(s)`);
-try { await readCredits(); } catch (err) { console.warn(`could not read the credit balance: ${err.message}`); }
+try { await readCredits(`after ${quality} run`); } catch (err) { console.warn(`could not read the credit balance: ${err.message}`); }
 for (const e of elements) {
   const f = join(OUT, `${e.id}.spz`);
   if (existsSync(f) && statSync(f).size > GITHUB_LIMIT) console.warn(`warning: ${e.id}.spz is ${mb(statSync(f).size)}, over GitHub's limit; commit the 100k file only`);

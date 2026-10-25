@@ -5,5 +5,5 @@
   "force": false,
   "refresh": false,
   "credits": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001's eight draft worlds (marble-1.0-draft, 8 x 230 = 1,840 credits), 25 October 2026: Paul asked to try again although the balance read 0; he tops up if it is refused."
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001's eight draft worlds (marble-1.0-draft, 8 x 230 = 1,840 credits), 25 October 2026, retried after Paul bought 25,000 API credits (the first try was refused with HTTP 402)."
 }
