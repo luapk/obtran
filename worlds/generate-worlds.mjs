@@ -12,6 +12,7 @@
 //   --refresh       re-read finished worlds (free, no generation): record the response
 //                   shape and fetch anything missing, such as the panorama
 //   --concurrency n worlds in flight at once (default 2)
+//   --credits       only read the API credit balance (free) into worlds/worlds/credits.json
 //
 // Env: WORLDLABS_API_KEY (required unless --dry-run), WORLDLABS_BASE (default https://api.worldlabs.ai).
 // State lives in worlds/worlds/state.json and is saved after every step, so a rerun resumes
@@ -38,6 +39,7 @@ const quality = flag('--draft') ? 'draft' : 'full';
 const force = flag('--force');
 const fullRes = flag('--full-res');
 const refresh = flag('--refresh');
+const creditsOnly = flag('--credits');
 const only = opt('--only') ? new Set(opt('--only').split(',').map((s) => s.trim()).filter(Boolean)) : null;
 const concurrency = Math.max(1, Number(opt('--concurrency') || 2));
 const { model, credits } = MODELS[quality];
@@ -74,7 +76,7 @@ const isDone = (e) => {
 const todo = elements.filter((e) => force || !isDone(e));
 const resuming = todo.filter((e) => !force && state[e.id]?.operation_id && state[e.id]?.status === 'generating' && state[e.id]?.model === model);
 const newRuns = todo.length - resuming.length;
-if (!refresh) {
+if (!refresh && !creditsOnly) {
   console.log(`model ${model} (${quality}), ${elements.length} element(s), ${todo.length} to run`);
   for (const e of elements) {
     const why = !todo.includes(e) ? 'finished, skip' : resuming.includes(e) ? 'resume operation in progress' : 'generate';
@@ -82,9 +84,9 @@ if (!refresh) {
   }
   console.log(`estimated cost: ${newRuns} new generation(s) x ${credits} credits = ${newRuns * credits} credits (about ${usd(newRuns * credits)})`);
 }
-if (dryRun && !refresh) process.exit(0);
-if (!todo.length && !refresh) { writeWorldsJson(); console.log('nothing to do'); process.exit(0); }
-if (!KEY && !dryRun) die('WORLDLABS_API_KEY is not set');
+if (dryRun && !refresh && !creditsOnly) process.exit(0);
+if (!todo.length && !refresh && !creditsOnly) { writeWorldsJson(); console.log('nothing to do'); process.exit(0); }
+if (!KEY && !dryRun && !creditsOnly) die('WORLDLABS_API_KEY is not set');
 
 // ---------- api ----------
 async function api(method, path, body) {
@@ -293,6 +295,23 @@ function writeWorldsJson() {
   return worlds.length;
 }
 
+// ---------- credits ----------
+// GET /marble/v1/credits returns { remaining_credits }. Recorded with the time it was read.
+async function readCredits() {
+  const r = await api('GET', '/marble/v1/credits');
+  const left = pick(r, 'remaining_credits');
+  if (typeof left !== 'number') throw new Error(`unexpected credits response ${shape(r)}`);
+  writeFileSync(join(OUT, 'credits.json'), JSON.stringify({ remaining_credits: left, usd: usd(left), checked: new Date().toISOString() }, null, 2) + '\n');
+  console.log(`credits left: ${left} (${usd(left)})`);
+  return left;
+}
+if (creditsOnly) {
+  if (dryRun) { console.log('would read the credit balance'); process.exit(0); }
+  if (!KEY) die('WORLDLABS_API_KEY is not set');
+  try { await readCredits(); } catch (err) { die(err.message); }
+  process.exit(0);
+}
+
 // ---------- refresh ----------
 if (refresh) {
   const done = elements.filter((e) => state[e.id]?.status === 'done' && state[e.id]?.world_id);
@@ -316,6 +335,7 @@ await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, as
 }));
 const n = writeWorldsJson();
 console.log(`worlds.json lists ${n} world(s)`);
+try { await readCredits(); } catch (err) { console.warn(`could not read the credit balance: ${err.message}`); }
 for (const e of elements) {
   const f = join(OUT, `${e.id}.spz`);
   if (existsSync(f) && statSync(f).size > GITHUB_LIMIT) console.warn(`warning: ${e.id}.spz is ${mb(statSync(f).size)}, over GitHub's limit; commit the 100k file only`);

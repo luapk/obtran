@@ -6,8 +6,9 @@ name: Generate worlds
 # instead of paying for them again. Each commit redeploys on Vercel.
 #
 # Two ways to start it: "Run workflow" on the Actions tab, or a push to main
-# that changes worlds/run.json, whose quality, only, force and refresh fields
-# stand in for the inputs below. refresh re-reads finished worlds for free. The workflow's own commits never touch run.json.
+# that changes worlds/run.json, whose quality, only, force, refresh and credits fields
+# stand in for the inputs below. refresh re-reads finished worlds for free; credits
+# only reads the API credit balance into worlds/worlds/credits.json (free). The workflow's own commits never touch run.json.
 #
 # Needs the repository secret WORLDLABS_API_KEY (Settings > Secrets and
 # variables > Actions). Never put the key in code or logs.
@@ -34,6 +35,10 @@ on:
         default: false
       refresh:
         description: "Only re-read finished worlds and fetch missing panoramas (free, no generation)"
+        type: boolean
+        default: false
+      credits:
+        description: "Only read the API credit balance (free, no generation)"
         type: boolean
         default: false
 
@@ -63,14 +68,16 @@ jobs:
           IN_ONLY: ${{ inputs.only }}
           IN_FORCE: ${{ inputs.force }}
           IN_REFRESH: ${{ inputs.refresh }}
+          IN_CREDITS: ${{ inputs.credits }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            q="$IN_QUALITY"; o="$IN_ONLY"; f="$IN_FORCE"; r="$IN_REFRESH"
+            q="$IN_QUALITY"; o="$IN_ONLY"; f="$IN_FORCE"; r="$IN_REFRESH"; c="$IN_CREDITS"
           else
             q=$(node -p "require('./worlds/run.json').quality || 'draft'")
             o=$(node -p "[].concat(require('./worlds/run.json').only || []).join(',')")
             f=$(node -p "String(require('./worlds/run.json').force === true)")
             r=$(node -p "String(require('./worlds/run.json').refresh === true)")
+            c=$(node -p "String(require('./worlds/run.json').credits === true)")
           fi
           case "$q" in draft|full) ;; *) echo "::error::quality must be draft or full, got '$q'"; exit 1 ;; esac
           case "$o" in *[!a-z0-9,-]*) echo "::error::only may hold element ids and commas only"; exit 1 ;; esac
@@ -78,7 +85,8 @@ jobs:
           echo "only=$o" >> "$GITHUB_OUTPUT"
           echo "force=$f" >> "$GITHUB_OUTPUT"
           echo "refresh=$r" >> "$GITHUB_OUTPUT"
-          echo "quality=$q only=${o:-all} force=$f refresh=$r"
+          echo "credits=$c" >> "$GITHUB_OUTPUT"
+          echo "quality=$q only=${o:-all} force=$f refresh=$r credits=$c"
 
       - name: Check the API key is set
         env:
@@ -89,7 +97,15 @@ jobs:
             exit 1
           fi
 
+      - name: Read the credit balance only
+        if: steps.settings.outputs.credits == 'true'
+        working-directory: worlds
+        env:
+          WORLDLABS_API_KEY: ${{ secrets.WORLDLABS_API_KEY }}
+        run: node generate-worlds.mjs --credits
+
       - name: Plan
+        if: steps.settings.outputs.credits != 'true'
         working-directory: worlds
         env:
           QUALITY: ${{ steps.settings.outputs.quality }}
@@ -105,6 +121,7 @@ jobs:
           node generate-worlds.mjs --dry-run "${args[@]}"
 
       - name: Generate
+        if: steps.settings.outputs.credits != 'true'
         working-directory: worlds
         env:
           WORLDLABS_API_KEY: ${{ secrets.WORLDLABS_API_KEY }}
@@ -121,12 +138,12 @@ jobs:
           node generate-worlds.mjs "${args[@]}"
 
       - uses: actions/setup-python@v5
-        if: always()
+        if: always() && steps.settings.outputs.credits != 'true'
         with:
           python-version: "3.12"
 
       - name: Clean the worlds and measure their grade and look limits
-        if: always()
+        if: always() && steps.settings.outputs.credits != 'true'
         run: |
           if ls worlds/worlds/*.spz >/dev/null 2>&1; then
             pip install --quiet numpy pillow

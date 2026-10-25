@@ -24,6 +24,7 @@ createServer(async (req, res) => {
   const body = await readBody(req);
   if (url.pathname.startsWith('/marble/') && req.headers['wlt-api-key'] !== 'test') return send(res, 401, { error: 'bad key' });
 
+  if (req.method === 'GET' && url.pathname === '/marble/v1/credits') return send(res, 200, { remaining_credits: 6250 });
   if (req.method === 'POST' && url.pathname === '/marble/v1/media-assets:prepare_upload') {
     const id = `ma_${++n}`;
     const { file_name } = JSON.parse(body);

@@ -1,11 +1,8 @@
 {
-  "quality": "full",
-  "only": [
-    "singularity-core",
-    "hull-machinery",
-    "monolith-slabs"
-  ],
+  "quality": "draft",
+  "only": [],
   "force": false,
   "refresh": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. Full quality backdrops for the singularity, hull machinery and monolith slabs (marble-1.1, about 4,740 credits), approved by Paul on 24 October 2026."
+  "credits": true,
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. credits: true only reads the API credit balance into worlds/worlds/credits.json (free, nothing generated), 25 October 2026. The last generation was full quality for singularity-core, hull-machinery and monolith-slabs (about 4,740 credits, approved by Paul on 24 October)."
 }
