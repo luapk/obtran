@@ -110,6 +110,7 @@
     "pod": "mist",
     "bonfire": "mist"
   },
+  "extrude": false,
   "speakerGain": {},
   "setPieces": {
     "helix": {
