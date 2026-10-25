@@ -41,6 +41,7 @@
     repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, rgba(0,0,0,0) 1px 2px),
     linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.025) 48%, rgba(255,255,255,0) 52%);
     background-size: 100% 2px, 100% 300%; animation: scanRoll 6s linear infinite; }
+  @media (max-width: 599px), (max-height: 599px) { #film::after { display: none; } }   /* no scan lines on a phone (Paul) */
   @keyframes scanRoll { from { background-position: 0 0, 0 0%; } to { background-position: 0 0, 0 -300%; } }
   /* the biometric touch screen for the hold: a looping top-down film of an alien touch pad, a code
      layer drawn where the thumb is, and the line's lettering */
@@ -3563,7 +3564,18 @@ function cctvGlyphs(c, x, y, row, size, n) {
 // a second, Super 8's own rate, so movement judders like projected film. The CCTV readout stays on top.
 // super8Init sets the pass up on a canvas (the films' own, or the opening backdrop's); super8Frame draws one frame
 // how strong the film look is: 0.55 of the first build on big screens, 0.35 on a phone
-const S8_AMT = () => (Math.min(innerWidth, innerHeight) < 600 ? 0.35 : 0.55);
+// Off on a phone (Paul, 26 October, with a screen recording: "way too strong on phone version, can we switch off for
+// phone"): there the pass only frames the film, clean
+const S8_PHONE = () => Math.min(innerWidth, innerHeight) < 600;
+const S8_AMT = () => (S8_PHONE() ? 0 : 0.55);
+// a video's frames as the browser presents them: a frame is copied into the pass only when it is new. Copying in
+// between frames gave black on Android, about every other frame (the strobing in Paul's recording, 26 October)
+function watchFrames(v) {
+  if (v._watch || !v.requestVideoFrameCallback) return;
+  v._watch = true; v._fresh = true;
+  const cb = () => { v._fresh = true; v.requestVideoFrameCallback(cb); };
+  v.requestVideoFrameCallback(cb);
+}
 function super8Init(el, preserve = false) {
   const s8 = { el, gl: null, prog: null, tex: null, u: {}, t: 0, next: 0, seed: 0, weave: [0, 0], flick: 1, scratch: -1, scratchLeft: 0, ok: false };
   const gl = s8.el.getContext('webgl', { premultipliedAlpha: false, antialias: false, preserveDrawingBuffer: preserve });
@@ -3581,12 +3593,16 @@ function super8Init(el, preserve = false) {
         float l = lum(uv) * 0.36 + (lum(uv + vec2(px.x, 0.0)) + lum(uv - vec2(px.x, 0.0)) + lum(uv + vec2(0.0, px.y)) + lum(uv - vec2(0.0, px.y))) * 0.16;
         vec3 soft = texture2D(uVid, uv).rgb * 0.36 + (texture2D(uVid, uv + vec2(px.x, 0.0)).rgb + texture2D(uVid, uv - vec2(px.x, 0.0)).rgb + texture2D(uVid, uv + vec2(0.0, px.y)).rgb + texture2D(uVid, uv - vec2(0.0, px.y)).rgb) * 0.16;
         float l0 = max(l, 0.03);
-        l = 0.06 + 0.86 * l;                                      // lifted blacks, rolled-off whites
+        float lc = lum(uv);
+        vec3 sharp = texture2D(uVid, uv).rgb;
+        float a = min(uAmt * 2.0, 1.0);                           // how much of the look: none on a phone
+        l = mix(lc, l, a); soft = mix(sharp, soft, a);
+        l = mix(l, 0.06 + 0.86 * l, a);                           // lifted blacks, rolled-off whites
         l *= uFlick;
         float g = hash(floor(gl_FragCoord.xy / 2.0) + uSeed) - 0.5;   // coarse grain, new every frame
         l += g * 0.26 * uAmt * (0.6 + 0.4 * (1.0 - l));
         vec2 q = v - 0.5;                                         // heavy vignette
-        l *= 1.0 - 1.1 * dot(q * vec2(1.1, 0.9), q * vec2(1.1, 0.9));
+        l *= 1.0 - 1.1 * a * dot(q * vec2(1.1, 0.9), q * vec2(1.1, 0.9));
         for (int i = 0; i < 6; i++) {                             // dust: a few specks, dark and light
           vec2 h = vec2(hash(vec2(uSeed, float(i))), hash(vec2(float(i), uSeed * 1.7)));
           float r = (0.6 + 2.4 * hash(vec2(uSeed * 0.3, float(i) * 3.1))) / uRes.y;
@@ -3596,7 +3612,7 @@ function super8Init(el, preserve = false) {
         if (uScratch >= 0.0) l = mix(l, 0.92, smoothstep(1.4 / uRes.x, 0.0, abs(v.x - uScratch - 0.002 * sin(v.y * 40.0 + uSeed))) * 0.7 * uAmt);
         // in colour, the frame's own hue carried at the graded brightness (a little faded, as film stock is)
         vec3 chroma = soft - vec3(dot(soft, vec3(0.299, 0.587, 0.114)));
-        vec3 col = vec3(l) + chroma * uColour * 0.9 * smoothstep(0.0, 0.12, l0);   // the grain stays grey; near black has no colour to lift
+        vec3 col = vec3(l) + chroma * uColour * mix(1.0, 0.9 * smoothstep(0.0, 0.12, l0), a);   // the grain stays grey; near black has no colour to lift
         gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
       }`);
     if (vs && fs) {
@@ -3620,7 +3636,10 @@ const s8 = super8Init($('s8'));
 // one frame of the pass at W x H: sx, sy and keep size the window of the video frame, about focus fx, fy
 function super8Frame(S, v, W, H, sx, sy, keep, fx, fy) {
   const gl = S.gl;
-  try { gl.bindTexture(gl.TEXTURE_2D, S.tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); }
+  watchFrames(v);
+  const fresh = !v.requestVideoFrameCallback || v._fresh;
+  if (S.lastV !== v && !fresh) return 'wait';        // nothing of this film yet: leave the last picture up
+  try { gl.bindTexture(gl.TEXTURE_2D, S.tex); if (fresh) { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); v._fresh = false; S.lastV = v; } }
   catch (e) { S.ok = false; return false; }          // a video the canvas may not read
   // the frame weaves in the gate, and now and then jumps. Much gentler than first built (Paul, 26 October: "heavy
   // flashing / strobe effect on video", on phones especially): the flicker drifts instead of changing every frame,
@@ -3659,7 +3678,9 @@ function drawSuper8(dt) {
   // negative space at top and bottom"), never past the whole width of the frame; the rest is black
   if (!contain && ca < 0.8) { const z = Math.min(FILM_OUT, 1 / sx); sx *= z; sy *= z; }
   const keep = 1 - (+v.dataset.crop || 0), [fx, fy] = (v.dataset.focus || '0.5,0.5').split(',').map(Number);
-  if (!super8Frame(s8, v, W, H, sx, sy, keep, fx, fy)) { s8.el.classList.remove('on'); return; }   // plain video
+  const r = super8Frame(s8, v, W, H, sx, sy, keep, fx, fy);
+  if (r === 'wait') return;                             // no frame of this film yet
+  if (!r) { s8.el.classList.remove('on'); return; }     // plain video
   el.classList.add('on');
 }
 
@@ -3903,15 +3924,16 @@ function updateBackdrop(dt) {
   c.setTransform(1, 0, 0, 1, 0, 0);
   const ca = TW / TH, va = v.videoWidth / v.videoHeight, sx = Math.min(1, ca / va), sy = Math.min(1, va / ca);
   const [fx, fy] = clip.focus || [0.5, 0.5];
-  if (S.ok && super8Frame(S, v, S.el.width, S.el.height, sx, sy, 1, fx, fy)) c.drawImage(S.el, 0, 0, TW, TH);
+  const drawn = S.ok && super8Frame(S, v, S.el.width, S.el.height, sx, sy, 1, fx, fy);
+  if (drawn === 'wait') return;
+  if (drawn) c.drawImage(S.el, 0, 0, TW, TH);
   else {                                               // no WebGL: the plain film, cut to fill, in black and white
     const w = v.videoWidth * sx, h = v.videoHeight * sy;
     const x0 = clamp(fx * v.videoWidth - w / 2, 0, v.videoWidth - w), y0 = clamp(fy * v.videoHeight - h / 2, 0, v.videoHeight - h);
     c.filter = 'grayscale(1) contrast(1.08)'; c.drawImage(v, x0, y0, w, h, 0, 0, TW, TH); c.filter = 'none';
   }
   // the scan lines the films have over them
-  c.fillStyle = 'rgba(0,0,0,0.22)';
-  for (let y = 0; y < TH; y += 2) c.fillRect(0, y, TW, 1);
+  if (!S8_PHONE()) { c.fillStyle = 'rgba(0,0,0,0.22)'; for (let y = 0; y < TH; y += 2) c.fillRect(0, y, TW, 1); }
   c.setTransform(k, 0, 0, k, 0, 0);
   cctvPaint(c, sw, sh, backdrop.cctvT, Math.min(step, 0.25));
   backdrop.tex.needsUpdate = true;
