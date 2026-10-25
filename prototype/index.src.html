@@ -4181,8 +4181,10 @@ function filmThen(then) {
     if (!films.on) { v.pause(); return; }
     for (const o of Object.values(films.videos)) { o.classList.toggle('cur', o === v); if (o !== v) o.pause(); }
     flash(0.35);
+    if (then.sfx) sound.sfxPlay(then.sfx, { gain: then.sfxGain ?? 0.85, verb: 0.12 });
     films.looping = !!then.loop;
-    if (!then.loop) films.timers.push(setTimeout(() => stopFilm(true), (then.len || 2.4) * 1000));
+    // hold: rests on its last frame until the beat moves on (as a cue's hold)
+    if (!then.loop) films.timers.push(setTimeout(() => (then.hold ? (films.looping = true) : stopFilm(true)), (then.len || 2.4) * 1000));
   }).catch(() => stopFilm(true));
 }
 // a tap or key on a film: cut it short; if it was looping, waiting for the reader, move on too
@@ -4213,7 +4215,7 @@ function scheduleAuto(i, beat) {
   if (beat.cut) { journey.autoAt = performance.now() + beat.cut * 1000; return; }
   if (!beat.auto) return;
   const start = performance.now(), cue = filmCue(beat.b);
-  const filmEnd = cue ? (cue.at || 0) + (cue.len || 2.4) : 0;
+  const filmEnd = cue ? (cue.at || 0) + (cue.len || 2.4) + (cue.then && !cue.then.loop ? cue.then.len || 2.4 : 0) : 0;   // a chained clip too
   const set = (voiceEnd) => { if (journey.step === i && journey.phase === 'space') journey.autoAt = start + (Math.max(voiceEnd, filmEnd) + beat.auto) * 1000; };
   set(4);
   sound.voiceBuffer(beat.b).then((buf) => { if (buf) set((buf.speechEnd || buf.duration) + (sound.voiceIndex?.[beat.b]?.radio ? 0.16 : 0)); }).catch(() => {});
