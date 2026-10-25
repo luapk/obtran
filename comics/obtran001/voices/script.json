@@ -1,58 +1,58 @@
 {
-  "note": "OBTRAN 001's narration, rendered by tools/render-voices.mjs --comic obtran001 (the Render voices workflow runs it when this file changes on main). Narrator only: Myrddin (Paul, 25 October: fCxG8OHm4STbIsWe4aT9), Eleven v4, calm and measured as OBTRAN 003's narrator. The cards always show the lettering; the spoken text is spelt for saying: 3089 AD as \"thirty eighty-nine AD\", QNTM CNTRL and QNTM CTRL as \"Quantum Control\", 15 million zetabytes in words, OBTRAN as \"Ob-tran\". Raise a line's take for a fresh render of the same words.",
+  "note": "OBTRAN 001's narration, rendered by tools/render-voices.mjs --comic obtran001 (the Render voices workflow runs it when this file changes on main). Narrator only: N5oldAAfj8TlzCKVVyLS (Paul, 25 October, replacing Myrddin, fCxG8OHm4STbIsWe4aT9), Eleven v4, measured and calm, not too excitable (full stops for the lettering's exclamation marks). The cards always show the lettering; the spoken text is spelt for saying: 3089 AD as \"thirty eighty-nine AD\", QNTM CNTRL and QNTM CTRL as \"Quantum Control\", 15 million zetabytes in words, OBTRAN as \"Ob-tran\". Raise a line's take for a fresh render of the same words.",
   "model": "eleven_v4",
   "output_format": "mp3_44100_128",
   "voices": {
     "narrator": {
-      "id": "fCxG8OHm4STbIsWe4aT9",
-      "name": "Myrddin",
+      "id": "N5oldAAfj8TlzCKVVyLS",
       "radio": false,
       "settings": {
-        "stability": 0.55,
+        "stability": 0.7,
         "similarity_boost": 0.75
-      }
+      },
+      "note": "Paul, 25 October: new narrator, replacing Myrddin (fCxG8OHm4STbIsWe4aT9); read measured and calm, not too excitable: a [measured, calm] tag on every line, full stops for the lettering's exclamation marks, stability 0.7"
     }
   },
   "lines": [
     {
       "beat": "lyra",
       "speaker": "narrator",
-      "text": "[calm, measured] Epsilon Cygni, thirty eighty-nine AD. All life on the exoplanet Lyra has been obliterated..."
+      "text": "[measured, calm] Epsilon Cygni, thirty eighty-nine AD. All life on the exoplanet Lyra has been obliterated..."
     },
     {
       "beat": "vessel",
       "speaker": "narrator",
-      "text": "[calm, measured] ...apart from the holosonic vessel, Quantum Control. It escapes the poisonous atmosphere, the legacy of an entire civilisation stowed on board..."
+      "text": "[measured, calm] ...apart from the holosonic vessel, Quantum Control. It escapes the poisonous atmosphere, the legacy of an entire civilisation stowed on board..."
     },
     {
       "beat": "lifeform",
       "speaker": "narrator",
-      "text": "[calm, measured] ...a DNA-encrypted lifeform! The final gift from the dying elders: fifteen million zettabytes of Lyra's sacred ethnology, imprinted into its cells. The sacred encryption known as the Oblivious Transfer!"
+      "text": "[measured, calm] ...a DNA-encrypted lifeform. The final gift from the dying elders: fifteen million zettabytes of Lyra's sacred ethnology, imprinted into its cells. The sacred encryption known as the Oblivious Transfer."
     },
     {
       "beat": "manifold",
       "speaker": "narrator",
-      "text": "[calm, measured] Four-dimensional manifold enabled, Quantum Control traverses the expanse of Cygnus A, into a slingshot that propels it into the orbit of an unknown planet."
+      "text": "[measured, calm] Four-dimensional manifold enabled, Quantum Control traverses the expanse of Cygnus A, into a slingshot that propels it into the orbit of an unknown planet."
     },
     {
       "beat": "patrol",
       "speaker": "narrator",
-      "text": "[calm, measured] Our fallen ship is intercepted by a scout patrol from an ancient tribe."
+      "text": "[measured, calm] Our fallen ship is intercepted by a scout patrol from an ancient tribe."
     },
     {
       "beat": "plunder",
       "speaker": "narrator",
-      "text": "[calm, measured] Their plunder of Quantum Control's hold retrieves uranium, and the invaluable cryptid, still deep in hypersleep."
+      "text": "[measured, calm] Their plunder of Quantum Control's hold retrieves uranium, and the invaluable cryptid, still deep in hypersleep."
     },
     {
       "beat": "ritual",
       "speaker": "narrator",
-      "text": "[calm, measured] In metabolic stasis, the psychedelic vibrations of their bonfire ritual..."
+      "text": "[measured, calm] In metabolic stasis, the psychedelic vibrations of their bonfire ritual..."
     },
     {
       "beat": "decode",
       "speaker": "narrator",
-      "text": "[calm, measured] ...would soon trigger Ob-tran to begin its decode protocol."
+      "text": "[measured, calm] ...would soon trigger Ob-tran to begin its decode protocol."
     }
   ]
 }
