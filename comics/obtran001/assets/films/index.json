@@ -4,9 +4,17 @@
   "readout": "dna",
   "clips": {
     "o1-cockpit": {
-      "file": "o1-cockpit.mp4",
-      "v": "1f58ec22",
-      "note": "the cryptid at the controls: light pulses through his veins up into his head, his eyes turn glowing orange, slow push in"
+      "file": "o1-cockpit-16x9.mp4",
+      "v": "9e7dde58",
+      "focus": [
+        0.62,
+        0.5
+      ],
+      "wide": {
+        "file": "o1-cockpit-16x9.mp4",
+        "v": "9e7dde58"
+      },
+      "note": "the cryptid at the controls, light pulsing through his veins, his eyes turning orange; 16:9 full screen (Paul: \"re-render cryptid at controls as 16:9 full screen\"; approved). The push in ends on his face at the right, so portrait screens cut it at 0.62 across and the caption sits at the left. The 9:16 take (o1-cockpit.mp4) is kept as a spare"
     },
     "o1-shadows": {
       "file": "o1-shadows.mp4",
