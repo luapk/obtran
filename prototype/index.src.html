@@ -29,7 +29,7 @@
   .flash { position: fixed; inset: 0; z-index: 3; pointer-events: none; background: var(--paper); opacity: 0; mix-blend-mode: overlay; }
   /* a short film of Bob that cuts in full screen as he speaks (assets/films) */
   /* over the touch pad (Paul: the Holy smokes panel comes up over the bio scanner as it fades) */
-  #film { position: fixed; inset: 0; z-index: 3; background: #000; opacity: 0; pointer-events: none; }
+  #film { position: fixed; inset: 0; z-index: 3; background: #000; opacity: 0; pointer-events: none; overflow: hidden; }
   #film.on { opacity: 1; pointer-events: auto; animation: filmIn 0.16s steps(3, end); }
   #film video { display: none; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.08); }
   /* the films are portrait: on a wide screen show the whole frame with ink either side */
@@ -3666,9 +3666,26 @@ function super8Frame(S, v, W, H, sx, sy, keep, fx, fy) {
   return true;
 }
 const FILM_OUT = 1.4;   // how much further out than filling a portrait screen
+// on a phone the film plays as itself, with no pass at all (Paul, 26 October: still glitchy; "switch off for phone"):
+// the browser composites the video directly, the steadiest way it shows one. The framing moves into the layout:
+// further out on portrait screens (FILM_OUT, never past the frame's width), about the clip's focus, its crop as a zoom
+function phoneFilmLayout(v) {
+  const ca = innerWidth / innerHeight, va = v.videoWidth / v.videoHeight, contain = ca >= 0.8 && va < 1;
+  const keep = 1 - (+v.dataset.crop || 0), [fx, fy] = (v.dataset.focus || '0.5,0.5').split(',').map(Number);
+  let z = 1;
+  if (!contain && ca < 0.8) z = Math.min(FILM_OUT, 1 / Math.min(1, ca / va));
+  if (!contain) z *= keep;
+  const key = `${innerWidth}x${innerHeight}:${z.toFixed(3)}:${fx}:${fy}`;
+  if (v._lay === key) return;
+  v._lay = key;
+  const h = 100 / z;
+  Object.assign(v.style, { position: 'absolute', left: '0', width: '100%', height: h + '%', top: (50 - h / 2) + '%', objectPosition: `${fx * 100}% ${fy * 100}%` });
+}
 function drawSuper8(dt) {
-  if (!s8.ok) return;
   const v = Object.values(films.videos).find((o) => o.classList.contains('cur'));
+  if (S8_PHONE()) { s8.el.classList.remove('on'); if (v && v.videoWidth) phoneFilmLayout(v); return; }
+  if (v?._lay) { v._lay = null; for (const k of ['position', 'left', 'width', 'height', 'top', 'objectPosition']) v.style[k] = ''; }
+  if (!s8.ok) return;
   if (!v || v.readyState < 2 || !v.videoWidth) return;
   const el = s8.el, dpr = Math.min(devicePixelRatio || 1, 1.5);
   const W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
@@ -3911,6 +3928,27 @@ function updateBackdrop(dt) {
   backdrop.mesh.scale.set(viewH * camera.aspect * 1.02, viewH * 1.02, 1);
   backdrop.mesh.position.set(shear, 0, -BACKDROP_D);
   backdrop.mesh.material.opacity = backdrop.level * (clip.level ?? 1);
+  // on a phone: the video itself as the plane's texture (three's VideoTexture follows the video's own frames), cut to
+  // fill about the clip's focus, in black and white unless the comic keeps colour; no pass and no readout
+  if (S8_PHONE()) {
+    if (!backdrop.pmat) backdrop.pmat = new THREE.ShaderMaterial({
+      uniforms: { uMap: { value: null }, uRep: { value: new THREE.Vector2(1, 1) }, uOff: { value: new THREE.Vector2() }, uOpacity: { value: 0 }, uColour: { value: 0 } },
+      transparent: true, depthTest: false, depthWrite: false,
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `uniform sampler2D uMap; uniform vec2 uRep; uniform vec2 uOff; uniform float uOpacity; uniform float uColour; varying vec2 vUv;
+        void main(){ vec3 c = texture2D(uMap, vUv * uRep + uOff).rgb; float l = dot(c, vec3(0.299, 0.587, 0.114));
+          gl_FragColor = vec4(mix(vec3(l) * 1.04, c, uColour), uOpacity); }`,
+    });
+    if (backdrop.vtex?.image !== v) { backdrop.vtex?.dispose(); backdrop.vtex = new THREE.VideoTexture(v); backdrop.vtex.colorSpace = THREE.SRGBColorSpace; }
+    const u = backdrop.pmat.uniforms, ca = innerWidth / innerHeight, va = v.videoWidth / v.videoHeight;
+    const sx = Math.min(1, ca / va), sy = Math.min(1, va / ca), [fx, fy] = clip.focus || [0.5, 0.5];
+    u.uMap.value = backdrop.vtex; u.uRep.value.set(sx, sy);
+    u.uOff.value.set(clamp(fx - sx / 2, 0, 1 - sx), clamp((1 - fy) - sy / 2, 0, 1 - sy));
+    u.uOpacity.value = backdrop.mesh.material.opacity; u.uColour.value = films.index?.colour ? 1 : 0;
+    if (backdrop.mesh.material !== backdrop.pmat) { backdrop.basicMat = backdrop.mesh.material; backdrop.mesh.material = backdrop.pmat; }
+    return;
+  }
+  if (backdrop.basicMat && backdrop.mesh.material === backdrop.pmat) backdrop.mesh.material = backdrop.basicMat;
   // the frame: Super 8 at 18 frames a second, then the readout over it
   backdrop.t += dt; backdrop.cctvT += dt;
   if (backdrop.t < backdrop.next) return;
