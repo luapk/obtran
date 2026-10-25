@@ -65,7 +65,7 @@
      decoding a hidden one); without WebGL it stays hidden and the plain video shows */
   #s8 { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; background: #000; }
   #s8.on { display: block; }
-  #filmCard, #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--aw, 3) * var(--cs, 1), 62vh * var(--a, 1)); height: auto; pointer-events: none; display: none; }
+  #filmCard, #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--aw, 3) * var(--cs, 1), 62vh * var(--a, 1)); height: auto; pointer-events: none; display: none; filter: drop-shadow(0.9vmin 1.2vmin 0 rgba(5,4,3,0.6)); }
   #filmCard.sideR, #padCard.sideR { left: auto; right: 4vw; transform: none; max-width: 44vw; }
   #filmCard.sideL, #padCard.sideL { left: 4vw; transform: none; max-width: 44vw; }
   #filmCard.show, #padCard.show { display: block; animation: filmCardIn 0.45s cubic-bezier(.2,1.6,.4,1) both; }
@@ -162,6 +162,19 @@
   #hint { position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); transform: translateX(-50%); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); background: rgba(6,5,4,0.7); padding: 0.55rem 0.9rem; z-index: 3; transition: opacity 0.4s; white-space: nowrap; pointer-events: none; }
   #hint.off { opacity: 0; }
   /* on the first scene the hint points up at the card */
+  /* the way on (Paul: "click to continue looks cheap, use beautifully animated upward chevron"): no box and no words on
+     screen, three chevrons lighting in turn from the bottom up and drifting upward towards the card, breathing; the words
+     stay for screen readers */
+  #hint.chev { background: none; padding: 0; width: 44px; height: 58px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55)) drop-shadow(0 0 10px rgba(0,0,0,0.35)); }
+  #hint.chev .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  #hint.chev svg { width: 100%; height: 100%; overflow: visible; }
+  #hint.chev path { fill: none; stroke: var(--paper); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0.12; animation: chevRise 1.8s cubic-bezier(.45,0,.25,1) infinite; }
+  #hint.chev path:nth-child(1) { animation-delay: 0s; }
+  #hint.chev path:nth-child(2) { animation-delay: 0.16s; }
+  #hint.chev path:nth-child(3) { animation-delay: 0.32s; }
+  @keyframes chevRise { 0% { opacity: 0.08; transform: translateY(7px); } 30% { opacity: 1; transform: translateY(0); } 62% { opacity: 0.08; transform: translateY(-7px); } 100% { opacity: 0.08; transform: translateY(-7px); } }
+  #hint.arrow.chev::before, #hint.arrow.chev::after { content: none; }
+  @media (prefers-reduced-motion: reduce) { #hint.chev path { animation: none; opacity: 0.8; } }
   #hint.arrow::before { content: ''; position: absolute; left: 50%; bottom: 100%; width: 2px; height: 26px; margin-left: -1px; background: var(--paper); animation: hintArrow 1.4s ease-in-out infinite; }
   #hint.arrow::after { content: ''; position: absolute; left: 50%; bottom: calc(100% + 22px); width: 10px; height: 10px; margin-left: -6px; border-left: 2px solid var(--paper); border-top: 2px solid var(--paper); transform: rotate(45deg); animation: hintArrow 1.4s ease-in-out infinite; }
   @keyframes hintArrow { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
@@ -500,7 +513,9 @@ const bubbles = META.bubbles.map((b, i) => {
       ${POLY_GLSL}
       void main(){
         vec2 p = mix(uRect.xy, uRect.zw, vec2(vUv.x, 1.0 - vUv.y));
-        float inside = smoothstep(-0.0005, 0.0004, polyInside(vec2(p.x, p.y * uAspect)));
+        // a sharp edge (Paul: the soft edges "looked weird"), antialiased over one pixel
+        float pd = polyInside(vec2(p.x, p.y * uAspect));
+        float inside = clamp(pd / max(fwidth(pd), 1e-6) + 0.5, 0.0, 1.0);
         vec3 col = texture2D(uPage, p).rgb;
         // the box cut at full resolution (lettering/, tools/cut_lettering.py), over the page rect it covers
         if (uHasLetter > 0.5) col = texture2D(uLetter, clamp((p - uLRect.xy) / (uLRect.zw - uLRect.xy), 0.0, 1.0)).rgb;
@@ -510,8 +525,7 @@ const bubbles = META.bubbles.map((b, i) => {
         float jitter = 0.75 + 0.5 * fract(sin(floor(uTime * 24.0) * 12.9898) * 43758.5453);
         col *= mix(1.0, scan * jitter, uFlick);
         col += vec3(0.25, 0.22, 0.18) * uGlow;
-        float edge = smoothstep(0.0, 0.015, vUv.x) * smoothstep(0.0, 0.015, 1.0 - vUv.x) * smoothstep(0.0, 0.03, vUv.y) * smoothstep(0.0, 0.03, 1.0 - vUv.y);
-        gl_FragColor = vec4(col, uOpacity * edge * inside);
+        gl_FragColor = vec4(col, uOpacity * inside);
         #include <colorspace_fragment>
       }`,
   });
@@ -1736,7 +1750,11 @@ camera.position.set(0, 0, fitDist);
 function setHint(text, arrow = false) {
   hintEl.classList.toggle('arrow', arrow && !!text);
   if (!text) { hintEl.classList.add('off'); return; }
-  hintEl.textContent = text; hintEl.classList.remove('off');
+  hintEl.classList.toggle('chev', arrow);
+  // the tap to go on is shown as rising chevrons; the words are kept for screen readers
+  if (arrow) hintEl.innerHTML = `<span class="sr">${text}</span><svg viewBox="0 0 44 58" aria-hidden="true"><path d="M8 50 L22 38 L36 50"/><path d="M8 34 L22 22 L36 34"/><path d="M8 18 L22 6 L36 18"/></svg>`;
+  else hintEl.textContent = text;
+  hintEl.classList.remove('off');
 }
 function nudge() { hintEl.classList.remove('nudge'); void hintEl.offsetWidth; hintEl.classList.add('nudge'); }
 function flash(strength) {
@@ -3047,6 +3065,28 @@ cardGlow.renderOrder = 9;
 cardGlow.visible = false;
 card.add(cardGlow);
 
+// a hard drop shadow under the card (Paul: "make drop shadow, with sharp edge"): the box's own outline offset down and
+// to the right, flat ink at 60%, no blur
+const SHADOW_OFF = [0.006, 0.008];                 // page widths, right and down
+const shadowMat = new THREE.ShaderMaterial({
+  uniforms: { uRect: { value: new THREE.Vector4() }, uPoly: { value: [] }, uPolyN: { value: 0 }, uAspect: { value: META.aspect }, uOpacity: { value: 1 } },
+  transparent: true, depthTest: false, depthWrite: false,
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform vec4 uRect; uniform float uOpacity;
+    varying vec2 vUv;
+    ${POLY_GLSL}
+    void main(){
+      vec2 p = mix(uRect.xy, uRect.zw, vec2(vUv.x, 1.0 - vUv.y));
+      float d = polyInside(vec2(p.x, p.y * uAspect) - vec2(${SHADOW_OFF[0].toFixed(4)}, ${SHADOW_OFF[1].toFixed(4)}));
+      float a = clamp(d / max(fwidth(d), 1e-6) + 0.5, 0.0, 1.0);
+      gl_FragColor = vec4(0.02, 0.018, 0.015, 0.6 * a * uOpacity);
+    }`,
+});
+const cardShadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shadowMat);
+cardShadow.renderOrder = 9.5;
+card.add(cardShadow);
+
 function setCard(beatIndex, keep = false) {
   const b = bubbleById[BEATS[beatIndex].b];
   const [u0, v0, u1, v1] = b.uv;
@@ -3060,6 +3100,13 @@ function setCard(beatIndex, keep = false) {
   glowMat.uniforms.uPoly.value = b.mat.uniforms.uPoly.value;
   glowMat.uniforms.uPolyN.value = b.mat.uniforms.uPolyN.value;
   cardGlow.scale.set((u1 - u0 + 2 * gm) / (u1 - u0), (v1 - v0 + 2 * gv) / (v1 - v0), 1);
+  { // the shadow's plane: the box's rect grown down and right by the offset, shifted so the box stays put
+    const su = SHADOW_OFF[0], sv = SHADOW_OFF[1] / META.aspect;
+    shadowMat.uniforms.uRect.value.set(u0, v0, u1 + su, v1 + sv);
+    shadowMat.uniforms.uPoly.value = b.mat.uniforms.uPoly.value; shadowMat.uniforms.uPolyN.value = b.mat.uniforms.uPolyN.value;
+    const kx = (u1 - u0 + su) / (u1 - u0), ky = (v1 - v0 + sv) / (v1 - v0);
+    cardShadow.scale.set(kx, ky, 1); cardShadow.position.set((kx - 1) / 2, -(ky - 1) / 2, 0);
+  }
   cardState.aspect = ((u1 - u0) * PW) / ((v1 - v0) * PH);
   cardState.scale = BEATS[beatIndex].cardScale || 1;
   cardState.lift = keep ? 1 : 0; cardState.vel = 0; cardState.target = 1;
@@ -3135,6 +3182,7 @@ function updateCard(dt) {
   const hp = state.holding ? clamp(state.holdT / HOLD_DUR, 0, 1) : 0;
   const glow = Math.max(act ? (state.holding ? 0.7 + 1.6 * hp : 0.42 + 0.22 * Math.sin(shared.uTime.value * 2.4)) : 0, 1.4 * pulse);
   glowMat.uniforms.uStrength.value = glow * cardMat.uniforms.uOpacity.value;
+  shadowMat.uniforms.uOpacity.value = cardMat.uniforms.uOpacity.value;
   cardGlow.visible = glow > 0.01;
 }
 
@@ -4096,8 +4144,8 @@ function drawFold(dt) {
     worlds.jitter = 1;
     setHint('');
   }
-  if (fold.done && fold.ship?.complete && fold.ship.naturalWidth) {
-    const u = Math.min(1, fold.doneT / 0.8), sh = fold.ship, sw = Hs * 0.48, shh = sw * sh.naturalHeight / sh.naturalWidth;
+  if (fold.done && (ship.ready || (fold.ship?.complete && fold.ship.naturalWidth))) {
+    const u = ship.ready ? 1 : Math.min(1, fold.doneT / 0.8), sh = fold.ship, sw = Hs * 0.48, shh = sh ? sw * sh.naturalHeight / sh.naturalWidth : 0;   // the 3D ship flies it when there is one
     const xAt = (q) => -sw + (W + 2 * sw) * (q * q * (3 - 2 * q));
     if (u < 1) {
       for (let g = 7; g >= 0; g--) {
@@ -4108,8 +4156,107 @@ function drawFold(dt) {
       c.globalAlpha = 1;
     }
     if (fold.doneT > 0.38 && !fold.flashed) { fold.flashed = true; flash(0.6); }
-    if (fold.doneT > 1.0 && journey.phase === 'space') { fold.flashed = false; foldHide(); journeyNext(); }
+    if (fold.doneT > (ship.ready ? 1.5 : 1.0) && journey.phase === 'space') { fold.flashed = false; foldHide(); journeyNext(); }
   }
+}
+
+// ---------- the ship in the manifold (OBTRAN 001; Paul, 25 October: the 3D ship "used cleverly on the map manifold scene,
+// with gaussian contrail coming out of jet thrusters") ----------
+// setPieces.ship: the model (assets/props, tools/slim_glb.py), its nose (forward, model axis), its length in world units,
+// its thrusters (model points), and the world it flies in. While the map waits to be folded it cruises a slow figure of
+// eight through the space beyond it; as the reader folds, it is drawn in towards the middle and speeds up; at the
+// slingshot it accelerates away through the folded stack into the distance. Each thruster trails soft gaussian points
+// (a ring buffer of points stamped where the nozzle is, each fading and spreading with its age), mint at the nozzle,
+// white vapour behind.
+const SHIP = SP.ship || null;
+const ship = { ready: false, obj: null, trail: null, t: 0, pos: new THREE.Vector3(), prev: new THREE.Vector3(), dash: null, emit: 0, head: 0, level: 0 };
+const TRAIL_N = 2400;
+if (SHIP) {
+  (async () => {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const g = await new GLTFLoader().loadAsync('assets/props/' + SHIP.file).catch((e) => { console.warn('ship', e); return null; });
+    if (!g) return;
+    const model = g.scene, box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3()), centre = box.getCenter(new THREE.Vector3());
+    const k = (SHIP.length ?? 3.2) / Math.max(size.x, size.y, size.z);
+    const holder = new THREE.Group(); model.position.sub(centre); holder.add(model); holder.scale.setScalar(k);
+    // the model's nose turned to -z, the object's own forward
+    const fwd = new THREE.Vector3(...(SHIP.forward || [-1, 0, 0])).normalize();
+    holder.quaternion.setFromUnitVectors(fwd, new THREE.Vector3(0, 0, -1));
+    const u = { uLevel: { value: 0 }, uInk: { value: new THREE.Vector3(0.05, 0.045, 0.04) } };
+    model.traverse((m) => { if (m.isMesh) { m.material = propTextured(m.material, u); m.renderOrder = 6.8; m.material.depthTest = false; } });
+    ship.u = u; ship.obj = new THREE.Group(); ship.obj.add(holder); ship.obj.visible = false; scene.add(ship.obj);
+    ship.nozzles = (SHIP.thrusters || [[0.47, 0, 0]]).map((p) => new THREE.Vector3(...p).sub(centre).applyQuaternion(holder.quaternion).multiplyScalar(k));
+    // the contrail
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 3), 3));
+    geo.setAttribute('aBirth', new THREE.BufferAttribute(new Float32Array(TRAIL_N).fill(-99), 1));
+    geo.setAttribute('aSeed', new THREE.BufferAttribute(Float32Array.from({ length: TRAIL_N }, () => Math.random()), 1));
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uScale: particles.scale, uLevel: u.uLevel, uLife: { value: SHIP.trailLife ?? 1.8 } },
+      transparent: true, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `uniform float uTime; uniform float uScale; uniform float uLife; attribute float aBirth; attribute float aSeed; varying float vA; varying float vAge;
+        void main(){
+          float age = (uTime - aBirth) / uLife;
+          vAge = age; vA = age < 0.0 || age > 1.0 ? 0.0 : (1.0 - age) * (1.0 - age);
+          vec3 p = position + vec3(sin(aSeed * 40.0 + uTime), cos(aSeed * 31.0 + uTime * 0.7), sin(aSeed * 17.0)) * age * 0.6;   // the vapour spreads
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = clamp((0.25 + 1.4 * age) * (0.6 + 0.8 * aSeed) * uScale / max(-mv.z, 0.1), 1.0, 128.0);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `uniform float uLevel; varying float vA; varying float vAge;
+        void main(){ vec2 q = gl_PointCoord - 0.5; float g = exp(-dot(q, q) * 12.0);
+          vec3 c = mix(vec3(0.55, 1.0, 0.85), vec3(0.85, 0.88, 0.95), smoothstep(0.0, 0.35, vAge));   // mint at the nozzle, then vapour
+          gl_FragColor = vec4(c * g * vA * uLevel * 0.55, 1.0); }`,
+    });
+    ship.trail = new THREE.Points(geo, mat); ship.trail.frustumCulled = false; ship.trail.renderOrder = 6.6; ship.trail.visible = false;
+    scene.add(ship.trail);
+    ship.ready = true;
+  })();
+}
+function updateShip(dt) {
+  if (!ship.ready) return;
+  const here = state.stage === 'void' && worlds.ok && worlds.id === SHIP.world && (fold.on || ship.dash);
+  ship.level += ((here ? 1 - 0.85 * Math.max(0, worlds.suction - (fold.on ? 0.4 : 0)) : 0) - ship.level) * (1 - Math.exp(-dt * 2.5));
+  ship.u.uLevel.value = ship.level;
+  ship.obj.visible = ship.trail.visible = ship.level > 0.01;
+  if (!ship.obj.visible) { ship.dash = null; ship.t = 0; return; }
+  ship.t += dt;
+  const T = ship.trail.material.uniforms.uTime; T.value += dt;
+  // where it is: a figure of eight in the space ahead, drawn in as the map folds; then the dash
+  const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+  const D = SHIP.distance ?? 18, C = camera.position.clone().addScaledVector(fwd, D);
+  const f = fold.f || 0, speed = 1 + 2.5 * f;
+  ship.phase = (ship.phase || 0) + dt * speed * 2 * Math.PI / (SHIP.period ?? 14);
+  const a = ship.phase, R = (SHIP.radius ?? 9) * (1 - 0.75 * f);
+  const loop = C.clone().addScaledVector(right, Math.sin(a) * R).addScaledVector(up, Math.sin(2 * a) * R * 0.18 + 1).addScaledVector(fwd, Math.cos(a) * R * 0.5);
+  if (fold.done && !ship.dash) ship.dash = { t: 0, from: ship.pos.clone() };
+  ship.prev.copy(ship.pos);
+  if (ship.dash) {
+    ship.dash.t += dt;
+    const q = Math.min(1, ship.dash.t / 1.3), e = q * q * q;   // accelerating
+    const far = camera.position.clone().addScaledVector(fwd, D * 6);
+    ship.pos.lerpVectors(ship.dash.from, far, e);
+    if (q >= 1 && !fold.on) ship.dash = null;
+  } else ship.pos.copy(loop);
+  ship.obj.position.copy(ship.pos);
+  const dir = ship.pos.clone().sub(ship.prev);
+  if (dir.lengthSq() > 1e-8) {
+    const m = new THREE.Matrix4().lookAt(ship.pos, ship.pos.clone().add(dir), up);   // -z (the nose) along the way it is going
+    const target = new THREE.Quaternion().setFromRotationMatrix(m);
+    ship.obj.quaternion.slerp(target, 1 - Math.exp(-dt * 6));
+  }
+  // the contrail: points stamped at each nozzle as it goes, more of them when it is fast
+  const pos = ship.trail.geometry.attributes.position, birth = ship.trail.geometry.attributes.aBirth;
+  ship.emit += dt * (ship.dash ? 900 : 260 + 300 * f);
+  const n = Math.floor(ship.emit); ship.emit -= n;
+  for (let k = 0; k < n; k++) {
+    const nz = ship.nozzles[k % ship.nozzles.length].clone().applyQuaternion(ship.obj.quaternion).add(ship.obj.position);
+    // spread along the step just travelled, so a fast ship leaves an unbroken line
+    nz.addScaledVector(dir, -(k / Math.max(1, n)));
+    pos.setXYZ(ship.head, nz.x, nz.y, nz.z); birth.setX(ship.head, T.value - (k / Math.max(1, n)) * dt);
+    ship.head = (ship.head + 1) % TRAIL_N;
+  }
+  pos.needsUpdate = true; birth.needsUpdate = true;
 }
 
 // ---------- the drum (OBTRAN 001's ritual; Paul, 25 October: tap in time with the music; on-beat taps flare the
@@ -4433,6 +4580,9 @@ function showStep(i, keepCard = false) {
   else if (beat.fold && FOLD) { /* foldShow set its own hint */ }
   else if (i === 0) setHint(`${tapWord} to continue`, true);
   else setHint('');
+  // a straight cut into a film comes next (noHop): its world is decoded now, while the reader is on this card, so
+  // nothing heavy runs on the main thread while the film plays (Paul: the escape film glitched as the cockpit loaded)
+  { const nx = STEPS[i + 1]; if (nx && BEATS[nx.beat].noHop && nx.world !== worlds.id) prepareWorld(nx.world); }
   journey.stepAt = performance.now(); journey.pulsed = false;
   scheduleAuto(i, beat);
   const next = STEPS[i + 1];
@@ -4589,7 +4739,7 @@ function journeyNext() {
     else props.spin = { ...beat.outSpin, id: beat.outSpin.prop, t: 0, dur: extra };
     leave(null, () => { props.spin = null; onward(); }, extra, true); return;
   }
-  if (BEATS[next.beat].noHop) { leave(null, onward, OUT_DUR, true); return; }
+  if (BEATS[next.beat].noHop) { padHide(); onward(); return; }   // no collapse either: the film cuts in at once
   leave(null, () => startHop(i + 1), OUT_DUR, true);
 }
 
@@ -5140,6 +5290,7 @@ function frame() {
   if (films.on) { drawSuper8(rawDt); drawCCTV(rawDt); } else if (s8.el.classList.contains('on')) s8.el.classList.remove('on');
   if (pad.on) drawPad(rawDt);
   if (fold.on) drawFold(rawDt);
+  updateShip(rawDt);
   if (drum.on) drawDrum(rawDt);
   updateRibbons(dt, rawDt);
   updateHelix(dt);
@@ -5159,7 +5310,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, fold, foldShow, finale, finaleStart, drum, drumShow, drumTap, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
+  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, fold, foldShow, ship, finale, finaleStart, drum, drumShow, drumTap, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

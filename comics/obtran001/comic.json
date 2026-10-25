@@ -18,16 +18,7 @@
     {
       "b": "lyra",
       "note": "EPSILON CYGNI, 3089 AD. ALL LIFE ON THE EXOPLANET LYRA HAS BEEN OBLITERATED...",
-      "outSpin": {
-        "prop": "skulls",
-        "secs": 3.0,
-        "size": 0.5,
-        "rate": 0.8,
-        "face": true,
-        "hold": 1.6,
-        "dissolve": true
-      },
-      "outSpinWhy": "Paul, 25 October: leaving the skull planet, a giant skull in the vortex; it faces forward at the start, then turns, then disappears into wisps of soft dots"
+      "why": "Paul, 25 October: the skull transition out of Lyra is gone (the video glitched and crashed); a straight cut into the wide escape film"
     },
     {
       "b": "vessel",
@@ -2337,6 +2328,38 @@
       "early": 0.16,
       "late": 0.3,
       "giveUp": 25
+    },
+    "ship": {
+      "note": "Paul's 3D ship (Meshy, 25 October; slimmed by tools/slim_glb.py) in the manifold: a figure of eight through the space beyond the map while it waits to be folded, drawn in as it folds, then the slingshot through the folded stack and away; contrails of soft gaussian points from its three thrusters. forward: its nose (model -x); thrusters: the rear faces of its two engine pods and its centre nozzle",
+      "world": "manifold",
+      "file": "ship.glb",
+      "forward": [
+        -1,
+        0,
+        0
+      ],
+      "length": 3.4,
+      "thrusters": [
+        [
+          0.47,
+          0,
+          0.36
+        ],
+        [
+          0.47,
+          0,
+          -0.36
+        ],
+        [
+          0.47,
+          0.03,
+          0
+        ]
+      ],
+      "distance": 18,
+      "radius": 9,
+      "period": 14,
+      "trailLife": 1.8
     }
   },
   "sfxShared": {
