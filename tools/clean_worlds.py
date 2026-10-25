@@ -24,7 +24,9 @@ three tones: the world's colours are moved to the crop's (mean and spread of lum
 axes, over the front view) and then pulled towards the crop's own main colours (k-means over the crop
 in Lab, "colours" of them, 8 by default), so Marble's invented regions take the painting's colours.
 
-Usage: python3 tools/clean_worlds.py [--comic <id>]
+Usage: python3 tools/clean_worlds.py [--comic <id>] [--only <id>,<id>]
+  --only: just these worlds; the rest of views.json and their clean files are kept as they are (a full run
+  rewrites every clean file, so tools/replace_blobs.py and make_occluder.py must be run again after it)
   (another comic: its manifest and crops in comics/<id>/worlds, its splats in comics/<id>/worlds/worlds)
 Needs: numpy, Pillow.
 """
@@ -214,13 +216,15 @@ def main():
     # reliefs built from the page (tools/make_bob_head.py) are the page's own ink: leave them alone
     reliefs_file = WORLDS / "reliefs.json"
     reliefs = {w["id"] for w in json.loads(reliefs_file.read_text()).get("worlds", [])} if reliefs_file.exists() else set()
-    views = {}
+    only = set(sys.argv[sys.argv.index("--only") + 1].split(",")) if "--only" in sys.argv else None
+    old = WORLDS / "views.json"
+    views = json.loads(old.read_text()) if only and old.exists() else {}
     for src in sorted(WORLDS.glob("*.spz")):
         name = src.name
         if ".clean." in name or ".full." in name:
             continue
         wid = name.split(".")[0]
-        if wid in reliefs:
+        if wid in reliefs or (only and wid not in only):
             continue
         spz = read_columns(src)
         pos, alpha, rgb, radius = decode(spz)
