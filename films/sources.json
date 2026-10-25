@@ -125,6 +125,12 @@
       "job": "2385c818-5cd5-4738-8475-0b27d8d15ef6",
       "comic": "obtran001",
       "note": "spare: the first finale eye, with the fire reflected (Paul wanted no reflection), 9:16"
+    },
+    "o1-cockpit-16x9": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_191738_dd175b4f-6bf6-4714-b612-5cb1bddaa99f.mp4",
+      "job": "dd175b4f-6bf6-4714-b612-5cb1bddaa99f",
+      "comic": "obtran001",
+      "note": "OBTRAN 001 film 1 re-rendered 16:9 (Paul: \"re-render cryptid at controls as 16:9 full screen\"): Seedance 2.5 from the 16:9 outpaint d1fd6354 of o1-live-cockpit-1, the same action, 5 s"
     }
   },
   "stills": {
