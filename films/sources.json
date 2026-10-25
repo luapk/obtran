@@ -131,6 +131,12 @@
       "job": "dd175b4f-6bf6-4714-b612-5cb1bddaa99f",
       "comic": "obtran001",
       "note": "OBTRAN 001 film 1 re-rendered 16:9 (Paul: \"re-render cryptid at controls as 16:9 full screen\"): Seedance 2.5 from the 16:9 outpaint d1fd6354 of o1-live-cockpit-1, the same action, 5 s"
+    },
+    "o1-lyra-wide": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_192340_7187f65f-d7bf-47bc-b87f-39bb706d50d4.mp4",
+      "job": "7187f65f-d7bf-47bc-b87f-39bb706d50d4",
+      "comic": "obtran001",
+      "note": "OBTRAN 001: extreme wide of Lyra in ruins, the tiny ship shooting off the planet (Paul: before the close up of the ship); Seedance 2.5 from still o1-lyra-wide-1 (9f8c9f54, Paul's pick), 16:9, 5 s"
     }
   },
   "stills": {
@@ -359,6 +365,11 @@
       "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_190656_dbe82189-1412-4a46-a7ae-c33065259f2b.png",
       "job": "dbe82189-1412-4a46-a7ae-c33065259f2b",
       "note": "OBTRAN 001: patrol film still"
+    },
+    "o1-lyra-wide-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_191350_9f8c9f54-bd72-48d7-a635-822f9fbd5513.png",
+      "job": "9f8c9f54-bd72-48d7-a635-822f9fbd5513",
+      "note": "OBTRAN 001: the wide Lyra escape still Paul chose"
     }
   },
   "models": {
