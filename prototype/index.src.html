@@ -1307,7 +1307,8 @@ class Sound {
   // own level, as they arrive at different loudness. Where one is missing the synthesised sound stays.
   loadSfx() {
     this.sfx = {};
-    for (const n of ['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'airy-1', 'airy-2', 'power-up', 'bed', 'bleep'])
+    const own = Object.values(COMIC.sounds?.ambience || {}).flatMap((l) => Object.keys(l)).concat(Object.values(COMIC.sounds?.enter || {}).map((e) => e[0]), COMIC.sounds?.slingshot || []);
+    for (const n of new Set(['crackle', 'transition', 'unlock', 'whoosh-1', 'whoosh-2', 'airy-1', 'airy-2', 'power-up', 'bed', 'bleep', ...own]))
       fetch(`assets/sfx/${n}.mp3`).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b))
         .then((buf) => { this.sfx[n] = buf; }).catch(() => {});
   }
@@ -1388,6 +1389,26 @@ class Sound {
     this.bed.level = level;
     const t = this.now();
     this.bed.g.gain.cancelScheduledValues(t); this.bed.g.gain.setTargetAtTime(level, t, level > 0 ? 0.9 : 0.5);
+  }
+  // a comic's ambiences (comic.json sounds.ambience: per world, loops and their levels; tools/make_ambience.py):
+  // each started on first use and eased to its level for the world the reader is in
+  ambTo(levels) {
+    if (!this.ok) return;
+    this.amb ??= {};
+    for (const n of new Set([...Object.keys(levels), ...Object.keys(this.amb)])) {
+      const want = this.muted ? 0 : levels[n] || 0;
+      let a = this.amb[n];
+      if (!a && want > 0 && this.sfx?.[n]) {
+        const src = this.ctx.createBufferSource(), g = this.ctx.createGain();
+        src.buffer = this.sfx[n]; src.loop = true;
+        g.gain.value = 0; src.connect(g).connect(this.master); src.start(this.now(), Math.random() * src.buffer.duration);
+        a = this.amb[n] = { src, g, level: 0 };
+      }
+      if (!a || Math.abs(a.level - want) < 0.015) continue;
+      a.level = want;
+      const t = this.now();
+      a.g.gain.cancelScheduledValues(t); a.g.gain.setTargetAtTime(want, t, want > 0 ? 0.8 : 0.35);
+    }
   }
   crackleStop(secs = 0.6) { if (this.crackle) { clearTimeout(this.crackle.timer); this.sfxFade(this.crackle, secs); this.crackle = null; } }
   holdStart() {
@@ -3722,7 +3743,8 @@ function drawFold(dt) {
   // folded right through: the ship slingshots across, trailing ghosts of itself
   if (f > 0.995 && !fold.done) {
     fold.done = true; fold.doneT = 0;
-    if (!sound.sfxPlay('airy-1', { gain: 0.75, verb: 0.15, echo: 0.2 })) sound.sfxPlay('whoosh-2', { gain: 0.7 }) || sound.blip();
+    if (COMIC.sounds?.slingshot) sound.sfxPlay(COMIC.sounds.slingshot, { gain: 0.9, verb: 0.15, echo: 0.15 });
+    if (!sound.sfxPlay('airy-1', { gain: COMIC.sounds?.slingshot ? 0.45 : 0.75, verb: 0.15, echo: 0.2 })) sound.sfxPlay('whoosh-2', { gain: 0.7 }) || sound.blip();
     worlds.jitter = 1;
     setHint('');
   }
@@ -3939,6 +3961,9 @@ function scheduleAuto(i, beat) {
 }
 
 function showStep(i, keepCard = false) {
+  // a world's own sound as its space opens (comic.json sounds.enter: [name, gain, delay])
+  const ent = COMIC.sounds?.enter?.[STEPS[i].world];
+  if (ent && (i === 0 || STEPS[i - 1].world !== STEPS[i].world)) setTimeout(() => sound.sfxPlay(ent[0], { gain: ent[1] ?? 0.8, verb: 0.12 }), (ent[2] ?? 0.3) * 1000);
   journey.step = i;
   const beat = BEATS[STEPS[i].beat];
   state.beat = STEPS[i].beat;
@@ -4624,6 +4649,11 @@ function frame() {
   updateNucleus(dt);
   updateSlab(dt, rawDt);
   updateStrobe(rawDt);
+  if (COMIC.sounds?.ambience) {
+    const here = state.stage === 'void' && worlds.ok ? COMIC.sounds.ambience[worlds.id] : null, open = 1 - worlds.suction, lv = {};
+    if (here) for (const [n, g] of Object.entries(here)) lv[n] = g * open;
+    sound.ambTo(lv);
+  }
   sound.bedTo(state.stage === 'read' || (state.stage === 'void' && worlds.id === STORY_WORLD && (!journey.on || journey.done) && !REVIEW) ? 0.55 : 0);
   updatePanelFloat(dt);
   updateBackdrop(rawDt);

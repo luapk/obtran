@@ -1894,5 +1894,28 @@
       "decrypt"
     ],
     "note": "the label's own sounds, shared with OBTRAN 003 (the bleep, whooshes, transition hit, unlock chime and the decrypt); Bob's radio static, the biometric power-up and the singularity's bed stay OBTRAN 003's"
+  },
+  "sounds": {
+    "note": "Paul's sounds, 25 October (\"name is where they should be used\"), made by tools/make_ambience.py: loops per world with their levels, a world's one-shot as its space opens [name, gain, delay s], and the ship passing for the fold's slingshot",
+    "ambience": {
+      "bonfire": {
+        "amb-chanting": 0.6,
+        "amb-fire": 0.5
+      },
+      "lyra-ruins": {
+        "amb-fire": 0.28
+      },
+      "cryptid-cockpit": {
+        "amb-cockpit": 0.55
+      }
+    },
+    "enter": {
+      "vessel": [
+        "spaceship",
+        0.85,
+        0.4
+      ]
+    },
+    "slingshot": "spaceship"
   }
 }

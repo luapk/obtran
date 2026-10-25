@@ -13,3 +13,5 @@ __pycache__/
 source/sfx/
 source/music/
 comics/*/source/page_rgb.png
+comics/*/source/sfx/
+comics/*/source/music/
