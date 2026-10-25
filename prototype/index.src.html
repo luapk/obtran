@@ -107,6 +107,11 @@
   @media (prefers-reduced-motion: reduce) { .mt-marquee { animation: none; left: 50%; transform: translate(-50%, -50%); } }
   @keyframes tabFlash { 0%, 33%, 66% { background: var(--paper); color: var(--ink); } 16%, 50%, 100% { background: rgba(6,5,4,0.7); color: var(--paper); } }
   #musicCount { color: var(--dim); margin-left: 0.4em; }
+  /* the sound and music buttons carry an icon for phones; on bigger screens they keep their words */
+  .ui-btn .ico { display: none; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .ui-btn .ico .x { display: none; }
+  #mute[aria-pressed="true"] .ico .on { display: none; }
+  #mute[aria-pressed="true"] .ico .x, #musicOn[aria-pressed="false"] .ico .x { display: inline; }
   #musicList { background: rgba(6,5,4,0.86); border: 1px solid rgba(239,233,223,0.25); padding: 0.7rem 0.8rem; width: min(17rem, calc(100vw - 28px)); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase; }
   #musicList .mt-head { margin: 0 0 0.6rem; color: var(--dim); line-height: 1.5; }
   #musicTracks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
@@ -143,6 +148,7 @@
   .gate-card .lead, .gate-card button { opacity: 0; pointer-events: none; }
   #gate.ready .lead { animation: gateIn 0.5s steps(5, end) both; }
   #gate.ready button { animation: gateIn 0.5s 0.35s steps(5, end) both; pointer-events: auto; }
+  #gate.decoding .lead, #gate.decoding button { animation: none; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
   @keyframes gateIn { 0% { opacity: 0; } 20% { opacity: 1; } 40% { opacity: 0.2; } 60% { opacity: 1; } 100% { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { #gate.ready .lead, #gate.ready button { animation: none; opacity: 1; } }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -174,6 +180,21 @@
   #ring .prog { stroke: var(--paper); stroke-linecap: square; transform: rotate(-90deg); transform-origin: 50% 50%; }
 
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* phones (Paul: the controls "are too large on a mobile phone and obscure some of the map"): one small row of
+     icons at the top right, lighter, with the track list opening under it */
+  @media (max-width: 600px) {
+    .ui-btn { font-size: 0.52rem; letter-spacing: 0.12em; padding: 0.32rem 0.42rem; background: rgba(6,5,4,0.42); border-color: rgba(239,233,223,0.16); }
+    #mute, #musicOn { padding: 0.26rem; line-height: 0; }
+    #mute .lbl, #musicOn .lbl, #musicVolBox > span { display: none; }
+    #mute .ico, #musicOn .ico { display: block; }
+    #mute { top: max(8px, env(safe-area-inset-top)); right: 8px; }
+    #music { top: max(8px, env(safe-area-inset-top)); right: 42px; flex-direction: row; align-items: center; gap: 4px; }
+    #musicVolBox { padding: 0.28rem 0.4rem; height: 23px; box-sizing: border-box; }
+    #musicVol { width: 3.6rem; height: 12px; }
+    #musicTab { height: 23px; box-sizing: border-box; }
+    #musicTab .mt-name { letter-spacing: 0.08em; }
+    #musicList { position: absolute; top: calc(100% + 4px); right: 0; }
+  }
 </style>
 </head>
 <body>
@@ -202,10 +223,10 @@
 </div>
 
 <div id="hint" class="off">Tap to continue</div>
-<button id="mute" class="ui-btn" type="button" aria-pressed="false">Sound on</button>
+<button id="mute" class="ui-btn" type="button" aria-pressed="false" aria-label="Sound"><span class="lbl">Sound on</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="on" d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 6.5c2.6 3 2.6 8 0 11"/><path class="x" d="M16 9l5 6M21 9l-5 6"/></svg></button>
 <div id="music" hidden>
-  <button id="musicOn" class="ui-btn" type="button" aria-pressed="true">Music on</button>
-  <label id="musicVolBox" class="ui-btn"><span aria-hidden="true">Vol</span><input id="musicVol" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="Music volume"></label>
+  <button id="musicOn" class="ui-btn" type="button" aria-pressed="true" aria-label="Music"><span class="lbl">Music on</span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/><path class="x" d="M4 4l16 16"/></svg></button>
+  <label id="musicVolBox" class="ui-btn"><span aria-hidden="true">Vol</span><input id="musicVol" type="range" min="0" max="1" step="0.02" value="0.9" aria-label="Music volume"></label>
   <button id="musicTab" class="ui-btn" type="button" aria-expanded="false" aria-controls="musicList"><span class="mt-name">QNTM CTRL</span> <span id="musicCount">0/3</span></button>
   <div id="musicList" hidden>
     <p class="mt-head">Explore to unlock tracks</p>
@@ -237,6 +258,7 @@ const BREACH_DUR = 4.8;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isTouch = matchMedia('(pointer: coarse)').matches;
 
+const SPEAKER_GAIN = { smokehouse: 0.75 };   // per speaker, after the radio and its limiter (about -2.5 dB)
 const HOLD_DUR = 1.4;                     // seconds of press and hold to unlock
 const BEATS = [
   { b: 'caption' },
@@ -254,6 +276,28 @@ const $ = (id) => document.getElementById(id);
 
 // OBTRAN003 decrypts like a code as the logo glitches out (Paul, 24 October): each character cycles
 // through code glyphs and settles, left to right, then the sentence and the Enter button come in
+// the decrypt's sound plays only where the browser allows sound before a tap (Paul: "OBTRAN003 audio only plays
+// sometimes": Chrome allows it on a site the reader has used before, phones almost never), so when it did not,
+// the Enter tap decrypts OBTRAN003 again with its sound, inside the tap, before the comic opens
+const decrypt = { snd: null, played: false };
+function redecrypt() {
+  return new Promise((done) => {
+    const el = $('code'), gate = $('gate'), word = 'OBTRAN003', glyphs = '#%&/<>=+*01ABCDEFKLMNXZ';
+    if (!el || decrypt.played || matchMedia('(prefers-reduced-motion: reduce)').matches) { done(); return; }
+    const snd = decrypt.snd || new Audio('assets/sfx/decrypt.mp3'); snd.volume = 0.8;
+    try { snd.currentTime = 0; } catch (e) { /* not loaded yet */ }
+    snd.play().catch(() => {});
+    decrypt.played = true;
+    gate.classList.add('decoding');
+    const t0 = performance.now(), settle = (i) => 300 + i * 115;
+    const tick = () => {
+      const ms = performance.now() - t0;
+      el.textContent = [...word].map((c, i) => ms > settle(i) ? c : glyphs[Math.floor(Math.random() * glyphs.length)]).join('');
+      if (ms < settle(word.length - 1)) setTimeout(tick, 45); else setTimeout(done, 280);
+    };
+    tick();
+  });
+}
 function decryptCode() {
   const el = $('code'), gate = $('gate'), word = 'OBTRAN003', glyphs = '#%&/<>=+*01ABCDEFKLMNXZ';
   if (!el || gate.classList.contains('ready')) { gate.classList.add('ready'); return; }
@@ -262,7 +306,8 @@ function decryptCode() {
   // Paul's telemetry bleeps, cut to the decrypt's length. This is before any tap, so most phones will
   // not let it play (browsers hold sound until the first gesture); where they do, it plays in time
   const snd = new Audio('assets/sfx/decrypt.mp3'); snd.preload = 'auto'; snd.volume = 0.8;
-  setTimeout(() => snd.play().catch(() => {}), 450);
+  decrypt.snd = snd;
+  setTimeout(() => snd.play().then(() => { decrypt.played = true; }).catch(() => {}), 450);
   const tick = () => {
     const ms = performance.now() - t0;
     el.textContent = ms < 0 ? '' : [...word].map((c, i) => ms > settle(i) ? c : ms > i * 40 ? glyphs[Math.floor(Math.random() * glyphs.length)] : ' ').join('');
@@ -1092,7 +1137,7 @@ class Sound {
     this.musicLim = ctx.createDynamicsCompressor();
     this.musicLim.threshold.value = -8; this.musicLim.knee.value = 0; this.musicLim.ratio.value = 20; this.musicLim.attack.value = 0.001; this.musicLim.release.value = 0.06;
     this.musicOut = ctx.createGain(); this.musicOut.gain.value = 0.85;
-    this.musicLim.connect(this.musicOut).connect(out);
+    this.musicOut.connect(out);                     // musicBus wires the limiter, the dip and the reader's volume in front of it
     this.noise = this.makeNoise(2);
     this.loadSfx();
     // cabin: muffled hum plus tape hiss
@@ -1363,7 +1408,8 @@ class Sound {
     this.stopVoice();
     const ctx = this.ctx, t = this.now() + 0.05;
     const src = ctx.createBufferSource(); src.buffer = buf;
-    const out = ctx.createGain(); out.gain.value = 1;
+    // Smokehouse a little under the others (Paul: "the VO of Smokehouse is slightly too loud, reduce it fractionally")
+    const out = ctx.createGain(); out.gain.value = SPEAKER_GAIN[entry.speaker] ?? 1;
     // the level match goes before the radio, so every line drives it about as hard
     const lvl = ctx.createGain(); lvl.gain.value = buf.level || 1; src.connect(lvl);
     const len = buf.speechEnd || buf.duration;
@@ -2343,14 +2389,20 @@ function fxUpdate(dt) {
 // audio files yet, the unlocks and the counter still work and nothing plays.
 // started: the loops wait for the story's first line (startAt in the index, Paul: "starting at the same time as the first VO");
 // off: the reader's Music on/off toggle, kept in the browser
-const music = { index: null, unlocked: new Set(), have: {}, loopBuf: {}, loopNow: null, loopKey: undefined, player: null, playing: null, started: false, off: false, vol: 0.8, bus: null, duckG: null, track: null };
-try { music.off = localStorage.getItem('ot-music-off') === '1'; const v = localStorage.getItem('ot-music-vol'); if (v !== null) music.vol = +v; } catch (e) { /* storage blocked: the defaults */ }
-// all music goes through one gain, the reader's volume (Paul: "add a volume control for music"), then
-// one that dips a little under each voice line (musicDuck)
+const music = { index: null, unlocked: new Set(), have: {}, loopBuf: {}, loopNow: null, loopKey: undefined, player: null, playing: null, started: false, off: false, vol: 0.9, bus: null, duckG: null, volG: null, track: null };
+try { music.off = localStorage.getItem('ot-music-off') === '1'; const v = localStorage.getItem('ot-music-vol2'); if (v !== null) music.vol = +v; } catch (e) { /* storage blocked: the defaults */ }
+// all music goes in at one gain, then the limiter, the dip under each voice line (musicDuck) and the reader's
+// volume (Paul: "add a volume control for music"). The volume comes after the limiter, which had swallowed most
+// of what the slider did (Paul: "the volume slider does not work that effectively"), and follows the slider in
+// even steps of loudness: MUSIC_RANGE dB from the top of the slider to just above the bottom, then silence
+const MUSIC_RANGE = 36;
+function musicGain(v) { return v <= 0.001 ? 0 : Math.pow(10, -MUSIC_RANGE * (1 - v) / 20); }
 function musicBus() {
   if (!music.bus && sound.ok) {
-    music.duckG = sound.ctx.createGain(); music.duckG.connect(sound.musicLim || sound.master);
-    music.bus = sound.ctx.createGain(); music.bus.gain.value = music.vol; music.bus.connect(music.duckG);
+    music.volG = sound.ctx.createGain(); music.volG.gain.value = musicGain(music.vol); music.volG.connect(sound.musicOut || sound.master);
+    music.duckG = sound.ctx.createGain(); music.duckG.connect(music.volG);
+    music.bus = sound.ctx.createGain();
+    if (sound.musicLim) music.bus.connect(sound.musicLim).connect(music.duckG); else music.bus.connect(music.duckG);
   }
   return music.bus || sound.master;
 }
@@ -2498,7 +2550,7 @@ async function musicLoop(key, force, fadeIn = 2.5) {
 function musicSetOff(off) {
   music.off = off;
   try { localStorage.setItem('ot-music-off', off ? '1' : '0'); } catch (e) { /* not kept */ }
-  $('musicOn').textContent = off ? 'Music off' : 'Music on'; $('musicOn').setAttribute('aria-pressed', String(!off));
+  $('musicOn').querySelector('.lbl').textContent = off ? 'Music off' : 'Music on'; $('musicOn').setAttribute('aria-pressed', String(!off));
   if (off) { musicLoopStop(); if (music.playing) { music.player.pause(); music.playing = null; musicRender(); } }
   else musicLoop(music.loopKey, true, 1);
 }
@@ -2508,8 +2560,8 @@ $('musicVol').value = String(music.vol);
 for (const ev of ['pointerdown', 'pointerup', 'click', 'touchstart']) $('musicVolBox').addEventListener(ev, (e) => e.stopPropagation());
 $('musicVol').addEventListener('input', () => {
   music.vol = +$('musicVol').value;
-  if (music.bus) music.bus.gain.setTargetAtTime(music.vol, sound.now(), 0.05);
-  try { localStorage.setItem('ot-music-vol', String(music.vol)); } catch (e) { /* not kept */ }
+  if (music.volG) music.volG.gain.setTargetAtTime(musicGain(music.vol), sound.now(), 0.05);
+  try { localStorage.setItem('ot-music-vol2', String(music.vol)); } catch (e) { /* not kept */ }   // a new key: the old one held the linear scale
 });
 $('musicTab').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -3471,8 +3523,10 @@ function onOrient(e) {
 
 const enterSnd = new Audio('assets/sfx/bleep.mp3'); enterSnd.preload = 'auto';
 $('start').addEventListener('click', async () => {
+  if ($('gate').classList.contains('decoding')) return;
   enterSnd.play().catch(() => {});                  // the button's sound (Paul), inside the tap so phones allow it
   sound.start();
+  const replay = redecrypt();                       // OBTRAN003 with its sound, if the browser held it back at load
   if (music.index?.tracks?.length && !REVIEW) $('music').hidden = false;
   primeFilms(); primeBackdrops();
   try {
@@ -3481,6 +3535,7 @@ $('start').addEventListener('click', async () => {
       if (r === 'granted') addEventListener('deviceorientation', onOrient);
     } else addEventListener('deviceorientation', onOrient);
   } catch (e) { /* tilt stays off, pointer still works */ }
+  await replay;
   $('gate').classList.add('hide');
   if (REVIEW) { startReview(); return; }
   if (journey.on) { startJourney(); return; }
@@ -3557,7 +3612,7 @@ async function startReview() {
   show(worlds.id || STORY_WORLD);
 }
 if (REVIEW) $('note').textContent = 'Review mode: opens the Marble worlds directly.';
-$('mute').addEventListener('click', () => { const m = !sound.muted; sound.setMuted(m); $('mute').textContent = m ? 'Sound off' : 'Sound on'; $('mute').setAttribute('aria-pressed', String(m)); });
+$('mute').addEventListener('click', () => { const m = !sound.muted; sound.setMuted(m); $('mute').querySelector('.lbl').textContent = m ? 'Sound off' : 'Sound on'; $('mute').setAttribute('aria-pressed', String(m)); });
 
 /* ---------- loop ---------- */
 const clock = new THREE.Clock();
