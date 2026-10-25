@@ -3645,7 +3645,7 @@ function updateGlyphField(dt) {
     if (Math.random() < 0.25) cell.g = Math.floor(Math.random() * cctv.glyphs.length);   // scrambling
     if (Math.random() < 0.15) cell.b = 0.3 + 0.6 * Math.random();
     const edge = Math.max(0, 1 - Math.abs(ringAt - cell.r) / 0.08);                    // the front of the ring
-    const a = beats != null ? Math.min(1, band * (0.5 + 0.5 * cell.b) * 1.3) : Math.min(1, cell.b * (0.55 + 0.45 * (1 - cell.r)) + edge * 0.8);
+    const a = beats != null ? Math.min(1, band * (0.6 + 0.4 * cell.b) * 1.9) : Math.min(1, cell.b * (0.55 + 0.45 * (1 - cell.r)) + edge * 0.8);
     // a comic's own colours (COMIC.glyphColours: from, to and the ring; OBTRAN 001: the cryptid's fiery eyes), else paper
     if (GLYPH_COL) {
       const [c0, c1, cr] = GLYPH_COL, q = cell.h ??= Math.random(), e = Math.min(1, edge * 1.4);
