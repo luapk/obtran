@@ -1,3 +1,60 @@
 {
-  "lines": {}
+  "lines": {
+    "lyra": {
+      "file": "lyra.mp3",
+      "hash": "704d5ab17e5f15ae",
+      "bytes": 121251,
+      "speaker": "narrator",
+      "radio": false
+    },
+    "vessel": {
+      "file": "vessel.mp3",
+      "hash": "772b1c7d379cbff3",
+      "bytes": 155941,
+      "speaker": "narrator",
+      "radio": false
+    },
+    "lifeform": {
+      "file": "lifeform.mp3",
+      "hash": "5379ac4a2a4fdcdd",
+      "bytes": 239115,
+      "speaker": "narrator",
+      "radio": false
+    },
+    "manifold": {
+      "file": "manifold.mp3",
+      "hash": "8145635a1eb08fe6",
+      "bytes": 164718,
+      "speaker": "narrator",
+      "radio": false
+    },
+    "patrol": {
+      "file": "patrol.mp3",
+      "hash": "80fd889a9a25b942",
+      "bytes": 75275,
+      "speaker": "narrator",
+      "radio": false
+    },
+    "plunder": {
+      "file": "plunder.mp3",
+      "hash": "0d06be9f9a07864e",
+      "bytes": 125430,
+      "speaker": "narrator",
+      "radio": false
+    },
+    "ritual": {
+      "file": "ritual.mp3",
+      "hash": "65e9737a239ed1c4",
+      "bytes": 85724,
+      "speaker": "narrator",
+      "radio": false
+    },
+    "decode": {
+      "file": "decode.mp3",
+      "hash": "f46ad9c240ec4f4c",
+      "bytes": 62318,
+      "speaker": "narrator",
+      "radio": false
+    }
+  }
 }
