@@ -421,13 +421,23 @@ Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the b
   - While the map waits to be folded, the ship flies a slow figure of eight in the space beyond it (`distance` 18 ahead, `radius` 9, `period` 14 s).
   - It and its contrail are drawn over the folding map (render order 7.4 and 7.3, the map 7), as the map covers most of a phone screen and hid it.
   - As the reader folds, it is drawn towards the middle and speeds up.
-  - At the slingshot it replaces the flat cut-out and accelerates away into the distance over 1.3 s. The story moves on at 1.5 s.
+  - At the slingshot (Paul: "should play past camera getting huge in frame") it replaces the flat cut-out, swings in through the middle of the view and comes straight at the camera, passing just beside it (`passSide` 1.1 right, `passUp` -0.35) and out behind, filling the frame, with a flash, a shear of the signal and a buzz as it passes (`SHIP_PASS` 2.3 s, slowed so the pass reads). The story moves on 0.35 s later.
   - Each of its three thrusters (the rear faces of its engine pods and its centre nozzle) trails soft additive gaussian points: mint at the nozzle, white vapour behind, spreading and fading over `trailLife` 1.8 s, thicker when it is fast.
 - **Cards with sharp edges and a hard shadow** (Paul: "blurry edges of text panels looks weird. make drop shadow, with sharp edge"):
   - The card's outline is now cut sharp, antialiased over one pixel (`fwidth`); the soft fade at the quad's edges is gone.
   - A flat ink shadow at 60% (`cardShadow`, the same outline offset by `SHADOW_OFF`, 0.006 by 0.008 page widths, with no blur) sits under the 3D card.
   - The film and pad cards get the same through a CSS `drop-shadow` with no blur.
 - **The way on is a chevron** (Paul: "click to continue looks cheap, use beautifully animated upward chevron"): the first scene's hint is three chevrons with no box and no words on screen. They light in turn from the bottom up and drift upward towards the card (`#hint.chev`, `chevRise`, 1.8 s). The words stay for screen readers. With reduced motion the chevrons hold still.
+- **Stalls at random panels** (Paul, 26 October: on both comics, at a panel in a different place each time, the line did not play and the scene did not load). Causes found in the code, all fixed:
+  - A voice line whose download failed once was remembered as missing for the whole visit. It is now forgotten and fetched again when it is due (one retry in `playVoice`), and fetched first in the queue (`priority: 'high'`). A line that arrives after the story has moved on is not played.
+  - A step waited for its world with no limit. Now after `WORLD_WAIT` (18 s) the story goes on in the space it has, and the world comes in when it arrives if the reader is still in its step. A load that failed is forgotten, so it is tried again.
+  - Phones pause the page's audio on their own (iOS after a switch of app, a lock or a call, sometimes after a video). The audio is now woken on every touch, click or key, when the page is shown again, and whenever it reports being interrupted; `playVoice` wakes it too.
+  - Too much downloaded at once: the next world's prefetch now asks only for the files the device uses (`priority: 'low'`), and films are fetched one step ahead, not two.
+- **Gentler film look and wider framing on phones** (Paul, 26 October: "heavy flashing / strobe effect on video" in both comics on a phone, "reduce intensity significantly"; and "slightly further out on video, fine if negative space at top and bottom"):
+  - The Super 8 pass is scaled by `S8_AMT` (0.55 of the first build on big screens, 0.35 on a phone): grain, dust and scratches (`uAmt`); the brightness flicker now drifts instead of changing every frame (about plus or minus 3%, was 0.9 to 1.04 each frame); frame jumps are rare and small.
+  - The scan lines over films are lighter (14% black, was 34%), the rolling band half as bright.
+  - The white flash as a film cuts in or out is far lighter (`FILM_FLASH`: 0.12 on a phone, 0.25 elsewhere; it was 0.6 in, 0.45 out).
+  - On portrait screens a film is shown 1.4 times further out than filling the screen (`FILM_OUT`), never past the frame's whole width, with black above and below.
 - Earlier note on credits: World Labs API 0 then ( the minimum purchase is 6,250 credits, $5); Higgsfield 280.84. `worlds/run.json` with `credits: true` reads the World Labs balance for free into `worlds/worlds/credits.json`.
 
 ## Methodology for the next comic

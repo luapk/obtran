@@ -38,8 +38,8 @@
   #film.colour video { filter: contrast(1.05); }   /* a comic whose films keep their colour (films/index.json colour) */
   /* over the films (Paul): a super fine scan line, a slow rolling band, and an alien CCTV readout */
   #film::after { content: ''; position: absolute; inset: 0; pointer-events: none; background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.34) 0 1px, rgba(0,0,0,0) 1px 2px),
-    linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 48%, rgba(255,255,255,0) 52%);
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.14) 0 1px, rgba(0,0,0,0) 1px 2px),
+    linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.025) 48%, rgba(255,255,255,0) 52%);
     background-size: 100% 2px, 100% 300%; animation: scanRoll 6s linear infinite; }
   @keyframes scanRoll { from { background-position: 0 0, 0 0%; } to { background-position: 0 0, 0 -300%; } }
   /* the biometric touch screen for the hold: a looping top-down film of an alien touch pad, a code
@@ -1166,6 +1166,7 @@ function sandModifier() {
   });
 }
 
+const WORLD_WAIT = 18000;   // ms a step waits for its world before going on without it
 async function fetchJson(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url} ${r.status}`); return r.json(); }
 
 // Load a world by id. Resolves once the splats are ready, or rejects.
@@ -1187,7 +1188,23 @@ function loadWorld(id) {
     const lowMemory = (navigator.deviceMemory || 8) < 4;
     const url = (lowMemory && files['100k']) || files['500k'];
     if (worlds.mesh && worlds.id === id) return worlds.mesh;
-    const { mesh, echoes, sandMesh } = await (worlds.prepared[id] || makeWorldMeshes(entry, files, url));
+    // never wait forever (Paul: at random panels the scene did not load): after WORLD_WAIT the story goes on in the
+    // space it has, and the world comes in when it arrives if the reader is still where it belongs; a load that failed
+    // is forgotten so it is tried again
+    const prep = worlds.prepared[id] || makeWorldMeshes(entry, files, url);
+    worlds.prepared[id] = prep;
+    prep.catch(() => { if (worlds.prepared[id] === prep) delete worlds.prepared[id]; });
+    let timer;
+    const late = new Promise((_, no) => { timer = setTimeout(() => no(new Error(`world ${id} still loading`)), WORLD_WAIT); });
+    let got;
+    try { got = await Promise.race([prep, late]); }
+    catch (e) {
+      if (/still loading/.test(e.message)) prep.then(() => {
+        if (journey.on && STEPS[journey.step]?.world === id && worlds.id !== id && journey.phase === 'space') loadWorld(id).then(() => useWorld(true)).catch(() => {});
+      }).catch(() => {});
+      throw e;
+    } finally { clearTimeout(timer); }
+    const { mesh, echoes, sandMesh } = got;
     delete worlds.prepared[id];
     // swap only once the new world is ready, so there is never a gap
     for (const old of worldMeshes()) { scene.remove(old); old.dispose?.(); }
@@ -1304,6 +1321,12 @@ class Sound {
       this.ctx = new C();
     } catch (e) { return; }
     const ctx = this.ctx; this.ok = true;
+    // phones pause the audio on their own (a call, the screen locking, iOS after a video or a switch of app; Paul: lines
+    // "don't play" at random panels): it is woken on every touch, click or key and whenever the page is shown again
+    const wake = () => { if (ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {}); };
+    for (const ev of ['pointerdown', 'touchend', 'keydown']) addEventListener(ev, wake, { capture: true, passive: true });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); });
+    ctx.onstatechange = () => { if (ctx.state === 'interrupted' || ctx.state === 'suspended') setTimeout(wake, 300); };
     this.master = ctx.createGain(); this.master.gain.value = 0.85;
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
     // a safety limiter on everything, so voices and music together never clip
@@ -1622,7 +1645,9 @@ class Sound {
     if (!entry || !this.ok) return null;
     if (!this.voiceBuffers[beat]) {
       // the render hash is in the address, so a new take is never served from an old copy
-      this.voiceBuffers[beat] = fetch('assets/voice/' + entry.file + (entry.hash ? '?v=' + entry.hash : '')).then((r) => r.arrayBuffer()).then((b) => this.ctx.decodeAudioData(b)).then((buf) => {
+      // first in the line (the phone may be fetching a world and films at the same time); a download that fails is
+      // forgotten, not remembered as missing, so the line is fetched again when it is due
+      this.voiceBuffers[beat] = fetch('assets/voice/' + entry.file + (entry.hash ? '?v=' + entry.hash : ''), { priority: 'high' }).then((r) => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then((b) => this.ctx.decodeAudioData(b)).then((buf) => {
         // measured once: where the speech ends (renders can trail seconds of silence, which
         // would push the unkey beep late) and a gain that brings every line to a similar level
         const d = buf.getChannelData(0);
@@ -1633,7 +1658,7 @@ class Sound {
         buf.speechEnd = Math.min(buf.duration, (last + 1) / buf.sampleRate + 0.12);
         buf.level = Math.min(2.2, Math.max(0.5, 0.15 / rms));   // 0.15: a little under the radio's overdrive, so shouted peaks do not rasp (Paul)
         return buf;
-      }).catch(() => null);
+      }).catch((e) => { console.warn('voice', beat, e); delete this.voiceBuffers[beat]; return null; });
     }
     return this.voiceBuffers[beat];
   }
@@ -1642,8 +1667,10 @@ class Sound {
     if (!this.ok || !this.voiceIndex) return;
     const entry = this.voiceIndex[beat];
     if (!entry) return;
-    const buf = await this.voiceBuffer(beat);
-    if (!buf) return;
+    let buf = await this.voiceBuffer(beat);
+    if (!buf) buf = await this.voiceBuffer(beat);       // once more, in case the first download failed
+    if (!buf || (beat !== END_BEAT && BEATS[state.beat]?.b !== beat)) return;   // the story moved on meanwhile
+    if (this.ctx.state !== 'running') await this.ctx.resume().catch(() => {});
     this.stopVoice();
     const ctx = this.ctx, t = this.now() + 0.05;
     const src = ctx.createBufferSource(); src.buffer = buf;
@@ -3201,7 +3228,11 @@ function worldFiles(id) {
   return [f['500k'], f['100k']].filter(Boolean);
 }
 // warm the browser cache with the next space while the reader is in this one
-function prefetchWorld(id) { for (const url of worldFiles(id)) fetch(url).catch(() => {}); }
+function prefetchWorld(id) {
+  const f = worldFiles(id), low = (navigator.deviceMemory || 8) < 4;
+  // the file this device loads first, then the lighter one (echoes and sand), behind anything that is due now
+  for (const url of low ? f.slice(1) : f) fetch(url, { priority: 'low' }).catch(() => {});
+}
 
 // ---------- power-up grains: thrown out of the press while the hold charges ----------
 const fx = { el: $('fx'), ctx: null, parts: [], dpr: 1, acc: 0, dirty: false };
@@ -3531,6 +3562,8 @@ function cctvGlyphs(c, x, y, row, size, n) {
 // blacks, dust specks, a scratch that holds for a few frames, and a heavy vignette. It is fed at 18 frames
 // a second, Super 8's own rate, so movement judders like projected film. The CCTV readout stays on top.
 // super8Init sets the pass up on a canvas (the films' own, or the opening backdrop's); super8Frame draws one frame
+// how strong the film look is: 0.55 of the first build on big screens, 0.35 on a phone
+const S8_AMT = () => (Math.min(innerWidth, innerHeight) < 600 ? 0.35 : 0.55);
 function super8Init(el, preserve = false) {
   const s8 = { el, gl: null, prog: null, tex: null, u: {}, t: 0, next: 0, seed: 0, weave: [0, 0], flick: 1, scratch: -1, scratchLeft: 0, ok: false };
   const gl = s8.el.getContext('webgl', { premultipliedAlpha: false, antialias: false, preserveDrawingBuffer: preserve });
@@ -3538,7 +3571,7 @@ function super8Init(el, preserve = false) {
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
     const vs = sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 v; void main(){ v = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }');
     const fs = sh(gl.FRAGMENT_SHADER, `precision mediump float;
-      varying vec2 v; uniform sampler2D uVid; uniform vec2 uScale; uniform vec2 uFocus; uniform vec2 uWeave; uniform vec2 uRes; uniform float uSeed; uniform float uFlick; uniform float uScratch; uniform float uColour;
+      varying vec2 v; uniform sampler2D uVid; uniform vec2 uScale; uniform vec2 uFocus; uniform vec2 uWeave; uniform vec2 uRes; uniform float uSeed; uniform float uFlick; uniform float uScratch; uniform float uColour; uniform float uAmt;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
       float lum(vec2 uv){ return dot(texture2D(uVid, uv).rgb, vec3(0.299, 0.587, 0.114)); }
       void main(){
@@ -3551,16 +3584,16 @@ function super8Init(el, preserve = false) {
         l = 0.06 + 0.86 * l;                                      // lifted blacks, rolled-off whites
         l *= uFlick;
         float g = hash(floor(gl_FragCoord.xy / 2.0) + uSeed) - 0.5;   // coarse grain, new every frame
-        l += g * 0.26 * (0.6 + 0.4 * (1.0 - l));
+        l += g * 0.26 * uAmt * (0.6 + 0.4 * (1.0 - l));
         vec2 q = v - 0.5;                                         // heavy vignette
         l *= 1.0 - 1.1 * dot(q * vec2(1.1, 0.9), q * vec2(1.1, 0.9));
         for (int i = 0; i < 6; i++) {                             // dust: a few specks, dark and light
           vec2 h = vec2(hash(vec2(uSeed, float(i))), hash(vec2(float(i), uSeed * 1.7)));
           float r = (0.6 + 2.4 * hash(vec2(uSeed * 0.3, float(i) * 3.1))) / uRes.y;
           float d = length((v - h) * vec2(uRes.x / uRes.y, 1.0));
-          if (hash(vec2(float(i), uSeed * 0.11)) < 0.5) l = mix(l, hash(vec2(uSeed, float(i) * 7.0)) < 0.65 ? 0.03 : 0.95, smoothstep(r, r * 0.4, d));
+          if (hash(vec2(float(i), uSeed * 0.11)) < 0.5 * uAmt) l = mix(l, hash(vec2(uSeed, float(i) * 7.0)) < 0.65 ? 0.03 : 0.95, smoothstep(r, r * 0.4, d));
         }
-        if (uScratch >= 0.0) l = mix(l, 0.92, smoothstep(1.4 / uRes.x, 0.0, abs(v.x - uScratch - 0.002 * sin(v.y * 40.0 + uSeed))) * 0.7);
+        if (uScratch >= 0.0) l = mix(l, 0.92, smoothstep(1.4 / uRes.x, 0.0, abs(v.x - uScratch - 0.002 * sin(v.y * 40.0 + uSeed))) * 0.7 * uAmt);
         // in colour, the frame's own hue carried at the graded brightness (a little faded, as film stock is)
         vec3 chroma = soft - vec3(dot(soft, vec3(0.299, 0.587, 0.114)));
         vec3 col = vec3(l) + chroma * uColour * 0.9 * smoothstep(0.0, 0.12, l0);   // the grain stays grey; near black has no colour to lift
@@ -3576,7 +3609,7 @@ function super8Init(el, preserve = false) {
         s8.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, s8.tex);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        for (const n of ['uScale', 'uFocus', 'uWeave', 'uRes', 'uSeed', 'uFlick', 'uScratch', 'uColour']) s8.u[n] = gl.getUniformLocation(prog, n);
+        for (const n of ['uScale', 'uFocus', 'uWeave', 'uRes', 'uSeed', 'uFlick', 'uScratch', 'uColour', 'uAmt']) s8.u[n] = gl.getUniformLocation(prog, n);
         s8.gl = gl; s8.ok = true;
       }
     }
@@ -3589,11 +3622,14 @@ function super8Frame(S, v, W, H, sx, sy, keep, fx, fy) {
   const gl = S.gl;
   try { gl.bindTexture(gl.TEXTURE_2D, S.tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v); }
   catch (e) { S.ok = false; return false; }          // a video the canvas may not read
-  // the frame weaves in the gate, and now and then jumps
-  const jump = Math.random() < 0.04 ? 0.012 : 0;
-  S.weave = [S.weave[0] * 0.5 + (Math.random() - 0.5) * 0.004, S.weave[1] * 0.5 + (Math.random() - 0.5) * 0.006 + jump];
-  S.flick = 0.9 + Math.random() * 0.14;
-  if (S.scratchLeft > 0) S.scratchLeft--; else S.scratch = Math.random() < 0.06 ? (S.scratchLeft = 4 + Math.floor(Math.random() * 14), 0.15 + Math.random() * 0.7) : -1;
+  // the frame weaves in the gate, and now and then jumps. Much gentler than first built (Paul, 26 October: "heavy
+  // flashing / strobe effect on video", on phones especially): the flicker drifts instead of changing every frame,
+  // jumps are rare and small, and the grain, dust and scratches are scaled by S8_AMT (less again on a phone)
+  const A = S8_AMT();
+  const jump = Math.random() < 0.012 ? 0.005 * A : 0;
+  S.weave = [S.weave[0] * 0.6 + (Math.random() - 0.5) * 0.003 * A, S.weave[1] * 0.6 + (Math.random() - 0.5) * 0.004 * A + jump];
+  S.flick += (1 + (Math.random() - 0.5) * 0.06 * A - S.flick) * 0.35;
+  if (S.scratchLeft > 0) S.scratchLeft--; else S.scratch = Math.random() < 0.025 * A ? (S.scratchLeft = 4 + Math.floor(Math.random() * 10), 0.15 + Math.random() * 0.7) : -1;
   S.seed = Math.random() * 1000;
   gl.viewport(0, 0, W, H);
   // a crop: a smaller window of the frame about its focus, kept inside the frame
@@ -3601,10 +3637,11 @@ function super8Frame(S, v, W, H, sx, sy, keep, fx, fy) {
   const cx = clamp(fx, Math.min(hx, 0.5), Math.max(1 - hx, 0.5)), cy = clamp(fy, Math.min(hy, 0.5), Math.max(1 - hy, 0.5));
   gl.uniform2f(S.u.uScale, sx * keep, sy * keep); gl.uniform2f(S.u.uFocus, cx, cy);
   gl.uniform2f(S.u.uWeave, S.weave[0], S.weave[1]); gl.uniform2f(S.u.uRes, W, H);
-  gl.uniform1f(S.u.uSeed, S.seed); gl.uniform1f(S.u.uFlick, S.flick); gl.uniform1f(S.u.uScratch, S.scratch); gl.uniform1f(S.u.uColour, films.index?.colour ? 1 : 0);
+  gl.uniform1f(S.u.uSeed, S.seed); gl.uniform1f(S.u.uFlick, S.flick); gl.uniform1f(S.u.uScratch, S.scratch); gl.uniform1f(S.u.uColour, films.index?.colour ? 1 : 0); gl.uniform1f(S.u.uAmt, A);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   return true;
 }
+const FILM_OUT = 1.4;   // how much further out than filling a portrait screen
 function drawSuper8(dt) {
   if (!s8.ok) return;
   const v = Object.values(films.videos).find((o) => o.classList.contains('cur'));
@@ -3617,7 +3654,10 @@ function drawSuper8(dt) {
   s8.next = s8.t + 1 / 18;
   // portrait screens fill the frame, wide ones show the whole portrait frame (as the plain video does)
   const ca = W / H, va = v.videoWidth / v.videoHeight, contain = innerWidth / innerHeight >= 0.8 && va < 1;   // a 16:9 take fills the screen
-  const sx = contain ? Math.max(1, ca / va) : Math.min(1, ca / va), sy = contain ? Math.max(1, va / ca) : Math.min(1, va / ca);
+  let sx = contain ? Math.max(1, ca / va) : Math.min(1, ca / va), sy = contain ? Math.max(1, va / ca) : Math.min(1, va / ca);
+  // portrait screens: a little further out than filling (Paul, 26 October: "slightly further out on video, fine if
+  // negative space at top and bottom"), never past the whole width of the frame; the rest is black
+  if (!contain && ca < 0.8) { const z = Math.min(FILM_OUT, 1 / sx); sx *= z; sy *= z; }
   const keep = 1 - (+v.dataset.crop || 0), [fx, fy] = (v.dataset.focus || '0.5,0.5').split(',').map(Number);
   if (!super8Frame(s8, v, W, H, sx, sy, keep, fx, fy)) { s8.el.classList.remove('on'); return; }   // plain video
   el.classList.add('on');
@@ -4155,8 +4195,8 @@ function drawFold(dt) {
       }
       c.globalAlpha = 1;
     }
-    if (fold.doneT > 0.38 && !fold.flashed) { fold.flashed = true; flash(0.6); }
-    if (fold.doneT > (ship.ready ? 1.5 : 1.0) && journey.phase === 'space') { fold.flashed = false; foldHide(); journeyNext(); }
+    if (fold.doneT > 0.38 && !fold.flashed) { fold.flashed = true; flash(ship.ready ? 0.25 : 0.6); }   // the 3D ship brings its own flash as it passes
+    if (fold.doneT > (ship.ready ? SHIP_PASS + 0.35 : 1.0) && journey.phase === 'space') { fold.flashed = false; foldHide(); journeyNext(); }
   }
 }
 
@@ -4171,6 +4211,7 @@ function drawFold(dt) {
 const SHIP = SP.ship || null;
 const ship = { ready: false, obj: null, trail: null, t: 0, pos: new THREE.Vector3(), prev: new THREE.Vector3(), dash: null, emit: 0, head: 0, level: 0 };
 const TRAIL_N = 2400;
+const SHIP_PASS = 2.3;   // s from the fold closing until the ship is past the camera
 if (SHIP) {
   (async () => {
     const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
@@ -4232,10 +4273,17 @@ function updateShip(dt) {
   if (fold.done && !ship.dash) ship.dash = { t: 0, from: ship.pos.clone() };
   ship.prev.copy(ship.pos);
   if (ship.dash) {
+    // the slingshot (Paul: "should play past camera getting huge in frame"): it swings in through the middle of the
+    // view and comes straight at the camera, passing just beside it, filling the frame, and on out behind
     ship.dash.t += dt;
-    const q = Math.min(1, ship.dash.t / 1.3), e = q * q * q;   // accelerating
-    const far = camera.position.clone().addScaledVector(fwd, D * 6);
-    ship.pos.lerpVectors(ship.dash.from, far, e);
+    const q = Math.min(1, ship.dash.t / SHIP_PASS), e = q * q * (1.6 - 0.6 * q);   // gathering speed
+    const mid = camera.position.clone().addScaledVector(fwd, D * 0.55).addScaledVector(up, 0.4);
+    const by = camera.position.clone().addScaledVector(right, SHIP.passSide ?? 1.1).addScaledVector(up, SHIP.passUp ?? -0.35).addScaledVector(fwd, -12);
+    const a1 = 1 - e;
+    ship.pos.copy(ship.dash.from).multiplyScalar(a1 * a1).addScaledVector(mid, 2 * a1 * e).addScaledVector(by, e * e);
+    if (!ship.dash.boom && ship.pos.clone().sub(camera.position).dot(fwd) < 2) {   // as it fills the frame
+      ship.dash.boom = true; flash(0.35); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate(40);
+    }
     if (q >= 1 && !fold.on) ship.dash = null;
   } else ship.pos.copy(loop);
   ship.obj.position.copy(ship.pos);
@@ -4419,7 +4467,7 @@ function releaseFilms(keep) {
 // which films the next steps need: fetched now; the rest released
 function filmWindow(i) {
   const keep = new Set();
-  for (let k = i; k < Math.min(STEPS.length, i + 3); k++) {
+  for (let k = i; k < Math.min(STEPS.length, i + 2); k++) {   // this step and the next only, so the line stays clear
     const b = BEATS[STEPS[k].beat].b;
     for (const id of filmClipsOf(b)) keep.add(id);
     if (k > i) prefetchFilm(b);
@@ -4438,6 +4486,8 @@ function primeFilms() {
     v.play().then(() => { if (!films.on || !v.classList.contains('cur')) v.pause(); }).catch(() => { /* tried again at its cue */ });
   }
 }
+// the flash as a film cuts in or out, far lighter on a phone, where it fills the hand (Paul: "heavy flashing")
+const FILM_FLASH = () => (Math.min(innerWidth, innerHeight) < 600 ? 0.12 : 0.25);
 function playFilm(beat) {
   if (films.beat === beat && (films.on || films.timers.length)) return;   // already started (a straight cut starts it at once)
   stopFilm(false);
@@ -4465,7 +4515,7 @@ function playFilm(beat) {
       box.classList.add('on'); films.on = true; cctv.t0 = 0;
       if (cue.card) showFilmCard(beat);
       if (cue.sfx) sound.sfxPlay(cue.sfx, { gain: cue.sfxGain ?? 0.85, verb: 0.12 });
-      flash(0.6);
+      flash(FILM_FLASH() * 1.5);   // the cut in, lighter than first built (0.6)
       // starting playback takes a moment (about 0.2 s here), which shows on lips: once it is running, put it where the
       // voice is now (a little ahead, for the seek), and cut at the same point in the clip whenever it got there
       if (vs?.beat === beat) {
@@ -4504,7 +4554,7 @@ function filmThen(then) {
   v.play().then(() => {
     if (!films.on) { v.pause(); return; }
     for (const o of Object.values(films.videos)) { o.classList.toggle('cur', o === v); if (o !== v) o.pause(); }
-    flash(0.35);
+    flash(FILM_FLASH());
     if (then.sfx) sound.sfxPlay(then.sfx, { gain: then.sfxGain ?? 0.85, verb: 0.12 });
     films.looping = !!then.loop;
     // hold: rests on its last frame until the beat moves on (as a cue's hold)
@@ -4525,7 +4575,7 @@ function stopFilm(snap) {
   const box = $('film');
   if (films.on) {
     box.classList.remove('on'); films.on = false;
-    if (snap) { flash(0.45); if (!reducedMotion) worlds.jitter = Math.max(worlds.jitter, 0.7); }
+    if (snap) { flash(FILM_FLASH()); if (!reducedMotion) worlds.jitter = Math.max(worlds.jitter, 0.7); }
   }
   for (const v of Object.values(films.videos)) { v.pause(); v.loop = false; v.classList.remove('cur'); }
   $('filmCard').classList.remove('show');
