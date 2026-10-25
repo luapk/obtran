@@ -28,7 +28,10 @@
     },
     {
       "b": "lifeform",
-      "note": "...A DNA-ENCRYPTED LIFEFORM! ... THE OBLIVIOUS TRANSFER!"
+      "note": "...A DNA-ENCRYPTED LIFEFORM! ... THE OBLIVIOUS TRANSFER!",
+      "glyphs": true,
+      "glyphsWhy": "Paul, 25 October: no blurry cockpit world behind the caption; OBTRAN 003's scrambling glyph field instead, as it matches the voice over (the encryption)",
+      "cardScale": 2
     },
     {
       "b": "manifold",
@@ -42,7 +45,12 @@
     },
     {
       "b": "plunder",
-      "note": "THEIR PLUNDER OF QNTM CTRL'S HOLD RETRIEVES URANIUM AND THE INVALUABLE CRYPTID, STILL DEEP IN HYPERSLEEP."
+      "note": "THEIR PLUNDER OF QNTM CTRL'S HOLD RETRIEVES URANIUM AND THE INVALUABLE CRYPTID, STILL DEEP IN HYPERSLEEP.",
+      "outSpin": {
+        "prop": "pod",
+        "secs": 3
+      },
+      "outSpinWhy": "Paul, 25 October: on the transition before metabolic stasis, the pod spinning slowly above the vortex, 3 s longer"
     },
     {
       "b": "ritual",
@@ -1452,7 +1460,7 @@
         "grow": 1.15
       },
       {
-        "note": "Paul's 3D pod (3D/Data_Pillar_v06.mb by tools/mb_to_glb.py): the cryptid asleep inside, where the painted pod lies in the elder's camp (Marble had turned its lid into a tusk, cut below). Its own colour maps, lit in three steps (shade: texture), with an ink outline.",
+        "note": "Paul's 3D pod (3D/Data_Pillar_v06.mb by tools/mb_to_glb.py): the cryptid asleep inside, where the painted pod lies in the elder's camp (Marble had turned its lid into a tusk, cut below). Its own colour maps, lit in three steps (shade: texture), with an ink outline. Placed by fitting it to the painted pod (Paul: \"cover it perfectly at same angle, slightly bigger\"): its silhouette against the cream and mint shell seen from the viewpoint (IoU 0.72) with the sleeping cryptid's head where the painting shows him through the window (yaw 25, pitch -6), then 8% bigger.",
         "id": "pod",
         "world": "pod",
         "files": [
@@ -1470,16 +1478,16 @@
         "copies": [
           {
             "at": [
-              2,
-              -27,
+              26.57,
+              -18.89,
               0.92
             ],
-            "size": 0.95,
+            "size": 1.76,
             "model": 0,
             "turn": [
-              38,
-              90,
-              0
+              32.5,
+              -6.4,
+              42.7
             ]
           }
         ]
@@ -1769,10 +1777,221 @@
           ]
         ],
         "alpha": 1
+      },
+      {
+        "note": "Paul, 25 October: lots of smoke from the landed ship (the wreck: yaw -15 to 25, pitch 0 to 12, about 0.95 out; its engine light at yaw -12). Pale grey and violet columns along the hull, as the panel paints them, a darker plume from the broken middle, and embers.",
+        "world": "crash-forest",
+        "kind": "smoke",
+        "at": [
+          -11,
+          7,
+          0.94
+        ],
+        "count": 80,
+        "spread": 1.4,
+        "life": 10,
+        "rise": 13,
+        "drift": [
+          2.5,
+          0,
+          -1
+        ],
+        "size": [
+          2,
+          9
+        ],
+        "colours": [
+          [
+            0.78,
+            0.76,
+            0.82
+          ],
+          [
+            0.5,
+            0.46,
+            0.6
+          ]
+        ],
+        "alpha": 0.75
+      },
+      {
+        "world": "crash-forest",
+        "kind": "smoke",
+        "at": [
+          1,
+          8,
+          0.95
+        ],
+        "count": 90,
+        "spread": 1.5,
+        "life": 11,
+        "rise": 14,
+        "drift": [
+          3,
+          0,
+          -1
+        ],
+        "size": [
+          2,
+          10
+        ],
+        "colours": [
+          [
+            0.78,
+            0.76,
+            0.82
+          ],
+          [
+            0.5,
+            0.46,
+            0.6
+          ]
+        ],
+        "alpha": 0.75
+      },
+      {
+        "world": "crash-forest",
+        "kind": "smoke",
+        "at": [
+          12,
+          8,
+          0.97
+        ],
+        "count": 80,
+        "spread": 1.5,
+        "life": 11,
+        "rise": 14,
+        "drift": [
+          3,
+          0,
+          -1
+        ],
+        "size": [
+          2,
+          10
+        ],
+        "colours": [
+          [
+            0.78,
+            0.76,
+            0.82
+          ],
+          [
+            0.5,
+            0.46,
+            0.6
+          ]
+        ],
+        "alpha": 0.75
+      },
+      {
+        "world": "crash-forest",
+        "kind": "smoke",
+        "at": [
+          22,
+          6,
+          0.98
+        ],
+        "count": 60,
+        "spread": 1.5,
+        "life": 11,
+        "rise": 14,
+        "drift": [
+          3,
+          0,
+          -1
+        ],
+        "size": [
+          2,
+          10
+        ],
+        "colours": [
+          [
+            0.78,
+            0.76,
+            0.82
+          ],
+          [
+            0.5,
+            0.46,
+            0.6
+          ]
+        ],
+        "alpha": 0.75
+      },
+      {
+        "world": "crash-forest",
+        "kind": "smoke",
+        "at": [
+          5,
+          9,
+          0.96
+        ],
+        "count": 60,
+        "spread": 1.0,
+        "life": 13,
+        "rise": 18,
+        "drift": [
+          2,
+          0,
+          -2
+        ],
+        "size": [
+          3,
+          14
+        ],
+        "colours": [
+          [
+            0.3,
+            0.26,
+            0.34
+          ],
+          [
+            0.45,
+            0.4,
+            0.52
+          ]
+        ],
+        "alpha": 0.8
+      },
+      {
+        "world": "crash-forest",
+        "kind": "embers",
+        "at": [
+          4,
+          7,
+          0.95
+        ],
+        "count": 90,
+        "spread": 2.5,
+        "life": 4,
+        "rise": 8,
+        "drift": [
+          1.5,
+          0,
+          0
+        ],
+        "size": [
+          0.14,
+          0.07
+        ],
+        "colours": [
+          [
+            1,
+            0.75,
+            0.35
+          ],
+          [
+            1,
+            0.35,
+            0.1
+          ]
+        ],
+        "alpha": 1
       }
     ],
     "fold": {
-      "note": "the manifold panel cut by tools/cut_fold_panel.py: facets as fractions of fold-panel.webp; the reader drags to fold them together (a tick per crease) and the ship slingshots through",
+      "note": "the manifold panel cut by tools/cut_fold_panel.py; folded like a map (Paul: not torn): one sheet in strips hinged edge to edge in 3D, concertinaed by the reader's swipe, a tick per crease, then the ship slingshots through. facets: the old diagonal cut, no longer drawn",
       "image": "fold-panel.webp",
       "ship": "fold-ship.webp",
       "aspect": 3.682,
@@ -1869,7 +2088,8 @@
             0.9874
           ]
         ]
-      ]
+      ],
+      "strips": 6
     },
     "drum": {
       "note": "the ritual (Paul, 25 October): tap in time with The Eagle and the Senses; good hits flare the fire, enough of them trigger the decode. Locked to that loop's beat grid when it plays (track; its bpm in the music index), else its own grid at bpm. Made forgiving (Paul: \"too hard\"): a tap counts from early s before a beat to late s after (more room late: phones add audio delay), half as wide again after three misses in a row, hits needed 6, and after giveUp s it completes by itself",

@@ -65,7 +65,7 @@
      decoding a hidden one); without WebGL it stays hidden and the plain video shows */
   #s8 { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; background: #000; }
   #s8.on { display: block; }
-  #filmCard, #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--aw, 3)); height: auto; pointer-events: none; display: none; }
+  #filmCard, #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--aw, 3) * var(--cs, 1), 62vh * var(--a, 1)); height: auto; pointer-events: none; display: none; }
   #filmCard.show, #padCard.show { display: block; animation: filmCardIn 0.45s cubic-bezier(.2,1.6,.4,1) both; }
   #padCard.show.out { animation: padCardOut 0.35s ease-in both; }
   @keyframes padCardOut { 0% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.94); } }
@@ -2253,7 +2253,7 @@ async function loadProps() {
         const o = new THREE.Mesh(m.geometry, mats.line); o.renderOrder = 3.9;
         m.add(o);
       }
-      obj.add(holder); obj.scale.setScalar(scale);
+      obj.add(holder); obj.scale.setScalar(scale); obj.userData.copy = true;
       obj.position.copy(dirOf(cp.at));
       obj.lookAt(0, 0, 0);
       const r = cp.turn || [0, 0, 0];
@@ -2307,9 +2307,29 @@ function updateProps(dt) {
   if (here && !props.loaded) loadProps();
   let any = false;
   for (const p of props.list) { p.group.visible = here && worlds.id === p.pr.world; any ||= p.group.visible; }
-  props.level.value += ((any ? 1 - 0.9 * worlds.suction : 0) - props.level.value) * (1 - Math.exp(-dt * 3));
+  const sp = props.spin;
+  props.level.value += ((any ? (sp ? 1 : 1 - 0.9 * worlds.suction) : 0) - props.level.value) * (1 - Math.exp(-dt * 3));
   props.root.visible = props.level.value > 0.01;
   props.root.position.copy(P0);
+  // a prop rising over the vortex and turning there as the space collapses (outSpin), then home again
+  for (const p of props.list) {
+    const obj = p.group.children.find((o) => o.userData.copy);
+    if (!obj) continue;
+    obj.userData.home ??= { pos: obj.position.clone(), quat: obj.quaternion.clone(), scale: obj.scale.x };
+    const h = obj.userData.home;
+    if (sp && sp.id === p.pr.id && p.group.visible) {
+      sp.t += dt;
+      const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+      const at = camera.position.clone().addScaledVector(fwd, 9).addScaledVector(up, 1.6).sub(P0);   // ahead, over the core
+      const k = ease(clamp(sp.t / 1.4, 0, 1));
+      obj.position.lerpVectors(h.pos, at, k);
+      obj.scale.setScalar(h.scale * (1 - 0.55 * k));
+      const turn = new THREE.Quaternion().setFromAxisAngle(up, sp.t * 0.7);   // slowly, about the vertical
+      obj.quaternion.copy(h.quat).premultiply(turn);
+    } else if (obj.position.distanceToSquared(h.pos) > 1e-6) {
+      obj.position.copy(h.pos); obj.quaternion.copy(h.quat); obj.scale.setScalar(h.scale);
+    }
+  }
 }
 
 /* ---------- particles: fire, embers and smoke from points in a world (OBTRAN 001's burning ruins) ---------- */
@@ -2822,6 +2842,7 @@ function setCard(beatIndex, keep = false) {
   glowMat.uniforms.uPolyN.value = b.mat.uniforms.uPolyN.value;
   cardGlow.scale.set((u1 - u0 + 2 * gm) / (u1 - u0), (v1 - v0 + 2 * gv) / (v1 - v0), 1);
   cardState.aspect = ((u1 - u0) * PW) / ((v1 - v0) * PH);
+  cardState.scale = BEATS[beatIndex].cardScale || 1;
   cardState.lift = keep ? 1 : 0; cardState.vel = 0; cardState.target = 1;
   cardState.tilt = keep ? 0 : (Math.random() - 0.5) * 0.08;
   cardMat.uniforms.uFlick.value = keep ? 0 : 1; journey.cardT = keep ? 1 : 0;
@@ -2835,7 +2856,9 @@ function setCard(beatIndex, keep = false) {
 const CARD_ASPECT = COMIC.cardAspect ?? 3.9;   // the widest box shape a card's width is worked out for
 function cardPose(fov, aspect = cardState.aspect) {
   const dist = 2.4, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)), visW = visH * camera.aspect;
-  const w = Math.min(visW * 0.86, visH * 0.26 * Math.min(aspect, CARD_ASPECT));
+  // a beat's cardScale makes its card bigger (OBTRAN 001's tall lifeform box, Paul: "can be double the size"), kept on screen
+  const sc = cardState.scale || 1;
+  const w = Math.min(visW * 0.86, visH * 0.26 * sc * Math.min(aspect, CARD_ASPECT), visH * 0.62 * aspect);
   return { dist, w, h: w / aspect, y: -visH / 2 + w / aspect / 2 + visH * 0.13 };
 }
 
@@ -3189,7 +3212,8 @@ function showFilmCard(beat, el = $('filmCard')) {
   const k = li ? Math.min(2400 / sw, li.width / ((le.uv[2] - le.uv[0]) * W)) : Math.min(1, 1400 / sw);
   el.width = Math.round(sw * k); el.height = Math.round(sh * k);
   el.style.setProperty('--a', (sw / sh).toFixed(3));
-  el.style.setProperty('--aw', Math.min(sw / sh, CARD_ASPECT).toFixed(3));   // held to the others' width, as the 3D card is
+  el.style.setProperty('--aw', Math.min(sw / sh, CARD_ASPECT).toFixed(3));
+  el.style.setProperty('--cs', String(BEATS.find((x) => x.b === beat)?.cardScale || 1));   // held to the others' width, as the 3D card is
   const c = el.getContext('2d');
   c.clearRect(0, 0, el.width, el.height);
   c.save(); c.beginPath();
@@ -3660,22 +3684,54 @@ function drawPad(dt) {
 
 // ---------- the fold (OBTRAN 001's manifold; Paul, 25 October: "fold space": the reader drags the panel's slabs
 // together, a tick per crease, and the ship slingshots through when they close) ----------
-// setPieces.fold (tools/cut_fold_panel.py): the manifold panel cut from the page with its white keyed out, split
-// into facets along its own diagonals. They come up spread apart over the space, with the world showing through
-// the gaps; dragging sideways (either way) folds them together like a fan: the gaps close, then the facets stack and
-// narrow, sheared in turn so they read as angled, the ones turned away darkening. Each crease closing ticks, flashes
-// along its edge and shakes the signal; the space pulls in towards its core as it folds. Released, the fold holds
-// at the last crease. Fully folded, the ship (cut from the panel) slingshots through and the story moves on. A key
-// folds one crease at a time. ?fold=0 skips it (a tap moves on).
+// setPieces.fold (tools/cut_fold_panel.py): the manifold panel cut from the page with its white keyed out. It comes
+// up flat, as drawn, over the space, and folds like a map (Paul: "map paper is torn, it shouldnt be. you just fold
+// it"): one sheet in strips (strips, 6) hinged edge to edge in 3D in front of the camera, alternate strips turning
+// towards and away from the reader, so it concertinas into a narrow stack with real perspective, the strips turned
+// away darker. Swiping sideways (either way) folds it; each crease closing ticks, flashes its two strips and shakes
+// the signal; the space pulls in towards its core as it folds. Released, the fold holds at the last crease. Fully
+// folded, the ship (cut from the panel) slingshots through and the story moves on. A tap or key folds one crease.
+// ?fold=0 skips it (a tap moves on).
 const FOLD = SP.fold && params.get('fold') !== '0' ? SP.fold : null;
 const fold = { on: false, el: $('fold'), ctx: null, img: null, ship: null, f: 0, target: 0, passed: 0, done: false, t: 0, doneT: 0, drag: null, flashes: [], level: 0 };
 fold.ctx = fold.el.getContext('2d');
 function foldLoad() {
+  foldBuild();
   if (!FOLD || fold.img) return;
   const load = (f) => { const im = new Image(); im.decoding = 'async'; im.src = 'assets/props/' + f; return im; };
   fold.img = load(FOLD.image); fold.ship = load(FOLD.ship);
 }
-function foldCreases() { return FOLD.facets.length - 1; }
+function foldCreases() { return (FOLD.strips || 6) - 1; }
+// the sheet: one plane per strip, each showing its share of the panel; carried by the camera, drawn over the world
+const foldSheet = { group: new THREE.Group(), strips: [], tex: null };
+foldSheet.group.visible = false;
+camera.add(foldSheet.group);
+function foldBuild() {
+  if (foldSheet.strips.length || !FOLD) return;
+  const n = FOLD.strips || 6;
+  foldSheet.tex = new THREE.TextureLoader().load('assets/props/' + FOLD.image, (t) => { foldSheet.ready = true; });
+  foldSheet.tex.colorSpace = THREE.SRGBColorSpace; foldSheet.tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  for (let i = 0; i < n; i++) {
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uMap: { value: foldSheet.tex }, uU: { value: new THREE.Vector2(i / n, (i + 1) / n) }, uShade: { value: 1 }, uFlash: { value: 0 }, uLevel: { value: 0 } },
+      transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `uniform sampler2D uMap; uniform vec2 uU; uniform float uShade; uniform float uFlash; uniform float uLevel; varying vec2 vUv;
+        void main(){
+          vec4 t = texture2D(uMap, vec2(mix(uU.x, uU.y, vUv.x), vUv.y));
+          vec3 c = t.rgb * uShade + uFlash * vec3(0.5, 1.0, 0.8) * 0.5;
+          // the crease itself: a faint fold line down each hinge
+          float edge = min(vUv.x, 1.0 - vUv.x);
+          c *= 1.0 - 0.35 * smoothstep(0.03, 0.0, edge) * (1.0 - uShade * 0.5);
+          gl_FragColor = vec4(c, t.a * uLevel);
+          #include <colorspace_fragment>
+        }`,
+    });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+    m.renderOrder = 7; m.frustumCulled = false;
+    foldSheet.group.add(m); foldSheet.strips.push(m);
+  }
+}
 function foldShow() {
   if (!FOLD) return;
   foldLoad();
@@ -3687,6 +3743,7 @@ function foldHide() {
   if (!fold.on) return;
   fold.on = false; fold.drag = null;
   fold.el.classList.remove('on');
+  foldSheet.group.visible = false;
 }
 // a beat with fold is waiting until the fold is done
 function foldWaiting(beat) { return !!(FOLD && beat?.fold && !fold.done); }
@@ -3712,8 +3769,7 @@ function drawFold(dt) {
   c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
   fold.t += dt;
   if (worlds.suction < 0.5 || fold.done) fold.level = Math.min(1, fold.level + dt * 2.2);   // up once the space has opened
-  const img = fold.img;
-  if (!img?.complete || !img.naturalWidth) {
+  if (!foldSheet.ready) {
     if (fold.t > 5 && !fold.done && journey.phase === 'space') { fold.done = true; foldHide(); journeyNext(); }   // never hold the story up
     return;
   }
@@ -3742,37 +3798,30 @@ function drawFold(dt) {
     if (navigator.vibrate) navigator.vibrate(12);
   }
   if (!fold.done) worlds.suctionTarget = 0.4 * f;   // the space draws in towards its core as it folds
-  // layout: the panel as tall as fits in the upper part of the screen (wider than a phone: the folding brings it in)
-  const asp = FOLD.aspect, Hs = Math.min(H * 0.4, W * 0.78), Ws = Hs * asp;
-  const cx = W / 2, cy = H * 0.38;
+  // layout: the sheet as tall as fits in the upper part of the screen (wider than a phone: the folding brings it in)
+  const asp = FOLD.aspect, D = 4, visH = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), visW = visH * camera.aspect;
+  const hs = Math.min(visH * 0.4, visW * 0.78), ws = hs * asp, ns = foldSheet.strips.length, sw3 = ws / ns;
+  const Hs = hs / visH * H, cx = W / 2, cy = H * 0.38;   // the same on screen, for the chevrons and the ship
   const ef = reducedMotion ? f : f * f * (3 - 2 * f);
-  const spread = 1.38 - 1.3 * ef;                   // facets' centres: apart (gaps), together, then stacked at the middle
-  const squash = 1 - 0.86 * Math.max(0, (ef - 0.25) / 0.75);   // each facet narrows as if turned edge on
   let burst = 0;
   if (fold.done) { if (!fold.freeze) fold.doneT += dt; burst = Math.min(1, fold.doneT / 0.55); }
-  const alpha = fold.level * (1 - burst);
-  const iw = img.naturalWidth, ih = img.naturalHeight;
-  FOLD.facets.forEach((poly, i) => {
-    const mx = poly.reduce((a, p) => a + p[0], 0) / poly.length;
-    const side = i % 2 ? -1 : 1;
-    const px = cx + (mx - 0.5) * Ws * spread * (1 + burst * 1.5);
-    c.save();
-    c.globalAlpha = alpha;
-    // the facet in place: its centre moved, squashed about it, sheared in turn so alternate facets lean away
-    c.translate(px, cy);
-    c.transform(squash, side * 0.16 * ef, 0, 1, 0, 0);
-    c.scale(1 + burst * 0.4, 1 + burst * 0.4);
-    c.translate(-mx * Ws, -Hs / 2);
-    c.beginPath();
-    poly.forEach(([u, v], k) => (k ? c.lineTo(u * Ws, v * Hs) : c.moveTo(u * Ws, v * Hs)));
-    c.closePath();
-    c.clip();
-    c.drawImage(img, 0, 0, iw, ih, 0, 0, Ws, Hs);
-    // the facets turned away darken as it folds; the ones facing the reader catch a little light
-    const shade = side < 0 ? 0.62 * ef : 0;
-    if (shade > 0) { c.fillStyle = `rgba(4,3,10,${shade})`; c.fillRect(0, 0, Ws, Hs); }
-    else if (ef > 0) { c.fillStyle = `rgba(255,250,240,${0.08 * ef})`; c.fillRect(0, 0, Ws, Hs); }
-    c.restore();
+  // a concertina: strip i hinged to its neighbours, turned +th (its right edge away) or -th (towards) in turn
+  const th = ef * THREE.MathUtils.degToRad(84), co = Math.cos(th), si = Math.sin(th);
+  const total = ns * sw3 * co;
+  foldSheet.group.visible = foldSheet.ready && fold.level > 0.01;
+  foldSheet.group.position.set(0, visH * 0.12, 0);
+  fold.flashes = fold.flashes.filter((fl) => (fl.t += dt) < 0.45);
+  foldSheet.strips.forEach((m, i) => {
+    const even = i % 2 === 0;
+    m.scale.set(sw3 * (1 + burst * 0.3), hs * (1 + burst * 0.3), 1);
+    m.rotation.set(0, even ? th : -th, 0);
+    m.position.set(-total / 2 + (i + 0.5) * sw3 * co * (1 + burst * 1.2), 0, -D - sw3 * si / 2);
+    const u = m.material.uniforms;
+    u.uLevel.value = fold.level * (1 - burst);
+    u.uShade.value = even ? 1 - 0.18 * si : 1 - 0.62 * si;   // turned away from the light: darker
+    let fl = 0;
+    for (const x of fold.flashes) if (x.k === i || x.k === i + 1) fl = Math.max(fl, 1 - x.t / 0.45);
+    u.uFlash.value = fl;
   });
   // the gesture shown: chevrons sweeping in from both sides under the panel, until the reader has touched it
   if (!fold.touched && !fold.done && fold.level > 0.5) {
@@ -3784,21 +3833,6 @@ function drawFold(dt) {
       c.strokeStyle = '#f4efe6';
       c.beginPath(); c.moveTo(x + side * 8, y - 10); c.lineTo(x - side * 4, y); c.lineTo(x + side * 8, y + 10); c.stroke();
     }
-    c.restore();
-  }
-  // a crease flash: a bright line along the edge it closed on
-  fold.flashes = fold.flashes.filter((fl) => (fl.t += dt) < 0.45);
-  for (const fl of fold.flashes) {
-    const k = Math.min(fl.k, n), poly = FOLD.facets[k], prev = FOLD.facets[k - 1];
-    const shared = poly.filter(([u, v]) => prev.some(([a, b]) => Math.abs(a - u) < 1e-3 && Math.abs(b - v) < 1e-3));
-    if (shared.length < 2) continue;
-    const mx = poly.reduce((a, p) => a + p[0], 0) / poly.length;
-    const px = cx + (mx - 0.5) * Ws * spread;
-    c.save();
-    c.translate(px, cy); c.transform(squash, (k % 2 ? -1 : 1) * 0.16 * ef, 0, 1, 0, 0); c.translate(-mx * Ws, -Hs / 2);
-    c.globalAlpha = (1 - fl.t / 0.45) * fold.level;
-    c.strokeStyle = '#f4fff8'; c.lineWidth = 3 / Math.max(0.2, squash); c.shadowColor = '#7fffc8'; c.shadowBlur = 18;
-    c.beginPath(); c.moveTo(shared[0][0] * Ws, shared[0][1] * Hs); c.lineTo(shared[1][0] * Ws, shared[1][1] * Hs); c.stroke();
     c.restore();
   }
   // folded right through: the ship slingshots across, trailing ghosts of itself
@@ -3837,7 +3871,7 @@ const DRUM = SP.drum && params.get('drum') !== '0' ? SP.drum : null;
 const drum = { on: false, armAt: 0, started: false, t0: 0, iv: 0.5, next: 0, good: 0, done: false, doneAt: 0, pulse: 0, hitT: -9, missT: -9, lastBeat: -1, level: 0 };
 function drumShow() {
   if (!DRUM) return;
-  Object.assign(drum, { on: true, armAt: performance.now() + 900, started: false, startedAt: 0, next: 0, good: 0, misses: 0, done: false, doneAt: 0, pulse: 0, hitT: -9, missT: -9, lastBeat: -1, level: 0 });
+  Object.assign(drum, { on: true, armAt: performance.now() + 900, started: false, startedAt: 0, next: 0, good: 0, misses: 0, taps: [], word: null, done: false, doneAt: 0, pulse: 0, hitT: -9, missT: -9, lastBeat: -1, level: 0 });
   drum.iv = 60 / (DRUM.bpm || 116);
   fold.el.classList.add('on');
 }
@@ -3850,7 +3884,13 @@ function drumTap() {
   // report), and wider still after a run of misses
   const t = drumHeard(), early = DRUM.early ?? 0.16, late = DRUM.late ?? 0.3, ease = drum.misses >= 3 ? 1.6 : 1;
   const k = Math.round((t - drum.t0 - (late - early) / 2) / drum.iv), off = t - (drum.t0 + k * drum.iv);
-  if (k >= 0 && off >= -early * ease && off <= late * ease) {
+  const hitOk = k >= 0 && off >= -early * ease && off <= late * ease;
+  // the reader sees how close they were: a word, and a tick on the timing bar (left early, right late)
+  const word = !hitOk ? (off < 0 ? 'Early' : 'Late') : Math.abs(off) < 0.06 ? 'Perfect' : off < -0.06 ? 'Good, a bit early' : off > 0.12 ? 'Good, a bit late' : 'Good';
+  drum.taps.push({ off: clamp(off / (drum.iv / 2), -1, 1), hit: hitOk, t: performance.now() });
+  if (drum.taps.length > 8) drum.taps.shift();
+  drum.word = { text: word, hit: hitOk, t: performance.now() };
+  if (hitOk) {
     drum.good++; drum.misses = 0; drum.hitT = performance.now();
     sound.drum('hit');
     particles.boost.value = Math.min(1.6, particles.boost.value + 0.8);
@@ -3911,8 +3951,46 @@ function drawDrum(dt) {
     c.shadowBlur = 0; c.lineWidth = 1.5; c.strokeStyle = `rgba(${paper},${0.15 + 0.45 * frac})`;
     c.beginPath(); c.arc(cx, cy, ra, 0, 6.2832); c.stroke();
   }
-  // the marks: one lights for each good hit
+  // the instruction and the count, above the ring
   const n = DRUM.hits || 8;
+  c.shadowBlur = 0; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.font = `600 ${Math.round(Math.max(13, R * 0.17))}px "IBM Plex Mono", ui-monospace, monospace`;
+  c.fillStyle = `rgba(${paper},0.92)`;
+  c.fillText(drum.done ? 'THE FIRE ANSWERS' : 'TAP ON THE BEAT', cx, cy - R * 1.85);
+  c.font = `500 ${Math.round(Math.max(11, R * 0.13))}px "IBM Plex Mono", ui-monospace, monospace`;
+  c.fillStyle = `rgba(${warm},0.95)`;
+  c.fillText(`${Math.min(drum.good, n)} / ${n}`, cx, cy - R * 1.6);
+  // how close the last tap was, rising from the ring
+  if (drum.word) {
+    const age = (now - drum.word.t) / 900;
+    if (age < 1) {
+      c.globalAlpha = drum.level * fadeOut * (1 - age);
+      c.font = `700 ${Math.round(Math.max(15, R * 0.2))}px "IBM Plex Mono", ui-monospace, monospace`;
+      c.fillStyle = drum.word.hit ? `rgba(${warm},1)` : `rgba(${paper},0.75)`;
+      c.fillText(drum.word.text.toUpperCase(), cx, cy - R * 0.1 - age * R * 0.5);
+      c.globalAlpha = drum.level * fadeOut;
+    }
+  }
+  // the timing bar: the beat in the middle, a marker sweeping in to it, a tick for each tap where it landed
+  if (!drum.done) {
+    const bw = Math.min(W * 0.7, R * 3.2), by = cy + R * 1.75, bx = cx - bw / 2;
+    c.fillStyle = `rgba(${paper},0.18)`; c.fillRect(bx, by - 1, bw, 2);
+    c.fillStyle = `rgba(${warm},0.9)`; c.fillRect(cx - 1.5, by - 10, 3, 20);
+    const ed = (DRUM.early ?? 0.16) / (drum.iv / 2), ld = (DRUM.late ?? 0.3) / (drum.iv / 2);
+    c.fillStyle = `rgba(${warm},0.16)`; c.fillRect(cx - ed * bw / 2, by - 6, (ed + ld) * bw / 2, 12);   // the window that counts
+    const sweep = frac < 0.5 ? frac : frac - 1;                // the next beat coming in from the left, leaving to the right
+    c.fillStyle = `rgba(${paper},0.85)`; c.beginPath(); c.arc(cx + sweep * bw, by, 4, 0, 6.2832); c.fill();
+    for (const tp of drum.taps) {
+      const a = Math.max(0, 1 - (now - tp.t) / 2500);
+      if (a <= 0) continue;
+      c.globalAlpha = drum.level * a; c.fillStyle = tp.hit ? `rgba(${warm},1)` : `rgba(${paper},0.6)`;
+      c.fillRect(cx + tp.off * bw / 2 - 2, by - 8, 4, 16);
+    }
+    c.globalAlpha = drum.level * fadeOut;
+    c.font = `500 ${Math.round(Math.max(10, R * 0.11))}px "IBM Plex Mono", ui-monospace, monospace`; c.fillStyle = `rgba(${paper},0.5)`;
+    c.fillText('EARLY', bx + 24, by + 18); c.fillText('LATE', bx + bw - 20, by + 18);
+  }
+  // the marks: one lights for each good hit
   for (let i = 0; i < n; i++) {
     const a = -Math.PI / 2 + i * 6.2832 / n, x = cx + Math.cos(a) * (R * 1.32), y = cy + Math.sin(a) * (R * 1.32), lit = i < drum.good;
     c.shadowBlur = lit ? 14 : 0; c.fillStyle = lit ? `rgba(${warm},1)` : `rgba(${paper},0.25)`;
@@ -4047,7 +4125,9 @@ function showStep(i, keepCard = false) {
   $('sr').textContent = bubbleById[beat.b].text;
   if (beat.fx === 'static') { if (!sound.crackleStart()) sound.staticBurst(beat.cut ? beat.cut + 1.2 : undefined); flash(0.5); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate([30, 40, 30]); }
   if (beat.fx !== 'static') sound.crackleUnder(beat.b);
-  if (beat.trigger) glyphFieldStart(); else if (glyphField.mode !== 'off') glyphFieldEnd();
+  // glyphs on a beat: the scrambling glyph field fills the screen behind its card (OBTRAN 001's lifeform, Paul: it "matches
+  // voice over", in place of a blurry world); the trigger beat has it too
+  if (beat.trigger || beat.glyphs) { if (glyphField.mode === 'off' || glyphField.mode === 'fade') glyphFieldStart(); } else if (glyphField.mode !== 'off') glyphFieldEnd();
   if (beat.fx === 'blip') sound.blip();
   sound.playVoice(beat.b);
   playFilm(beat.b);
@@ -4201,6 +4281,9 @@ function journeyNext() {
   if (next.world === STEPS[i].world) { showStep(i + 1); return; }
   if (beat.cut) { cutTo(i + 1); return; }
   if (reducedMotion) { leave(next.world, () => arrive(i + 1)); return; }
+  // outSpin: a prop rises over the collapsing space and turns there, the collapse lasting that much longer (OBTRAN 001's
+  // pod, Paul: "have the pod spinning slowly above the vortex gaussian splat, for 3 seconds longer")
+  if (beat.outSpin) { props.spin = { id: beat.outSpin.prop, t: 0, dur: OUT_DUR + (beat.outSpin.secs ?? 3) }; leave(null, () => { props.spin = null; startHop(i + 1); }, props.spin.dur, true); return; }
   leave(null, () => startHop(i + 1), OUT_DUR, true);
 }
 
