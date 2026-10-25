@@ -34,7 +34,8 @@
       "note": "...APART FROM THE HOLOSONIC VESSEL QNTM CNTRL...",
       "filmOnly": true,
       "auto": 1.0,
-      "why": "Paul, 25 October: the escape film plays instead of the illustrated scene, once, full screen, its caption over it, resting on its last frame while the line finishes; then on into the cockpit (the vessel world is no longer in the walk)"
+      "why": "Paul, 25 October: the escape film plays instead of the illustrated scene, once, full screen, its caption over it, resting on its last frame while the line finishes; then on into the cockpit (the vessel world is no longer in the walk)",
+      "noHop": true
     },
     {
       "b": "lifeform",
@@ -61,13 +62,26 @@
         "prop": "pod",
         "secs": 3
       },
-      "outSpinWhy": "Paul, 25 October: on the transition before metabolic stasis, the pod spinning slowly above the vortex, 3 s longer"
+      "outSpinWhy": "Paul, 25 October: on the transition before metabolic stasis, the pod spinning slowly above the vortex, 3 s longer",
+      "spinStay": {
+        "prop": "pod",
+        "suction": 0.85,
+        "face": true,
+        "faceAxis": [
+          0,
+          1,
+          0
+        ],
+        "hold": 1.6,
+        "rate": 0.6
+      },
+      "spinStayWhy": "Paul, 25 October: straight to the 3D pod spinning over the vortex, no painted tribespeople; his face to us at the start of the spin"
     },
     {
       "b": "ritual",
       "note": "IN METABOLIC STASIS, THE PSYCHEDELIC VIBRATIONS OF THEIR BONFIRE RITUAL...",
-      "drum": true,
-      "why": "Paul, 25 October: the reader taps in time with the music; on-beat taps flare the fire and the pod; about eight good hits trigger the decode (to build)"
+      "why": "Paul, 25 October: the drum interaction lost; the ritual flows into the decode by itself once its film and line have played",
+      "auto": 1.0
     },
     {
       "b": "decode",
@@ -1999,6 +2013,218 @@
           ]
         ],
         "alpha": 1
+      },
+      {
+        "note": "Paul, 25 October: two more fires with smoke in the opening; the right one on the painting's own flames (yaw 35, about 2.35 out)",
+        "world": "lyra-ruins",
+        "kind": "fire",
+        "at": [
+          35,
+          10,
+          2.35
+        ],
+        "count": 120,
+        "spread": 2.6,
+        "life": 1.4,
+        "rise": 7,
+        "drift": [
+          0.6,
+          0,
+          0
+        ],
+        "size": [
+          2.2,
+          0.8
+        ],
+        "colours": [
+          [
+            1,
+            0.72,
+            0.28
+          ],
+          [
+            0.88,
+            0.18,
+            0.06
+          ]
+        ],
+        "alpha": 0.3
+      },
+      {
+        "world": "lyra-ruins",
+        "kind": "embers",
+        "at": [
+          35,
+          10,
+          2.35
+        ],
+        "count": 120,
+        "spread": 3.2,
+        "life": 5,
+        "rise": 24,
+        "drift": [
+          6,
+          0,
+          3
+        ],
+        "size": [
+          0.32,
+          0.18
+        ],
+        "colours": [
+          [
+            1,
+            0.75,
+            0.3
+          ],
+          [
+            1,
+            0.35,
+            0.1
+          ]
+        ],
+        "alpha": 1
+      },
+      {
+        "world": "lyra-ruins",
+        "kind": "smoke",
+        "at": [
+          35,
+          14,
+          2.35
+        ],
+        "count": 60,
+        "spread": 2.5,
+        "life": 12,
+        "rise": 30,
+        "drift": [
+          14,
+          0,
+          -4
+        ],
+        "size": [
+          5,
+          20
+        ],
+        "colours": [
+          [
+            0.22,
+            0.1,
+            0.14
+          ],
+          [
+            0.42,
+            0.22,
+            0.36
+          ]
+        ],
+        "alpha": 0.85
+      },
+      {
+        "note": "Paul, 25 October: two more fires with smoke in the opening; the left one on the painting's own flames (yaw -37, about 2.7 out)",
+        "world": "lyra-ruins",
+        "kind": "fire",
+        "at": [
+          -37,
+          4,
+          2.7
+        ],
+        "count": 120,
+        "spread": 2.6,
+        "life": 1.4,
+        "rise": 7,
+        "drift": [
+          0.6,
+          0,
+          0
+        ],
+        "size": [
+          2.2,
+          0.8
+        ],
+        "colours": [
+          [
+            1,
+            0.72,
+            0.28
+          ],
+          [
+            0.88,
+            0.18,
+            0.06
+          ]
+        ],
+        "alpha": 0.3
+      },
+      {
+        "world": "lyra-ruins",
+        "kind": "embers",
+        "at": [
+          -37,
+          4,
+          2.7
+        ],
+        "count": 120,
+        "spread": 3.2,
+        "life": 5,
+        "rise": 24,
+        "drift": [
+          6,
+          0,
+          3
+        ],
+        "size": [
+          0.32,
+          0.18
+        ],
+        "colours": [
+          [
+            1,
+            0.75,
+            0.3
+          ],
+          [
+            1,
+            0.35,
+            0.1
+          ]
+        ],
+        "alpha": 1
+      },
+      {
+        "world": "lyra-ruins",
+        "kind": "smoke",
+        "at": [
+          -37,
+          8,
+          2.7
+        ],
+        "count": 60,
+        "spread": 2.5,
+        "life": 12,
+        "rise": 30,
+        "drift": [
+          14,
+          0,
+          -4
+        ],
+        "size": [
+          5,
+          20
+        ],
+        "colours": [
+          [
+            0.22,
+            0.1,
+            0.14
+          ],
+          [
+            0.42,
+            0.22,
+            0.36
+          ]
+        ],
+        "alpha": 0.85
       }
     ],
     "fold": {
@@ -2103,7 +2329,7 @@
       "strips": 6
     },
     "drum": {
-      "note": "the ritual (Paul, 25 October): tap in time with The Eagle and the Senses; good hits flare the fire, enough of them trigger the decode. Locked to that loop's beat grid when it plays (track; its bpm in the music index), else its own grid at bpm. Made forgiving (Paul: \"too hard\"): a tap counts from early s before a beat to late s after (more room late: phones add audio delay), half as wide again after three misses in a row, hits needed 6, and after giveUp s it completes by itself",
+      "note": "no longer used (Paul: \"lose the drum interaction\"); the drum code stays in the engine for another comic",
       "bpm": 120,
       "hits": 6,
       "track": "the-eagle-and-the-senses",
@@ -2196,5 +2422,10 @@
       },
       "dur": 8
     }
+  },
+  "glyphRings": {
+    "travel": 3,
+    "bpm": 135,
+    "note": "Paul, 25 October: pulsing concentric rings of glyphs instead of a full screen of them, timed to the music (a ring born on every beat of the playing loop, out over three beats, the first of each bar brighter)"
   }
 }

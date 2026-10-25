@@ -90,7 +90,7 @@
     },
     "vessel": {
       "clip": "o1-lyra-wide",
-      "at": 0.3,
+      "at": 0,
       "from": 0,
       "len": 5.0,
       "card": true,

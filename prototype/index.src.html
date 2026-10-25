@@ -2521,8 +2521,16 @@ function updateProps(dt) {
         obj.scale.setScalar(h.scale + (to - h.scale) * k);
         if (sp.face) {
           // face the reader as it rises (Paul: "have the skull face forward at start"), then turn in the vortex
-          const look = new THREE.Matrix4().lookAt(obj.position.clone().add(P0), camera.position, up);
-          const facing = new THREE.Quaternion().setFromRotationMatrix(look).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI));
+          let facing;
+          if (sp.faceAxis) {
+            // the model's own axis towards the reader (the pod: +y, the way the sleeping cryptid's face looks, Paul: "ensure
+            // we see his face at first point of spin")
+            const toCam = camera.position.clone().sub(obj.position.clone().add(P0)).normalize();
+            facing = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(...sp.faceAxis).normalize(), toCam);
+          } else {
+            const look = new THREE.Matrix4().lookAt(obj.position.clone().add(P0), camera.position, up);
+            facing = new THREE.Quaternion().setFromRotationMatrix(look).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI));
+          }
           const ts = Math.max(0, sp.t - (sp.hold ?? 1.6));
           obj.quaternion.copy(h.quat).slerp(facing, k).premultiply(new THREE.Quaternion().setFromAxisAngle(up, ts * ts * 0.25 * (sp.rate ?? 0.7) + ts * 0.3));
         } else {
@@ -3570,6 +3578,7 @@ function drawSuper8(dt) {
 // fades as the singularity unwinds.
 // Drawn on a canvas used as a texture on a plane just behind the card, so the card stays on top.
 const GLYPH_COL = COMIC.glyphColours || null;
+const GLYPH_RINGS = COMIC.glyphRings || null;
 const glyphField = { canvas: document.createElement('canvas'), ctx: null, tex: null, mesh: null, mode: 'off', t: 0, dur: 1, next: 0, cells: null, opacity: 0 };
 {
   glyphField.ctx = glyphField.canvas.getContext('2d');
@@ -3595,8 +3604,8 @@ function updateGlyphField(dt) {
   G.opacity = G.mode === 'fade' ? Math.max(0, 1 - G.t / 1.4) : Math.min(1, G.opacity + dt / 0.3);
   G.mesh.material.opacity = G.opacity;
   if (G.mode === 'fade' && G.t > 1.4) { G.mode = 'off'; G.mesh.visible = false; return; }
-  if (G.t < G.next) return;                  // redrawn about 20 times a second
-  G.next = G.t + 0.05;
+  if (G.t < G.next) return;                  // redrawn about 20 times a second (30 for rings, which keep time)
+  G.next = G.t + (GLYPH_RINGS ? 0.033 : 0.05);
   const scale = 0.6, W = Math.round(innerWidth * scale), H = Math.round(innerHeight * scale), cs = 15;
   if (G.canvas.width !== W || G.canvas.height !== H) { G.canvas.width = W; G.canvas.height = H; G.cells = null; }
   const cols = Math.ceil(W / cs), rows = Math.ceil(H / cs), maxD = Math.hypot(W, H) / 2;
@@ -3609,14 +3618,34 @@ function updateGlyphField(dt) {
   c.lineWidth = 1.2; c.lineCap = 'round';
   // how far out the field reaches now: filling over 1.6 s, then full; while held, a bright ring runs in to the centre every 0.9 s
   const front = G.mode === 'fill' ? Math.min(1.08, (G.t - 0.25) / 1.6) : 1.08;
+  // rings (COMIC.glyphRings; OBTRAN 001, Paul: "pulsing concentric circles of glyphs... time perfectly to music"): a ring of
+  // glyphs is born at the centre on every beat of the loop that is playing (its start is on a beat; its bpm in the music
+  // index) and travels out over `travel` beats, the first beat of each bar brighter
+  let beats = null, travel = 3;
+  if (GLYPH_RINGS) {
+    const lp = music.loopNow, tr = lp && music.index?.tracks?.find((x) => x.id === lp.id);
+    if (lp && tr?.bpm && sound.ok) beats = (drumHeard() - lp.t0) * tr.bpm / 60;
+    else beats = G.t * (GLYPH_RINGS.bpm ?? 120) / 60;
+    travel = GLYPH_RINGS.travel ?? 3;
+  }
   const ringAt = G.mode === 'hold' ? 1.08 * (1 - (G.t / 0.9) % 1) : front;
   const s = cs * 0.7 / 3;
   for (const cell of G.cells) {
-    if (cell.r > front) continue;
+    let band = 1;
+    if (beats != null) {
+      band = 0;
+      const f = beats - Math.floor(beats), n0 = Math.floor(beats);
+      for (let k = 0; k < travel; k++) {
+        const rk = (f + k) / travel * 1.12, acc = (n0 - k) % 4 === 0 ? 1 : 0.6;
+        band = Math.max(band, acc * Math.exp(-(((cell.r - rk) / 0.05) ** 2)) * (1 - 0.5 * rk));
+      }
+      band = Math.max(band, Math.exp(-((cell.r / 0.06) ** 2)) * (1 - f));    // the centre flashes on the beat
+      if (band < 0.06 || cell.r > front) continue;
+    } else if (cell.r > front) continue;
     if (Math.random() < 0.25) cell.g = Math.floor(Math.random() * cctv.glyphs.length);   // scrambling
     if (Math.random() < 0.15) cell.b = 0.3 + 0.6 * Math.random();
     const edge = Math.max(0, 1 - Math.abs(ringAt - cell.r) / 0.08);                    // the front of the ring
-    const a = Math.min(1, cell.b * (0.55 + 0.45 * (1 - cell.r)) + edge * 0.8);
+    const a = beats != null ? Math.min(1, band * (0.5 + 0.5 * cell.b) * 1.3) : Math.min(1, cell.b * (0.55 + 0.45 * (1 - cell.r)) + edge * 0.8);
     // a comic's own colours (COMIC.glyphColours: from, to and the ring; OBTRAN 001: the cryptid's fiery eyes), else paper
     if (GLYPH_COL) {
       const [c0, c1, cr] = GLYPH_COL, q = cell.h ??= Math.random(), e = Math.min(1, edge * 1.4);
@@ -4357,6 +4386,9 @@ function showStep(i, keepCard = false) {
   // the tap hint only on the first scene, pointing at the card, so the story's way through is clear
   // from the start (Paul); after that only the hold, a gesture nobody would guess, is named, and
   // a card left waiting 10 s pulses once instead
+  // spinStay: the space stays wound into its vortex and a prop spins over it for the whole beat (Paul, for "Their
+  // plunder...": "go straight to 3d pod spinning over the gaussian spiral (lose illustrated tribes people in back)")
+  if (beat.spinStay) { props.spin = { ...beat.spinStay, id: beat.spinStay.prop, t: 0, dur: 1e9, stay: true }; worlds.suctionTarget = beat.spinStay.suction ?? 0.85; }
   const mv = COMIC.cameraMoves?.[STEPS[i].world];
   if (mv && (i === 0 || STEPS[i - 1].world !== STEPS[i].world) && !reducedMotion) worlds.camMove = { ...mv, world: STEPS[i].world, t: 0 };
   if (beat.fold && FOLD) foldShow(); else foldHide();
@@ -4381,10 +4413,10 @@ function arrive(i, how) {
   journey.phase = 'space'; journey.cut = false;
   enterVoid();
   useWorld(true);
-  worlds.suction = how === 'cut' ? 0 : 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.55;
+  worlds.suction = how === 'cut' || how === 'film' ? 0 : 1; worlds.suctionTarget = 0; worlds.suctionRate = reducedMotion ? 10 : 0.55;
   look.yaw = 0; look.pitch = 0; look.vyaw = 0; look.vpitch = 0;
   if (how === 'cut') { worlds.jitter = 1; if (!sound.crackle) sound.staticBurst(0.4); flash(0.45); }
-  else if (how !== 'carried') flash(0.3);
+  else if (how !== 'carried') flash(0.3);   // 'film': straight into a beat that opens on a film, quietly
   showStep(i, how === 'carried');
 }
 
@@ -4462,11 +4494,11 @@ function updateHop() {
 
 // CRSSHKKKKK! cuts straight into the next space (Paul: "should play into next scene without
 // animation"): the static runs on while the next world loads, the old one shearing, then a hard cut
-function cutTo(i) {
+function cutTo(i, how = 'cut') {
   journey.autoAt = null; journey.phase = 'load'; journey.cut = true;
   sound.stopVoice(); stopFilm(false); setHint('');
   card.visible = false; cardState.target = 0; cardState.lift = 0;
-  loadWorld(STEPS[i].world).then(() => arrive(i, 'cut')).catch((e) => { console.warn(e); arrive(i, 'cut'); });
+  loadWorld(STEPS[i].world).then(() => arrive(i, how)).catch((e) => { console.warn(e); arrive(i, how); });
 }
 
 function startJourney() {
@@ -4509,7 +4541,18 @@ function journeyNext() {
   if (reducedMotion) { leave(next.world, () => arrive(i + 1)); return; }
   // outSpin: a prop rises over the collapsing space and turns there, the collapse lasting that much longer (OBTRAN 001's
   // pod, Paul: "have the pod spinning slowly above the vortex gaussian splat, for 3 seconds longer")
-  if (beat.outSpin) { props.spin = { ...beat.outSpin, id: beat.outSpin.prop, t: 0, dur: OUT_DUR + (beat.outSpin.secs ?? 3) }; leave(null, () => { props.spin = null; startHop(i + 1); }, props.spin.dur, true); return; }
+  // noHop on the next beat: no hop across the page and no space unwinding, a straight cut into it (Paul: for "Apart from
+  // the..." "dont revisit the spiral gauss just cut straight to the video")
+  const onward = BEATS[next.beat].noHop ? () => cutTo(i + 1, 'film') : () => startHop(i + 1);
+  if (beat.glyphs) { glyphField.mode = 'off'; glyphField.mesh.visible = false; }   // gone at once (Paul: so the move shows)
+  if (beat.outSpin) {
+    const extra = OUT_DUR + (beat.outSpin.secs ?? 3);
+    // a spin already going (spinStay) carries on; else one starts
+    if (props.spin?.id === beat.outSpin.prop) Object.assign(props.spin, beat.outSpin, { dur: props.spin.t + extra, stay: false });
+    else props.spin = { ...beat.outSpin, id: beat.outSpin.prop, t: 0, dur: extra };
+    leave(null, () => { props.spin = null; onward(); }, extra, true); return;
+  }
+  if (BEATS[next.beat].noHop) { leave(null, onward, OUT_DUR, true); return; }
   leave(null, () => startHop(i + 1), OUT_DUR, true);
 }
 
