@@ -25,6 +25,19 @@
       "prompt": "A ruined alien city on a dead planet: toppled angular towers and broken buildings burning in red and orange, piles of white skulls in the foreground, a huge cratered pink moon in a magenta sky, smoke and dust rising, a small spaceship streaking away into the sky."
     },
     {
+      "id": "lyra-ruins-hq",
+      "title": "Lyra in ruins (full quality)",
+      "crop": "crops/lyra-ruins.jpg",
+      "crop_px": [
+        54,
+        266,
+        1183,
+        1615
+      ],
+      "prompt": "A ruined alien city on a dead planet: toppled angular towers and broken buildings burning in red and orange, piles of white skulls in the foreground, a huge cratered pink moon in a magenta sky, smoke and dust rising, a small spaceship streaking away into the sky.",
+      "note": "Paul, 26 October: a marble-1.1 take of Lyra (1,580 credits) beside the draft, to compare on the phone before switching; same crop and prompt"
+    },
+    {
       "id": "vessel",
       "title": "The vessel QNTM CNTRL",
       "crop": "crops/vessel.jpg",
