@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-25T15:13:39.999Z",
+  "updated": "2026-10-25T15:15:37.442Z",
   "worlds": [
     {
       "id": "lyra-ruins",
@@ -162,6 +162,25 @@
       "splats": {
         "500k": "worlds/decode-clean.spz",
         "100k": "worlds/decode-clean.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.4280896169597687,
+        0.9076742627345844,
+        0.7781257528306432,
+        0.9876005361930295
+      ]
+    },
+    {
+      "id": "decode-clean-a",
+      "title": "The decode (no helix, take A)",
+      "model": "marble-1.0-draft",
+      "world_id": "575c89af-2557-401f-989e-d6af087fafd1",
+      "marble_url": "https://marble.worldlabs.ai/world/575c89af-2557-401f-989e-d6af087fafd1",
+      "splats": {
+        "500k": "worlds/decode-clean-a.spz",
+        "100k": "worlds/decode-clean-a.100k.spz"
       },
       "pano": null,
       "metric_scale_factor": null,

@@ -159,5 +159,22 @@
       "decode-clean.spz": 6119512,
       "decode-clean.100k.spz": 1283155
     }
+  },
+  "decode-clean-a": {
+    "status": "done",
+    "model": "marble-1.0-draft",
+    "media_asset_id": "50b1b034-9957-4fbd-ac0e-7961e4fe327f",
+    "operation_id": "17536a07-0095-4fc7-8a3d-dab1112dad7d",
+    "started_at": "2026-10-25T15:15:05.233Z",
+    "world_id": "575c89af-2557-401f-989e-d6af087fafd1",
+    "finished_at": "2026-10-25T15:15:37.440Z",
+    "marble_url": "https://marble.worldlabs.ai/world/575c89af-2557-401f-989e-d6af087fafd1",
+    "metric_scale_factor": null,
+    "caption": "The scene is a hand-painted comic art depiction, characterized by bold black ink outlines over saturated colors, with visible brush and pencil textures, conveying a dramatic and otherworldly tone. An enormous glowing orange alien eye, as large as a wall, dominates the left portion of the visual field, featuring a distinct black pupil and surrounded by blue skin. To the right of this colossal eye, a series of tall, vertical panels display a gradient of orange and pale yellow firelight, separated by crisp black ink outlines and narrow white gaps. These fiery panels extend continuously around the unseen portions of the 360 scene, creating a surrounding inferno of vibrant color. The skin of the creature from which the eye emerges is consistently blue around the entire orb, transitioning into a deeper teal as it recedes into the background. The background beyond the firelight panels is a rich blend of deep violet and teal, creating the illusion of deep space or an expansive, alien atmosphere. Occasional glowing mint green lights punctuate this violet and teal expanse, providing stark contrasts and an additional layer of alien luminescence. The fiery panels continue their vertical ascent, enclosing the entire panoramic view in a dynamic, flickering wall of color, with the intensity of the orange and yellow hues varying subtly across the different segments. The entire environment maintains the exaggerated, stylized aesthetic of a comic book illustration, emphasizing saturated colors and strong linework. The 360 scene is faultless.",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "files": {
+      "decode-clean-a.spz": 6115391,
+      "decode-clean-a.100k.spz": 1284510
+    }
   }
 }

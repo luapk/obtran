@@ -1,7 +1,7 @@
 {
-  "remaining_credits": 22930,
-  "usd": "$18.34",
-  "checked": "2026-10-25T15:13:40.262Z",
+  "remaining_credits": 22700,
+  "usd": "$18.16",
+  "checked": "2026-10-25T15:15:37.703Z",
   "history": [
     {
       "checked": "2026-10-25T12:54:21.015Z",
@@ -41,6 +41,16 @@
     {
       "checked": "2026-10-25T15:13:40.262Z",
       "remaining_credits": 22930,
+      "at": "after draft run"
+    },
+    {
+      "checked": "2026-10-25T15:14:57.222Z",
+      "remaining_credits": 22930,
+      "at": "before draft run"
+    },
+    {
+      "checked": "2026-10-25T15:15:37.703Z",
+      "remaining_credits": 22700,
       "at": "after draft run"
     }
   ]
