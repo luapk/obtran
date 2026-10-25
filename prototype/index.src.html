@@ -2526,6 +2526,9 @@ function updateProps(dt) {
             // the model's own axis towards the reader (the pod: +y, the way the sleeping cryptid's face looks, Paul: "ensure
             // we see his face at first point of spin")
             const toCam = camera.position.clone().sub(obj.position.clone().add(P0)).normalize();
+            // faceLift: the face turned that far above the camera, so it is seen at an angle (Paul: "tilt to see a little of
+            // the creature's face")
+            if (sp.faceLift) toCam.lerp(up, Math.sin(sp.faceLift * DEG)).normalize();
             facing = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(...sp.faceAxis).normalize(), toCam);
           } else {
             const look = new THREE.Matrix4().lookAt(obj.position.clone().add(P0), camera.position, up);

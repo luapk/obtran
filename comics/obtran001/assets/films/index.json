@@ -17,9 +17,17 @@
       "note": "the cryptid at the controls, light pulsing through his veins, his eyes turning orange; 16:9 full screen (Paul: \"re-render cryptid at controls as 16:9 full screen\"; approved). The push in ends on his face at the right, so portrait screens cut it at 0.62 across and the caption sits at the left. The 9:16 take (o1-cockpit.mp4) is kept as a spare"
     },
     "o1-shadows": {
-      "file": "o1-shadows.mp4",
-      "v": "cc5b6e80",
-      "note": "dancers round the fire inside the tent, smoke rising, their shadows moving across the cloth"
+      "file": "o1-shadows-16x9.mp4",
+      "v": "dac7bcfc",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "wide": {
+        "file": "o1-shadows-16x9.mp4",
+        "v": "dac7bcfc"
+      },
+      "note": "the bonfire ritual in 16:9, the camera orbiting the tent looking in at the fire, the dancers and their shadows (Paul: approved); the 9:16 take (o1-shadows.mp4) is a spare"
     },
     "o1-eye": {
       "file": "o1-eye.mp4",
@@ -69,6 +77,19 @@
         "v": "6abd8ce5"
       },
       "note": "the scout patrol on their mounts at dusk watching the ship streak down across the sky (Paul: \"render this scene as video\"); 16:9"
+    },
+    "o1-crash": {
+      "file": "o1-crash.mp4",
+      "v": "47e8dffb",
+      "focus": [
+        0.55,
+        0.5
+      ],
+      "wide": {
+        "file": "o1-crash.mp4",
+        "v": "47e8dffb"
+      },
+      "note": "the wreck smoking in the dusk forest, the scouts on the ridge (Paul: the crash panel as live action; approved); 16:9"
     }
   },
   "cues": {
@@ -110,7 +131,13 @@
       "from": 0,
       "len": 5.0,
       "card": true,
-      "note": "Our fallen ship is intercepted by a scout patrol: the scouts watch it fall (Paul), then the smoking wreck"
+      "note": "Our fallen ship is intercepted by a scout patrol: the scouts watch it fall, then the wreck smoking with the patrol on the ridge, resting on its last frame until the reader moves on (Paul)",
+      "then": {
+        "clip": "o1-crash",
+        "from": 0,
+        "len": 4.95,
+        "hold": true
+      }
     }
   },
   "backdrops": {}

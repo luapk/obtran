@@ -68,14 +68,15 @@
         "suction": 0.85,
         "face": true,
         "faceAxis": [
-          0,
-          1,
-          0
+          0.111,
+          0.494,
+          -0.862
         ],
         "hold": 1.6,
-        "rate": 0.6
+        "rate": 0.6,
+        "faceLift": 35
       },
-      "spinStayWhy": "Paul, 25 October: straight to the 3D pod spinning over the vortex, no painted tribespeople; his face to us at the start of the spin"
+      "spinStayWhy": "Paul, 25 October: straight to the 3D pod spinning over the vortex, no painted tribespeople; his face to us at the start of the spin. faceAxis: the cryptid's face measured from the model (from his head's centre to his eyelids); faceLift 35: seen at an angle (Paul: \"tilt to see a little of the creatures face\")"
     },
     {
       "b": "ritual",
