@@ -190,7 +190,9 @@
   @media (prefers-reduced-motion: reduce) { #glyphVeil canvas { animation: none; } #glyphVeil canvas:first-child { opacity: 1; } #glyphVeil .ring { display: none; } }
   #finaleEnd { position: fixed; inset: 0; z-index: 6; background: #000; display: none; place-items: center; cursor: pointer; }
   #finaleEnd.on { display: grid; }
-  #finaleEnd img { width: min(78vw, 70vh * 4.6); opacity: 0; transition: opacity 0.9s; }
+  #finaleEnd img { position: relative; width: min(39vw, 35vh * 4.6); opacity: 0; transition: opacity 0.9s; filter: drop-shadow(0 0 18px rgba(0,0,0,0.9)); }
+  #finaleFire { position: absolute; inset: 0; top: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.4s; }
+  #finaleEnd.card #finaleFire { opacity: 1; }
   #finaleEnd.card img { opacity: 1; }
   #fold { position: fixed; inset: 0; top: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; display: none; }
   #fold.on { display: block; }
@@ -229,7 +231,7 @@
 <div class="flash" id="flash"></div>
 <div class="black" id="black"></div>
 <canvas id="fold" aria-hidden="true"></canvas>
-<div id="finaleEnd" aria-hidden="true"><img alt="" src=""></div>
+<div id="finaleEnd" aria-hidden="true"><canvas id="finaleFire"></canvas><img alt="" src=""></div>
 <canvas id="fx" aria-hidden="true"></canvas>
 
 <div id="gate" role="dialog" aria-label="Start">
@@ -2232,6 +2234,52 @@ function finaleCut() {
   sound.thump(0.8);
   $('sr').textContent = 'To be continued. Tap, click or press Enter to read again.';
   setTimeout(() => $('finaleEnd').classList.add('card'), (FINALE.endDelay ?? 0.9) * 1000);
+}
+// behind "To be continued...", a giant fire of soft gaussian flames (Paul, 25 October): sprites rising from the foot of
+// the screen, hot yellow at the base, orange, then deep red as they climb and fade, drawn additively, with sparks
+const fire = { el: $('finaleFire'), ctx: null, parts: [], sprites: null, acc: 0 };
+fire.ctx = fire.el.getContext('2d');
+function fireSprite(stops) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  stops.forEach(([o, col]) => gr.addColorStop(o, col));
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return c;
+}
+function drawFinaleFire(dt) {
+  const el = fire.el, dpr = Math.min(devicePixelRatio || 1, 1.5), W = innerWidth, H = innerHeight;
+  if (el.width !== Math.round(W * dpr) || el.height !== Math.round(H * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
+  fire.sprites ??= [
+    fireSprite([[0, 'rgba(255,235,170,0.7)'], [0.35, 'rgba(255,190,70,0.45)'], [1, 'rgba(255,120,20,0)']]),
+    fireSprite([[0, 'rgba(255,170,50,0.75)'], [0.45, 'rgba(240,90,20,0.4)'], [1, 'rgba(200,40,10,0)']]),
+    fireSprite([[0, 'rgba(210,50,20,0.55)'], [0.5, 'rgba(120,20,10,0.25)'], [1, 'rgba(40,5,5,0)']]),
+  ];
+  const c = fire.ctx, S = Math.min(W, H);
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.globalCompositeOperation = 'source-over'; c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(0, 0, W, H);   // trails, fading
+  // feed it: many flames along the foot, thickest in the middle
+  fire.acc += dt * (reducedMotion ? 90 : 260);
+  while (fire.acc > 1) {
+    fire.acc--;
+    const u = (Math.random() + Math.random() + Math.random()) / 3, x = W * (0.5 + (u - 0.5) * 1.5);
+    const spark = Math.random() < 0.06;
+    fire.parts.push({ x, y: H + 20, vx: (Math.random() - 0.5) * S * 0.08, vy: -S * (spark ? 0.7 + Math.random() * 0.6 : 0.25 + Math.random() * 0.35) * (1.2 - Math.abs(u - 0.5)),
+      r: spark ? 2 + Math.random() * 2 : S * (0.05 + Math.random() * 0.09), life: 0, max: spark ? 1.6 + Math.random() : 1.1 + Math.random() * 1.3, spark, ph: Math.random() * 6.28 });
+  }
+  c.globalCompositeOperation = 'lighter';
+  const t = performance.now() / 1000;
+  fire.parts = fire.parts.filter((p) => (p.life += dt) < p.max);
+  for (const p of fire.parts) {
+    const a = p.life / p.max;
+    p.x += (p.vx + Math.sin(t * 2.3 + p.ph + p.y * 0.01) * S * 0.06) * dt; p.y += p.vy * dt;
+    p.vx *= 0.99;
+    if (p.spark) { c.globalAlpha = 1 - a; c.drawImage(fire.sprites[0], p.x - p.r * 2, p.y - p.r * 2, p.r * 4, p.r * 4); continue; }
+    const r = p.r * (0.6 + 0.9 * Math.sin(Math.PI * Math.min(1, a * 1.2)));
+    const spr = a < 0.3 ? 0 : a < 0.62 ? 1 : 2;
+    c.globalAlpha = Math.min(1, (1 - a) * 1.3) * 0.55;
+    c.drawImage(fire.sprites[spr], p.x - r, p.y - r, r * 2, r * 2);
+  }
+  c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
 }
 $('finaleEnd').addEventListener('pointerdown', (e) => { e.stopPropagation(); if ($('finaleEnd').classList.contains('card')) readAgain(); });
 addEventListener('keydown', (e) => { if (finale.done && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); readAgain(); } });
@@ -4309,6 +4357,8 @@ function showStep(i, keepCard = false) {
   // the tap hint only on the first scene, pointing at the card, so the story's way through is clear
   // from the start (Paul); after that only the hold, a gesture nobody would guess, is named, and
   // a card left waiting 10 s pulses once instead
+  const mv = COMIC.cameraMoves?.[STEPS[i].world];
+  if (mv && (i === 0 || STEPS[i - 1].world !== STEPS[i].world) && !reducedMotion) worlds.camMove = { ...mv, world: STEPS[i].world, t: 0 };
   if (beat.fold && FOLD) foldShow(); else foldHide();
   if (beat.drum && DRUM) drumShow(); else drumHide();
   if (beat.finale && FINALE) finaleStart();
@@ -4922,6 +4972,20 @@ function frame() {
       look.yaw += (clamp(look.yaw, lim.yaw[0], lim.yaw[1]) - look.yaw) * (1 - Math.exp(-dt * 4));
       look.pitch += (clamp(look.pitch, lim.pitch[0], lim.pitch[1]) - look.pitch) * (1 - Math.exp(-dt * 4));
     }
+    // a scripted camera move as a space opens (COMIC.cameraMoves[world]: from and to, yaw and pitch in degrees and a
+    // zoom, over dur s; OBTRAN 001's opening, Paul: "starts on image one and ends on image two, but have it zoom out as
+    // well"); the reader dragging takes over
+    const cm = worlds.camMove;
+    if (cm) {
+      if (look.dragging || worlds.id !== cm.world || journey.phase === 'out') { worlds.camMove = null; camera.fov = voidFov(); camera.updateProjectionMatrix(); }
+      else {
+        cm.t += rawDt;
+        const e = ease(clamp(cm.t / (cm.dur ?? 8), 0, 1)), f = cm.from, t2 = cm.to;
+        look.yaw = lerp(f.yaw ?? 0, t2.yaw ?? 0, e) * DEG; look.pitch = lerp(f.pitch ?? 0, t2.pitch ?? 0, e) * DEG; look.vyaw = 0; look.vpitch = 0; look.idle = 0;
+        camera.fov = voidFov() * lerp(f.zoom ?? 1, t2.zoom ?? 1, e); camera.updateProjectionMatrix();
+        if (e >= 1) worlds.camMove = null;
+      }
+    }
     look.pitch = clamp(look.pitch, -1.3, 1.3);
     const gy = reducedMotion ? 0 : parallax.gx * 0.6, gp = reducedMotion ? 0 : -parallax.gy * 0.4;
     camera.rotation.set(look.pitch + gp, look.yaw - gy, 0);
@@ -5000,6 +5064,7 @@ function frame() {
   updateRibbons(dt, rawDt);
   updateHelix(dt);
   updateFinale(rawDt);
+  if (finale.done) drawFinaleFire(Math.min(rawDt, 0.1));
   updateProps(dt);
   updateParticles(dt);
   if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey);

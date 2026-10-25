@@ -2144,7 +2144,7 @@
     "slingshot": "spaceship"
   },
   "finale": {
-    "note": "Paul, 25 October: the decode ends on one huge eye filling the screen (o1-eye-final), mirrored to sit with the helix, the 3D helix growing out of its pupil towards the camera with its tail thinning away; when it fills the screen, black, then To be continued (OBTRAN 003's hand lettering; OBTRAN 001 has none of its own)",
+    "note": "Paul, 25 October: the decode ends on one huge eye filling the screen (o1-eye-final), mirrored to sit with the helix, the 3D helix growing out of its pupil towards the camera with its tail thinning away; when it fills the screen, black, then To be continued (OBTRAN 003's hand lettering; OBTRAN 001 has none of its own). Behind the card, a giant fire of soft gaussian flames; the card half size, cut to its outline (props/tbc-end.png, from OBTRAN 003's full resolution page)",
     "clip": "o1-eye-final",
     "flip": true,
     "pupil": [
@@ -2160,7 +2160,7 @@
     "grow": 5.5,
     "tail": 0.4,
     "spin": 1.2,
-    "endImage": "assets/props/tbc-end.webp",
+    "endImage": "assets/props/tbc-end.png",
     "endDelay": 0.9
   },
   "glyphColours": [
@@ -2180,5 +2180,21 @@
       110
     ]
   ],
-  "glyphColoursNote": "Paul, 25 October: the glyph field in the cryptid's eye colours: each glyph between fiery orange and deep red, the bright front ring hot yellow-orange"
+  "glyphColoursNote": "Paul, 25 October: the glyph field in the cryptid's eye colours: each glyph between fiery orange and deep red, the bright front ring hot yellow-orange",
+  "cameraMoves": {
+    "lyra-ruins": {
+      "note": "Paul, 25 October: the opening starts on his first view (turned right, the blue slab at the far left, the purple sky) and ends on his second (the blaze ahead, the slab right of centre), zooming out as it goes",
+      "from": {
+        "yaw": -50,
+        "pitch": -8,
+        "zoom": 0.72
+      },
+      "to": {
+        "yaw": 0,
+        "pitch": 0,
+        "zoom": 1
+      },
+      "dur": 8
+    }
+  }
 }
