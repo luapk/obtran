@@ -4183,7 +4183,7 @@ if (SHIP) {
     const fwd = new THREE.Vector3(...(SHIP.forward || [-1, 0, 0])).normalize();
     holder.quaternion.setFromUnitVectors(fwd, new THREE.Vector3(0, 0, -1));
     const u = { uLevel: { value: 0 }, uInk: { value: new THREE.Vector3(0.05, 0.045, 0.04) } };
-    model.traverse((m) => { if (m.isMesh) { m.material = propTextured(m.material, u); m.renderOrder = 6.8; m.material.depthTest = false; } });
+    model.traverse((m) => { if (m.isMesh) { m.material = propTextured(m.material, u); m.renderOrder = 7.4; m.material.depthTest = false;   // over the folding map (7), so it flies across it } });
     ship.u = u; ship.obj = new THREE.Group(); ship.obj.add(holder); ship.obj.visible = false; scene.add(ship.obj);
     ship.nozzles = (SHIP.thrusters || [[0.47, 0, 0]]).map((p) => new THREE.Vector3(...p).sub(centre).applyQuaternion(holder.quaternion).multiplyScalar(k));
     // the contrail
@@ -4208,7 +4208,7 @@ if (SHIP) {
           vec3 c = mix(vec3(0.55, 1.0, 0.85), vec3(0.85, 0.88, 0.95), smoothstep(0.0, 0.35, vAge));   // mint at the nozzle, then vapour
           gl_FragColor = vec4(c * g * vA * uLevel * 0.55, 1.0); }`,
     });
-    ship.trail = new THREE.Points(geo, mat); ship.trail.frustumCulled = false; ship.trail.renderOrder = 6.6; ship.trail.visible = false;
+    ship.trail = new THREE.Points(geo, mat); ship.trail.frustumCulled = false; ship.trail.renderOrder = 7.3; ship.trail.visible = false;
     scene.add(ship.trail);
     ship.ready = true;
   })();
