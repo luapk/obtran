@@ -419,6 +419,7 @@ Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the b
 - **The ship in the manifold** (Paul: "a 3D file of the spaceship. lets use this cleverly on the map manifold scene, with gaussian contrail coming out of jet thrusters"): `setPieces.ship` (`updateShip`).
   - The model is his Meshy file, slimmed by `tools/slim_glb.py` to `assets/props/ship.glb` (1.15 MB; the original is in `source/3d/`, gitignored), cel lit from its own texture.
   - While the map waits to be folded, the ship flies a slow figure of eight in the space beyond it (`distance` 18 ahead, `radius` 9, `period` 14 s).
+  - It and its contrail are drawn over the folding map (render order 7.4 and 7.3, the map 7), as the map covers most of a phone screen and hid it.
   - As the reader folds, it is drawn towards the middle and speeds up.
   - At the slingshot it replaces the flat cut-out and accelerates away into the distance over 1.3 s. The story moves on at 1.5 s.
   - Each of its three thrusters (the rear faces of its engine pods and its centre nozzle) trails soft additive gaussian points: mint at the nozzle, white vapour behind, spreading and fading over `trailLife` 1.8 s, thicker when it is fast.
