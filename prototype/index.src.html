@@ -5034,7 +5034,8 @@ canvas.addEventListener('pointermove', (e) => {
   if (state.stage === 'void' && look.dragging) {
     const dx = e.clientX - look.lastX, dy = e.clientY - look.lastY;
     look.lastX = e.clientX; look.lastY = e.clientY;
-    look.vyaw = -dx * 0.0042; look.vpitch = -dy * 0.0042;
+    // inverted (Paul, 26 October: "in the worlds can we invert scrolling control"): the view turns the way the finger goes
+    look.vyaw = dx * 0.0042; look.vpitch = dy * 0.0042;
     if (worlds.ok) {
       const L = worlds.limits, over = (v, a, b) => (v < a ? a - v : v > b ? v - b : 0);
       look.vyaw *= 1 / (1 + 6 * over(look.yaw + look.vyaw, L.yaw[0], L.yaw[1]));

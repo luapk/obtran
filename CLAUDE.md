@@ -448,6 +448,7 @@ Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the b
   - `replace_blobs.py` found 71 painted skulls on the ground (18 near) and replaced them, and `make_occluder.py` rebuilt the depth shell;
   - the fires, smoke and embers kept their directions and had their distances scaled by the ratio of the two worlds' surfaces along each direction (15th percentile distance of opaque splats within 2.5 degrees), one ratio per source (the middle of its emitters'), a ratio outside 0.6 to 1.6 (something near in the way) left at 1: the main blaze 0.76, the towers' smoke 1.06, the right fire 1.13, the left fire 0.69, the near embers 1.19.
   - Note for the preview tool: marble-1.1 splats are long flat streaks, so `preview_splats.py` (a dot per splat) makes them look speckled; judge them in the engine.
+- **Dragging in the worlds is inverted** (Paul, 26 October: "in the worlds can we invert scrolling control"): the view now turns the way the finger or mouse moves, on both axes (`look.vyaw = dx * 0.0042`, `look.vpitch = dy * 0.0042`; it was the other way round). Device tilt is unchanged.
 - Earlier note on credits: World Labs API 0 then ( the minimum purchase is 6,250 credits, $5); Higgsfield 280.84. `worlds/run.json` with `credits: true` reads the World Labs balance for free into `worlds/worlds/credits.json`.
 
 ## Methodology for the next comic
