@@ -66,10 +66,14 @@
   #s8 { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: none; background: #000; }
   #s8.on { display: block; }
   #filmCard, #padCard { position: absolute; top: auto; right: auto; left: 50%; bottom: 13%; transform: translateX(-50%); width: min(86vw, 26vh * var(--aw, 3) * var(--cs, 1), 62vh * var(--a, 1)); height: auto; pointer-events: none; display: none; }
+  #filmCard.sideR, #padCard.sideR { left: auto; right: 4vw; transform: none; max-width: 44vw; }
+  #filmCard.sideL, #padCard.sideL { left: 4vw; transform: none; max-width: 44vw; }
   #filmCard.show, #padCard.show { display: block; animation: filmCardIn 0.45s cubic-bezier(.2,1.6,.4,1) both; }
   #padCard.show.out { animation: padCardOut 0.35s ease-in both; }
   @keyframes padCardOut { 0% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.94); } }
   @keyframes filmCardIn { 0% { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.86); filter: brightness(1.8); } 40% { opacity: 1; } 100% { transform: translateX(-50%); filter: none; } }
+  @keyframes filmCardInS { 0% { opacity: 0; transform: translateY(16px) scale(0.86); filter: brightness(1.8); } 40% { opacity: 1; } 100% { transform: none; filter: none; } }
+  #filmCard.sideR.show, #padCard.sideR.show, #filmCard.sideL.show, #padCard.sideL.show { animation-name: filmCardInS; }
   @keyframes filmIn { 0% { transform: translateX(-3%) scaleY(1.04); filter: brightness(2.2); } 60% { transform: translateX(1.5%); } 100% { transform: none; filter: none; } }
   /* the OT logo, white out of black (Paul), flashes up first: a couple of glitched frames (one inverted), a hold, then it cuts away */
   #intro { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #050403; color: #efe9df; animation: introIn 0.9s linear both; }
@@ -2340,7 +2344,7 @@ async function loadProps() {
         const o = new THREE.Mesh(m.geometry, mats.line); o.renderOrder = 3.9;
         m.add(o);
       }
-      obj.add(holder); obj.scale.setScalar(scale); obj.userData.copy = true;
+      obj.add(holder); obj.scale.setScalar(scale); obj.userData.copy = true; obj.userData.size = (cp.size ?? 0.1) * WORLD_SCALE;
       obj.position.copy(dirOf(cp.at));
       obj.lookAt(0, 0, 0);
       const r = cp.turn || [0, 0, 0];
@@ -2398,23 +2402,33 @@ function updateProps(dt) {
   props.level.value += ((any ? (sp ? 1 : 1 - 0.9 * worlds.suction) : 0) - props.level.value) * (1 - Math.exp(-dt * 3));
   props.root.visible = props.level.value > 0.01;
   props.root.position.copy(P0);
-  // a prop rising over the vortex and turning there as the space collapses (outSpin), then home again
+  // a prop rising over the vortex and turning there as the space collapses (outSpin), then home again. With several
+  // copies (the skulls), the biggest rises and the rest hide; size: its height as a share of the view (the giant
+  // skull, Paul: "have a giant one spinning in the vortex"), else it shrinks a little as it rises (the pod)
   for (const p of props.list) {
-    const obj = p.group.children.find((o) => o.userData.copy);
-    if (!obj) continue;
-    obj.userData.home ??= { pos: obj.position.clone(), quat: obj.quaternion.clone(), scale: obj.scale.x };
-    const h = obj.userData.home;
-    if (sp && sp.id === p.pr.id && p.group.visible) {
-      sp.t += dt;
-      const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-      const at = camera.position.clone().addScaledVector(fwd, 9).addScaledVector(up, 1.6).sub(P0);   // ahead, over the core
-      const k = ease(clamp(sp.t / 1.4, 0, 1));
-      obj.position.lerpVectors(h.pos, at, k);
-      obj.scale.setScalar(h.scale * (1 - 0.55 * k));
-      const turn = new THREE.Quaternion().setFromAxisAngle(up, sp.t * 0.7);   // slowly, about the vertical
-      obj.quaternion.copy(h.quat).premultiply(turn);
-    } else if (obj.position.distanceToSquared(h.pos) > 1e-6) {
-      obj.position.copy(h.pos); obj.quaternion.copy(h.quat); obj.scale.setScalar(h.scale);
+    const copies = p.group.children.filter((o) => o.userData.copy);
+    if (!copies.length) continue;
+    for (const o of copies) o.userData.home ??= { pos: o.position.clone(), quat: o.quaternion.clone(), scale: o.scale.x };
+    const spinning = sp && sp.id === p.pr.id && p.group.visible;
+    if (spinning && !sp.obj) sp.obj = copies.reduce((a, o) => (o.userData.size > a.userData.size ? o : a), copies[0]);
+    for (const obj of copies) {
+      const h = obj.userData.home;
+      if (spinning && obj === sp.obj) {
+        sp.t += dt;
+        const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+        const D = 9, at = camera.position.clone().addScaledVector(fwd, D).addScaledVector(up, sp.size ? 0.6 : 1.6).sub(P0);   // ahead, over the core
+        const k = ease(clamp(sp.t / 1.4, 0, 1));
+        obj.position.lerpVectors(h.pos, at, k);
+        const visH = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+        const to = sp.size ? h.scale * (visH * sp.size) / obj.userData.size : h.scale * 0.45;
+        obj.scale.setScalar(h.scale + (to - h.scale) * k);
+        const turn = new THREE.Quaternion().setFromAxisAngle(up, sp.t * (sp.rate ?? 0.7));   // slowly, about the vertical
+        obj.quaternion.copy(h.quat).premultiply(turn);
+        obj.visible = true;
+      } else {
+        obj.visible = !spinning;
+        if (obj.position.distanceToSquared(h.pos) > 1e-6) { obj.position.copy(h.pos); obj.quaternion.copy(h.quat); obj.scale.setScalar(h.scale); }
+      }
     }
   }
 }
@@ -2941,12 +2955,15 @@ function setCard(beatIndex, keep = false) {
 // long one-line boxes are held to the width of the others (Paul: "reduce width of holy smokes and unlock your key
 // panels to match width of the other text panels"): the width is worked out as if no box were wider than CARD_ASPECT
 const CARD_ASPECT = COMIC.cardAspect ?? 3.9;   // the widest box shape a card's width is worked out for
-function cardPose(fov, aspect = cardState.aspect) {
+function cardPose(fov, aspect = cardState.aspect, id = BEATS[state.beat]?.b) {
   const dist = 2.4, visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)), visW = visH * camera.aspect;
-  // a beat's cardScale makes its card bigger (OBTRAN 001's tall lifeform box, Paul: "can be double the size"), kept on screen
-  const sc = cardState.scale || 1;
-  const w = Math.min(visW * 0.86, visH * 0.26 * sc * Math.min(aspect, CARD_ASPECT), visH * 0.62 * aspect);
-  return { dist, w, h: w / aspect, y: -visH / 2 + w / aspect / 2 + visH * 0.13 };
+  // a beat's cardScale makes its card bigger (OBTRAN 001's tall lifeform box, Paul: "can be double the size"), kept on
+  // screen; cardSide "right" puts it at the right of the screen (Paul: centred, it "covers the character")
+  const bt = BEATS.find((b) => b.b === id) || {};
+  const sc = bt.cardScale || 1;
+  const w = Math.min(visW * (bt.cardSide ? 0.44 : 0.86), visH * 0.26 * sc * Math.min(aspect, CARD_ASPECT), visH * 0.62 * aspect);
+  const x = bt.cardSide === 'right' ? visW / 2 - w / 2 - visW * 0.04 : bt.cardSide === 'left' ? -visW / 2 + w / 2 + visW * 0.04 : 0;
+  return { dist, w, h: w / aspect, x, y: -visH / 2 + w / aspect / 2 + visH * 0.13 };
 }
 
 // where the camera has to be for a box on the page to sit exactly where the card rests in a space:
@@ -2954,8 +2971,8 @@ function cardPose(fov, aspect = cardState.aspect) {
 function boxPose(id, fov = voidFov()) {
   const [u0, v0, u1, v1] = bubbleById[id].uv;
   const c = uvToWorld((u0 + u1) / 2, (v0 + v1) / 2), bw = (u1 - u0) * PW, bh = (v1 - v0) * PH;
-  const pose = cardPose(fov, bw / bh), D = pose.dist * bw / pose.w;
-  return { c, bw, bh, fov, to: new THREE.Vector3(c.x, c.y - pose.y * D / pose.dist, bubbleZ + 0.004 + D) };
+  const pose = cardPose(fov, bw / bh, id), D = pose.dist * bw / pose.w;
+  return { c, bw, bh, fov, to: new THREE.Vector3(c.x - pose.x * D / pose.dist, c.y - pose.y * D / pose.dist, bubbleZ + 0.004 + D) };
 }
 // how far back the whole page fits at a given lens (as fit() does for the page's own lens)
 function pageDist(fov) {
@@ -2969,7 +2986,7 @@ function updateCard(dt) {
   cardState.lift += cardState.vel * dt;
   if (cardState.target === 0 && cardState.lift < 0.01) { card.visible = false; return; }
   if (journey.phase === 'enter' || journey.phase === 'hop') return;   // lying on the page while the camera moves
-  const { dist, w, h, y: restY } = cardPose(camera.fov);
+  const { dist, w, h, x: restX, y: restY } = cardPose(camera.fov);
   const k = reducedMotion ? 1 : Math.max(0, cardState.lift);
   // left waiting 10 s with no touch, click or key, the card pulses once: a swell and a flash of glow
   const now = performance.now();
@@ -2983,7 +3000,7 @@ function updateCard(dt) {
   const pk = 1 + 0.14 * pulse;
   card.scale.set(w * (0.7 + 0.3 * k) * pk, h * (0.7 + 0.3 * k) * pk, 1);
 
-  card.position.set(0, restY, -dist + (reducedMotion ? 0 : (1 - k) * 0.6));
+  card.position.set(restX, restY, -dist + (reducedMotion ? 0 : (1 - k) * 0.6));
   card.rotation.z = reducedMotion ? 0 : cardState.tilt * k;
   cardMat.uniforms.uOpacity.value = clamp(cardState.lift * 1.4, 0, 1);
   journey.cardT += dt;
@@ -3300,7 +3317,9 @@ function showFilmCard(beat, el = $('filmCard')) {
   el.width = Math.round(sw * k); el.height = Math.round(sh * k);
   el.style.setProperty('--a', (sw / sh).toFixed(3));
   el.style.setProperty('--aw', Math.min(sw / sh, CARD_ASPECT).toFixed(3));
-  el.style.setProperty('--cs', String(BEATS.find((x) => x.b === beat)?.cardScale || 1));   // held to the others' width, as the 3D card is
+  const bt = BEATS.find((x) => x.b === beat) || {};
+  el.style.setProperty('--cs', String(bt.cardScale || 1));
+  el.classList.toggle('sideR', bt.cardSide === 'right'); el.classList.toggle('sideL', bt.cardSide === 'left');   // held to the others' width, as the 3D card is
   const c = el.getContext('2d');
   c.clearRect(0, 0, el.width, el.height);
   c.save(); c.beginPath();
@@ -4260,7 +4279,7 @@ function layCard(P) {
 // the card back riding the camera, exactly where it has reached on screen
 function rideCard() {
   const p = cardPose(camera.fov);
-  camera.add(card); card.position.set(0, p.y, -p.dist); card.rotation.set(0, 0, 0); card.scale.set(p.w, p.h, 1);
+  camera.add(card); card.position.set(p.x, p.y, -p.dist); card.rotation.set(0, 0, 0); card.scale.set(p.w, p.h, 1);
 }
 // from a space back onto the page, to the card's own box, as the space collapses behind the card:
 // the camera is put where the box sits exactly as the card did, and the page fades up around it
@@ -4372,7 +4391,7 @@ function journeyNext() {
   if (reducedMotion) { leave(next.world, () => arrive(i + 1)); return; }
   // outSpin: a prop rises over the collapsing space and turns there, the collapse lasting that much longer (OBTRAN 001's
   // pod, Paul: "have the pod spinning slowly above the vortex gaussian splat, for 3 seconds longer")
-  if (beat.outSpin) { props.spin = { id: beat.outSpin.prop, t: 0, dur: OUT_DUR + (beat.outSpin.secs ?? 3) }; leave(null, () => { props.spin = null; startHop(i + 1); }, props.spin.dur, true); return; }
+  if (beat.outSpin) { props.spin = { ...beat.outSpin, id: beat.outSpin.prop, t: 0, dur: OUT_DUR + (beat.outSpin.secs ?? 3) }; leave(null, () => { props.spin = null; startHop(i + 1); }, props.spin.dur, true); return; }
   leave(null, () => startHop(i + 1), OUT_DUR, true);
 }
 

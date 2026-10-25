@@ -17,7 +17,14 @@
   "beats": [
     {
       "b": "lyra",
-      "note": "EPSILON CYGNI, 3089 AD. ALL LIFE ON THE EXOPLANET LYRA HAS BEEN OBLITERATED..."
+      "note": "EPSILON CYGNI, 3089 AD. ALL LIFE ON THE EXOPLANET LYRA HAS BEEN OBLITERATED...",
+      "outSpin": {
+        "prop": "skulls",
+        "secs": 2.5,
+        "size": 0.5,
+        "rate": 0.8
+      },
+      "outSpinWhy": "Paul, 25 October: leaving the skull planet, a giant skull spinning in the vortex of the transition"
     },
     {
       "b": "vessel",
@@ -31,7 +38,8 @@
       "note": "...A DNA-ENCRYPTED LIFEFORM! ... THE OBLIVIOUS TRANSFER!",
       "glyphs": true,
       "glyphsWhy": "Paul, 25 October: no blurry cockpit world behind the caption; OBTRAN 003's scrambling glyph field instead, as it matches the voice over (the encryption)",
-      "cardScale": 2
+      "cardScale": 2,
+      "cardSide": "right"
     },
     {
       "b": "manifold",
