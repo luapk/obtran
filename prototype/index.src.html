@@ -3665,7 +3665,7 @@ function super8Frame(S, v, W, H, sx, sy, keep, fx, fy) {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   return true;
 }
-const FILM_OUT = 1.4;   // how much further out than filling a portrait screen
+const FILM_OUT = 1.65;  // how much further out than filling a portrait screen (1.4, then wider still: Paul, 26 October)
 // on a phone the film plays as itself, with no pass at all (Paul, 26 October: still glitchy; "switch off for phone"):
 // the browser composites the video directly, the steadiest way it shows one. The framing moves into the layout:
 // further out on portrait screens (FILM_OUT, never past the frame's width), about the clip's focus, its crop as a zoom
