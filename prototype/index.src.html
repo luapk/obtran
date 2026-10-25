@@ -379,8 +379,11 @@ const GLSL_COMMON = `
 `;
 
 /* ---------- page mesh (2.5D relief) ---------- */
-const bubbleRects = META.bubbles.map((b) => new THREE.Vector4(...b.uv));
-const lifts = new Array(10).fill(0);
+// the page shader holds up to BOX_MAX lettering boxes; unused slots are empty rects that mark nothing
+const BOX_MAX = 16;
+if (META.bubbles.length > BOX_MAX) console.warn(`only the first ${BOX_MAX} lettering boxes can be lifted`);
+const bubbleRects = Array.from({ length: BOX_MAX }, (_, i) => META.bubbles[i] ? new THREE.Vector4(...META.bubbles[i].uv) : new THREE.Vector4(2, 2, 2, 2));
+const lifts = new Array(BOX_MAX).fill(0);
 const pageMat = new THREE.ShaderMaterial({
   uniforms: {
     ...shared,
@@ -398,8 +401,8 @@ const pageMat = new THREE.ShaderMaterial({
       gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
     }`,
   fragmentShader: GLSL_COMMON + `
-    uniform vec4 uRects[10];
-    uniform float uLifts[10];
+    uniform vec4 uRects[${BOX_MAX}];
+    uniform float uLifts[${BOX_MAX}];
     uniform float uOpacity;
     uniform float uFlash;
     uniform float uPanelGlow;
@@ -418,7 +421,7 @@ const pageMat = new THREE.ShaderMaterial({
         col += vec3(1.0, 0.93, 0.82) * max(halo - pm, 0.0) * 1.9 * uPanelGlow;
         col *= 1.0 + 0.07 * pm * uPanelGlow;
       }
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < ${BOX_MAX}; i++) {
         vec4 r = uRects[i];
         vec2 m = smoothstep(r.xy - 0.004, r.xy + 0.004, vPuv) * (1.0 - smoothstep(r.zw - 0.004, r.zw + 0.004, vPuv));
         col *= 1.0 - 0.96 * uLifts[i] * m.x * m.y;
@@ -830,6 +833,7 @@ const SLAB = SP.slab || { card: { view: [0, 0], offset: [0, 0], size: [0.5, 0.5]
 // share of the sand shown over a relief (Bob's head): enough to drift past, not enough to hide his face
 const RELIEF_SAND = 0.35;
 const DEG = Math.PI / 180;
+const PAL_N = 8;   // most colours a palette grade can hold
 const worlds = {
   Spark: null, ok: false, list: [], views: {}, id: null, mesh: null, loading: null,
   limits: { yaw: [-Math.PI, Math.PI], pitch: [-1.3, 1.3] }, parallax: 2.0, offset: new THREE.Vector3(),
@@ -846,9 +850,17 @@ async function loadSpark() {
     time: dyno.dynoFloat(0), grade: dyno.dynoFloat(1), suction: dyno.dynoFloat(0), jitter: dyno.dynoFloat(0),
     lo: dyno.dynoFloat(0.15), hi: dyno.dynoFloat(0.3), grit: dyno.dynoFloat(0.04), grain: dyno.dynoFloat(0.22), size: dyno.dynoFloat(0.88),
     extrude: dyno.dynoFloat(1), sand: dyno.dynoFloat(1), cut: dyno.dynoFloat(0),
+    // fade splats of one colour (hue from, hue to, least brightness, how much): the world's own helix under the 3D one
+    fade: dyno.dynoVec4(new THREE.Vector4(0, 0, 1, 0)),
     ink: dyno.dynoVec3(new THREE.Vector3(0.020, 0.016, 0.012)),
     mid: dyno.dynoVec3(new THREE.Vector3(0.300, 0.300, 0.270)),
     paper: dyno.dynoVec3(new THREE.Vector3(0.937, 0.914, 0.875)),
+    // a colour comic's palette grade (tools/clean_worlds.py, "mode": "palette"): move the world's colours to the
+    // crop's (mean and spread in YCbCr), then pull softly towards the crop's main colours
+    gmode: dyno.dynoFloat(0), transfer: dyno.dynoFloat(0.6), pull: dyno.dynoFloat(0.45), soft: dyno.dynoFloat(0.08), npal: dyno.dynoFloat(0),
+    mw: dyno.dynoVec3(new THREE.Vector3(0.5, 0, 0)), sw: dyno.dynoVec3(new THREE.Vector3(0.2, 0.1, 0.1)),
+    mc: dyno.dynoVec3(new THREE.Vector3(0.5, 0, 0)), sc: dyno.dynoVec3(new THREE.Vector3(0.2, 0.1, 0.1)),
+    ...Object.fromEntries(Array.from({ length: PAL_N }, (_, k) => [`pal${k}`, dyno.dynoVec3(new THREE.Vector3())])),
   };
   const spark = new worlds.Spark.SparkRenderer({ renderer });
   spark.renderOrder = -10;   // splats first: the nucleus is drawn over them, the 3D shapes over that
@@ -874,6 +886,8 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
         gsplat: dyno.Gsplat, time: 'float', grade: 'float', suction: 'float', jitter: 'float', lo: 'float', hi: 'float',
         grit: 'float', grain: 'float', size: 'float', ink: 'vec3', mid: 'vec3', paper: 'vec3',
         extrude: 'float', depth: 'float', alpha: 'float', brightOnly: 'float', cut: 'float',
+        fade: 'vec4', gmode: 'float', transfer: 'float', pull: 'float', soft: 'float', npal: 'float', mw: 'vec3', sw: 'vec3', mc: 'vec3', sc: 'vec3',
+        ...Object.fromEntries(Array.from({ length: PAL_N }, (_, k) => [`pal${k}`, 'vec3'])),
       },
       outTypes: { gsplat: dyno.Gsplat },
       inputs: { gsplat, ...u },
@@ -915,12 +929,36 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
           c.z += (otHash(id + floor(${i.time} * 30.0)) - 0.5) * ${i.jitter} * 0.01;
         }
         vec3 rgb = ${o.gsplat}.rgba.rgb;
+        if (${i.fade}.w > 0.0) {
+          float mxc = max(rgb.r, max(rgb.g, rgb.b)), mnc = min(rgb.r, min(rgb.g, rgb.b));
+          float hue = mod(degrees(atan(1.7320508 * (rgb.g - rgb.b), 2.0 * rgb.r - rgb.g - rgb.b)) + 360.0, 360.0);
+          if (hue > ${i.fade}.x && hue < ${i.fade}.y && mxc > ${i.fade}.z && (mxc - mnc) > 0.35 * mxc) {
+            // dense overlapping splats add back up if only faded, so they shrink away too
+            ${o.gsplat}.rgba.a *= 1.0 - ${i.fade}.w;
+            ${o.gsplat}.scales *= 1.0 - ${i.fade}.w;
+          }
+        }
         float lum = dot(rgb, vec3(0.299, 0.587, 0.114)) + (otHash(id * 0.618) - 0.5) * ${i.grit};
         float w = max(0.004, (${i.hi} - ${i.lo}) * 0.25);
         float midW = smoothstep(${i.lo} - w, ${i.lo} + w, lum);
         float paperW = smoothstep(${i.hi} - w, ${i.hi} + w, lum);
         vec3 grainy = mix(${i.ink}, vec3(0.32, 0.25, 0.17), step(1.0 - ${i.grain}, otHash(id * 1.37)) * 0.55);
         vec3 inked = mix(mix(grainy, ${i.mid}, midW), ${i.paper}, paperW);
+        if (${i.gmode} > 0.5) {
+          // palette grade: to YCbCr, towards the crop's colour statistics, then a soft pull to its main colours
+          vec3 y = vec3(dot(rgb, vec3(0.299, 0.587, 0.114)), dot(rgb, vec3(-0.168736, -0.331264, 0.5)), dot(rgb, vec3(0.5, -0.418688, -0.081312)));
+          y = mix(y, (y - ${i.mw}) / ${i.sw} * ${i.sc} + ${i.mc}, ${i.transfer});
+          y.x += (otHash(id * 0.618) - 0.5) * ${i.grit};
+          vec3 wt = vec3(1.6, 1.0, 1.0);
+          float dm = 1e9;
+          ${Array.from({ length: PAL_N }, (_, k) => `vec3 q${k} = vec3(dot(${i['pal' + k]}, vec3(0.299, 0.587, 0.114)), dot(${i['pal' + k]}, vec3(-0.168736, -0.331264, 0.5)), dot(${i['pal' + k]}, vec3(0.5, -0.418688, -0.081312)));
+          float d${k} = ${k}.0 < ${i.npal} ? dot((y - q${k}) * wt, (y - q${k}) * wt) : 1e9; dm = min(dm, d${k});`).join('\n          ')}
+          float s2 = ${i.soft} * ${i.soft};
+          vec3 acc = vec3(0.0); float ws = 0.0;
+          ${Array.from({ length: PAL_N }, (_, k) => `{ float e = exp(-(d${k} - dm) / s2); acc += q${k} * e; ws += e; }`).join('\n          ')}
+          y = mix(y, acc / ws, ${i.pull});
+          inked = clamp(vec3(y.x + 1.402 * y.z, y.x - 0.344136 * y.y - 0.714136 * y.z, y.x + 1.772 * y.y), 0.0, 1.0);
+        }
         inked *= 1.0 + ${i.jitter} * 0.6 * step(0.8, otHash(floor(c.y * 34.0) + floor(${i.time} * 22.0)));
         ${o.gsplat}.rgba.rgb = mix(rgb, inked, ${i.grade});
         ${o.gsplat}.scales *= mix(1.0, ${i.size}, ${i.grade});
@@ -1049,7 +1087,9 @@ function loadWorld(id) {
     }
     worlds.mesh = mesh; worlds.echoes = echoes; worlds.sandMesh = sandMesh; worlds.id = id; worlds.ok = true;
     worlds.u.sand.value = worlds.sandOn && !reducedMotion ? (entry.relief ? RELIEF_SAND : 1) : 0;
-    worlds.u.cut.value = id === STORY_WORLD ? 1 : 0;   // Marble's white slab is cut out of the singularity
+    worlds.u.cut.value = id === STORY_WORLD && SP.slab ? 1 : 0;   // Marble's white slab is cut out of the singularity
+    const fh = SP.helix && helix.on && id === SP.helix.world && SP.helix.fadeHue;
+    worlds.u.fade.value.set(fh ? fh[0] : 0, fh ? fh[1] : 0, fh ? fh[2] ?? 0.5 : 1, fh ? fh[3] ?? 0.85 : 0);
     // the grade measured from the world's crop by tools/clean_worlds.py; a relief is the page's own ink
     const g = view.grade;
     worlds.relief = !!entry.relief;
@@ -1057,7 +1097,19 @@ function loadWorld(id) {
     worlds.u.extrude.value = entry.relief ? 0 : worlds.extrudeOn ? 1 : 0;
     worlds.parallax = entry.parallax || 2.0;
     worlds.radius = view.radius || 1.2;
-    if (g) {
+    // the wander's scale, kept within the clear space ahead (deep worlds have scenery near the viewpoint)
+    worlds.wanderR = view.clear ? Math.min(worlds.radius, 1.2 * view.clear) : worlds.radius;
+    worlds.u.gmode.value = g && g.mode === 'palette' ? 1 : 0;
+    if (g && g.mode === 'palette') {
+      worlds.u.lo.value = g.lo; worlds.u.hi.value = g.hi;
+      for (const k of ['mw', 'sw', 'mc', 'sc']) worlds.u[k].value.fromArray(g[k]);
+      worlds.u.transfer.value = g.transfer ?? 0.6; worlds.u.pull.value = g.pull ?? 0.45; worlds.u.soft.value = g.soft ?? 0.08;
+      const pal = g.palette.slice(0, PAL_N);
+      worlds.u.npal.value = pal.length;
+      pal.forEach((c, k) => worlds.u[`pal${k}`].value.fromArray(c));
+      // the sand takes the palette's lightest colour
+      worlds.u.paper.value.fromArray(pal[pal.length - 1]);
+    } else if (g) {
       worlds.u.lo.value = g.lo; worlds.u.hi.value = g.hi;
       worlds.u.ink.value.fromArray(g.ink); worlds.u.mid.value.fromArray(g.mid); worlds.u.paper.value.fromArray(g.paper);
     }
@@ -1823,6 +1875,111 @@ function updateRibbons(dt, rawDt) {
   ribbons.t = ribbons.t0 == null ? 0 : (performance.now() - ribbons.t0) / 1000;
   ribbons.group.position.copy(P0);
   for (const r of ribbons.list) r.mat.uniforms.uGrow.value = reducedMotion ? 1 : ease(clamp((ribbons.t - r.delay) / 2.4, 0, 1));
+}
+
+/* ---------- the DNA helix: a precise double helix in 3D, twisting (OBTRAN 001's decode) ---------- */
+// Paul, 25 October: "in the final scene create the twisting DNA strands precisely in 3D so that you can
+// animate them twisting". Two backbones and their base-pair rungs, shaded flat in the panel's mint with
+// dark ink at the silhouette, like the painting. The axis runs from `from` to `to` ([yaw, pitch, distance]
+// in the world's frame, Marble units, like the ribbons): from the eye's pupil out past the camera. It
+// unspools out of the pupil as the scene opens (each part thickens from nothing once the front reaches it),
+// then turns about its axis, and a band of light runs along it like a strand being read. The world's own
+// helix splats (their hue in `fadeHue`) are faded so the two never double up.
+const HELIX = SP.helix || null;
+const helix = { group: new THREE.Group(), mats: [], on: !!HELIX && params.get('helix') !== '0', level: { value: 0 }, t0: null, id: null, axis: new THREE.Vector3(), spin: 0 };
+if (HELIX) {
+  const dirOf = ([yw, pt, d]) => { const y = yw * DEG, p = pt * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)).multiplyScalar(d * WORLD_SCALE); };
+  const A = dirOf(HELIX.from), B = dirOf(HELIX.to), len = A.distanceTo(B);
+  const R = (HELIX.radius ?? 0.1) * WORLD_SCALE, turns = HELIX.turns ?? 6, rungsPerTurn = HELIX.rungs ?? 10;
+  const tube = (HELIX.strand ?? 0.018) * WORLD_SCALE, rungR = tube * 0.45;
+  const col = HELIX.colours || {};
+  const c3 = (v, d) => new THREE.Vector3(...(v || d));
+  // build along +y from the origin, then turn to the axis; the group spins about its own y
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTime: shared.uTime, uLevel: helix.level, uGrow: { value: 0 },
+      uBase: { value: c3(col.base, [0.25, 0.84, 0.62]) }, uShade: { value: c3(col.shade, [0.09, 0.42, 0.40]) },
+      uLight: { value: c3(col.light, [0.78, 1.0, 0.90]) }, uInk: { value: c3(col.ink, [0.05, 0.04, 0.07]) } },
+    transparent: true,
+    vertexShader: `uniform float uGrow; attribute float aS; attribute float aR; varying float vS; varying vec3 vN; varying vec3 vV;
+      void main(){
+        vS = aS;
+        // unspooling out of the pupil: a part thickens from nothing once the front (uGrow, 0 to 1 along it) passes
+        float g = smoothstep(aS - 0.06, aS, uGrow * 1.06);
+        vec3 p = position - normal * aR * (1.0 - g);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `uniform float uTime; uniform float uLevel; uniform vec3 uBase; uniform vec3 uShade; uniform vec3 uLight; uniform vec3 uInk; varying float vS; varying vec3 vN; varying vec3 vV;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+      void main(){
+        vec3 n = normalize(vN);
+        // cel shading in three steps like the painting, ink where the surface turns away
+        float light = max(dot(n, normalize(vec3(-0.35, 0.65, 0.7))), 0.0);
+        float rim = 1.0 - abs(dot(n, normalize(vV)));
+        float tone = light + (hash(floor(gl_FragCoord.xy / 1.5)) - 0.5) * 0.06;
+        vec3 c = tone > 0.88 ? uLight : tone > 0.32 ? uBase : uShade;
+        c = mix(c, uInk, smoothstep(0.6, 0.72, rim));
+        // a band of light running along the strands as they are read
+        float run = fract(vS * 2.0 - uTime * 0.12);
+        c += vec3(0.9, 1.0, 0.95) * smoothstep(0.05, 0.0, min(run, 1.0 - run)) * 0.6;
+        gl_FragColor = vec4(c, uLevel);
+        #include <colorspace_fragment>
+      }`,
+  });
+  helix.mats.push(mat);
+  const withAttrs = (geo, sFn, r) => {
+    const n = geo.attributes.position.count, aS = new Float32Array(n), aR = new Float32Array(n).fill(r);
+    for (let i = 0; i < n; i++) aS[i] = sFn(i, geo);
+    geo.setAttribute('aS', new THREE.BufferAttribute(aS, 1)); geo.setAttribute('aR', new THREE.BufferAttribute(aR, 1));
+    return geo;
+  };
+  const strandPoint = (s, phase) => { const a = s * turns * Math.PI * 2 + phase; return new THREE.Vector3(R * Math.cos(a), s * len, R * Math.sin(a)); };
+  for (const phase of [0, Math.PI]) {
+    const pts = Array.from({ length: turns * 24 + 1 }, (_, i) => strandPoint(i / (turns * 24), phase));
+    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), turns * 48, tube, 10, false);
+    const m = new THREE.Mesh(withAttrs(geo, (i, g) => g.attributes.uv.getX(i), tube), mat);
+    m.renderOrder = 3; helix.group.add(m);
+  }
+  // base pairs: a rung from each strand to the middle, with a small gap where they pair; a few broken off
+  const rnd = (k) => { const x = Math.sin(k * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+  const nR = Math.round(turns * rungsPerTurn);
+  for (let k = 0; k < nR; k++) {
+    const sk = (k + 0.5) / nR, p0 = strandPoint(sk, 0), p1 = strandPoint(sk, Math.PI), mid = p0.clone().lerp(p1, 0.5);
+    for (const [a, side] of [[p0, 0], [p1, 1]]) {
+      if (rnd(k * 2 + side) < 0.12) continue;
+      const end = a.clone().lerp(mid, 0.9), d = end.clone().sub(a), l = d.length();
+      const geo = new THREE.CylinderGeometry(rungR, rungR, l, 8, 1, false);
+      geo.translate(0, l / 2, 0);
+      geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()));
+      geo.translate(a.x, a.y, a.z);
+      const m = new THREE.Mesh(withAttrs(geo, () => sk, rungR), mat);
+      m.renderOrder = 3; helix.group.add(m);
+    }
+  }
+  // the inner group spins about the helix's own axis; the outer one puts that axis from A to B
+  helix.spinGroup = new THREE.Group();
+  helix.spinGroup.add(...helix.group.children);
+  helix.group.add(helix.spinGroup);
+  helix.group.position.copy(A);
+  helix.group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), B.clone().sub(A).normalize());
+  helix.root = new THREE.Group(); helix.root.add(helix.group); helix.root.visible = false;
+  scene.add(helix.root);
+}
+function updateHelix(dt) {
+  if (!HELIX) return;
+  const here = helix.on && state.stage === 'void' && worlds.ok && worlds.id === HELIX.world;
+  if (worlds.id !== helix.id) { helix.id = worlds.id; helix.t0 = null; }
+  helix.level.value += ((here ? 1 - 0.9 * worlds.suction : 0) - helix.level.value) * (1 - Math.exp(-dt * 3));
+  helix.root.visible = helix.level.value > 0.01;
+  if (!helix.root.visible) return;
+  if (worlds.suction < 0.6 && helix.t0 == null) helix.t0 = performance.now();
+  const t = helix.t0 == null ? 0 : (performance.now() - helix.t0) / 1000;
+  helix.mats[0].uniforms.uGrow.value = reducedMotion ? 1 : ease(clamp(t / (HELIX.grow ?? 4.5), 0, 1));
+  // the twist: steady, a touch faster while it unspools
+  if (!reducedMotion) helix.spin += dt * (HELIX.spin ?? 0.35) * (1 + 1.5 * (1 - clamp(t / 6, 0, 1)));
+  helix.spinGroup.rotation.y = helix.spin;
+  helix.root.position.copy(P0);
 }
 
 /* ---------- Bob's panel: cut from the page, floating in the opening space in layers ---------- */
@@ -3636,15 +3793,15 @@ async function startReview() {
   const shb = document.createElement('button');
   shb.className = 'ui-btn'; shb.type = 'button'; shb.textContent = 'Shards'; shb.setAttribute('aria-pressed', String(shards.on));
   shb.addEventListener('click', () => { shards.on = !shards.on; shb.setAttribute('aria-pressed', String(shards.on)); });
-  panel.append(shb);
+  if (SHARD_OUTLINES.length) panel.append(shb);
   const nb = document.createElement('button');
   nb.className = 'ui-btn'; nb.type = 'button'; nb.textContent = 'Nucleus'; nb.setAttribute('aria-pressed', String(nucleus.on));
   nb.addEventListener('click', () => { nucleus.on = !nucleus.on; nb.setAttribute('aria-pressed', String(nucleus.on)); });
-  panel.append(nb);
+  if (SP.nucleus) panel.append(nb);
   const rb = document.createElement('button');
   rb.className = 'ui-btn'; rb.type = 'button'; rb.textContent = 'Ribbons'; rb.setAttribute('aria-pressed', String(ribbons.on));
   rb.addEventListener('click', () => { ribbons.on = !ribbons.on; ribbons.t0 = null; rb.setAttribute('aria-pressed', String(ribbons.on)); });
-  panel.append(rb);
+  if (RIBBON_LINES.length) panel.append(rb);
   const slb = document.createElement('button');
   slb.className = 'ui-btn'; slb.type = 'button'; slb.textContent = 'Slab'; slb.setAttribute('aria-pressed', String(slab.on));
   slb.addEventListener('click', () => {
@@ -3652,7 +3809,17 @@ async function startReview() {
     worlds.u.cut.value = worlds.id === STORY_WORLD && slab.on ? 1 : 0;
     for (const m of worldMeshes()) m.updateVersion();
   });
-  panel.append(slb);
+  if (SP.slab) panel.append(slb);
+  if (HELIX) {
+    const hb = document.createElement('button');
+    hb.className = 'ui-btn'; hb.type = 'button'; hb.textContent = 'Helix'; hb.setAttribute('aria-pressed', String(helix.on));
+    hb.addEventListener('click', () => {
+      helix.on = !helix.on; helix.t0 = null; hb.setAttribute('aria-pressed', String(helix.on));
+      worlds.u.fade.value.w = helix.on && worlds.id === HELIX.world ? HELIX.fadeHue?.[3] ?? 0.85 : 0;
+      for (const m of worldMeshes()) m.updateVersion();
+    });
+    panel.append(hb);
+  }
   show(worlds.id || STORY_WORLD);
 }
 if (REVIEW) $('note').textContent = 'Review mode: opens the Marble worlds directly.';
@@ -3779,7 +3946,7 @@ function frame() {
       // a Marble world is a shell around its viewpoint, so a still camera sees a flat panorama;
       // a slow wander through the middle of it is what shows its depth
       if (!worlds.relief && !reducedMotion) {
-        const T = worlds.wanderT ?? state.endT, R = worlds.radius * WORLD_SCALE;
+        const T = worlds.wanderT ?? state.endT, R = (worlds.wanderR ?? worlds.radius) * WORLD_SCALE;
         // forward travel is shorter when extruded, so the camera stays clear of splats pulled towards it
         const ex = worlds.u.extrude.value > 0, side = ex ? 0.09 : 0.16, fwdMax = ex ? 0.12 : 0.24;
         worlds.wander.set(side * Math.sin(T * 0.13), 0.04 * Math.sin(T * 0.09 + 1), -fwdMax * (0.5 - 0.5 * Math.cos(T * 0.07))).multiplyScalar(R);
@@ -3838,6 +4005,7 @@ function frame() {
   if (films.on) { drawSuper8(rawDt); drawCCTV(rawDt); } else if (s8.el.classList.contains('on')) s8.el.classList.remove('on');
   if (pad.on) drawPad(rawDt);
   updateRibbons(dt, rawDt);
+  updateHelix(dt);
   if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey);
   sound.update(dt, camera);
   renderer.render(scene, camera);
@@ -3850,7 +4018,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
+  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, helix, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>

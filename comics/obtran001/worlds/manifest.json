@@ -5,6 +5,11 @@
     5968
   ],
   "style": "Hand painted comic art: bold black ink outlines over saturated painted colour, magenta, orange and violet skies, deep violet and teal space, glowing mint green light, visible brush and pencil texture. Keep the painted comic look; do not make it photographic.",
+  "grade": {
+    "mode": "palette",
+    "colours": 8,
+    "note": "Paul: a bespoke grade per comic, as many colours as the art needs, matched to the page"
+  },
   "note": "Crops cut clear of the lettering by tools/cut_crops.py. Regions read off a 1000 wide grid over the page (crop_px is page pixels). Provisional until the storyboard.",
   "elements": [
     {

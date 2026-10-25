@@ -99,9 +99,58 @@
       ]
     }
   ],
-  "finalWorld": "eye",
+  "finalWorld": "decode-helix",
   "endBeat": "decode",
   "cardAspect": 3.9,
   "speakerGain": {},
-  "setPieces": {}
+  "setPieces": {
+    "helix": {
+      "note": "Paul, 25 October: the twisting DNA strands built precisely in 3D for the final scene. from/to are [yaw, pitch, distance] in the world's frame (Marble units): near the ends of the world's own helix, measured from its mint splats (it arcs round the viewer about 2 units out), lowered about 9 and 5 degrees so the 3D one crosses the middle of the view; the 3D one runs along the chord between them, so it passes a little nearer. radius from the spread of those splats. fadeHue: [hue from, hue to, least brightness, fade] for the world's own helix splats.",
+      "world": "decode-helix",
+      "from": [
+        -12,
+        10,
+        1.9
+      ],
+      "to": [
+        95,
+        -14,
+        2.0
+      ],
+      "radius": 0.15,
+      "turns": 8,
+      "rungs": 10,
+      "strand": 0.018,
+      "spin": 0.35,
+      "grow": 4.5,
+      "fadeHue": [
+        135,
+        176,
+        0.28,
+        0.92
+      ],
+      "colours": {
+        "base": [
+          0.17,
+          0.7,
+          0.53
+        ],
+        "shade": [
+          0.06,
+          0.33,
+          0.31
+        ],
+        "light": [
+          0.52,
+          0.93,
+          0.76
+        ],
+        "ink": [
+          0.04,
+          0.035,
+          0.06
+        ]
+      }
+    }
+  }
 }

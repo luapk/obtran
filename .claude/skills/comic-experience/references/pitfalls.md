@@ -20,3 +20,8 @@
 | Build | `--out` paths are relative to the repo root | Build to `dist/` (gitignored) for local tests |
 | Process | Two sessions worked on `main` at once and solved the same problem twice | One session per comic; merge `main` before every push |
 | Headless | SwiftShader renders a frame every few seconds, so frame-based timers stretch | Time anything tied to sound by the clock; judge timing on a phone |
+| Worlds | World Labs refused a bonfire crop twice as violence (spears, figures in the flames, a body by the fire); refusals cost nothing | Keep weapons, figures in fire and bodies out of crops; cut tighter and let a film carry the people |
+| Worlds | Painted colour art came back deep (OBTRAN 001: medians up to 7) and the wander, scaled to the median, drove the camera into the scenery | `clean_worlds.py` writes `clear`; the wander stays within 1.2 times it |
+| Grade | A colour comic needs its own grade; a strong palette pull posterises | `"grade": {"mode": "palette"}` in the manifest; gentle `pull`, partial `transfer` |
+| Engine | The page shader assumed ten lettering boxes | `BOX_MAX`; load a new comic in review mode early to find assumptions like this |
+| Assets | Paul's 3D model came as a Maya binary scene and he has no Maya | `tools/mb_to_glb.py` reads the meshes, UVs and transforms out of the .mb |

@@ -104,7 +104,7 @@ if (!inline) {
   const PROPS = join(ASSETS, 'props');
   if (existsSync(PROPS)) {
     mkdirSync(join(DIST, 'assets', 'props'), { recursive: true });
-    for (const f of readdirSync(PROPS).filter((f) => /\.(png|jpg|webp|json)$/.test(f))) copyFileSync(join(PROPS, f), join(DIST, 'assets', 'props', f));
+    for (const f of readdirSync(PROPS).filter((f) => /\.(png|jpg|webp|json|glb)$/.test(f))) copyFileSync(join(PROPS, f), join(DIST, 'assets', 'props', f));
   }
   // short films of Bob (films/README.md): start frames and approved clips
   const FILMS = join(ASSETS, 'films');

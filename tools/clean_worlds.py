@@ -19,12 +19,19 @@ Marble worlds put the input view at the origin, looking down +z with y down
 (OpenCV axes). Angles here are in degrees in that frame: yaw positive to the
 right, pitch positive up.
 
-Usage: python3 tools/clean_worlds.py
+A colour comic (its manifest says "grade": {"mode": "palette"}) gets a palette grade instead of the
+three tones: the world's colours are moved to the crop's (mean and spread of luma and the two colour
+axes, over the front view) and then pulled towards the crop's own main colours (k-means over the crop
+in Lab, "colours" of them, 8 by default), so Marble's invented regions take the painting's colours.
+
+Usage: python3 tools/clean_worlds.py [--comic <id>]
+  (another comic: its manifest and crops in comics/<id>/worlds, its splats in comics/<id>/worlds/worlds)
 Needs: numpy, Pillow.
 """
 import gzip
 import json
 import struct
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -111,7 +118,12 @@ def view_limits(pos, rgb):
     def shrink(r, cap, floor):
         lo, hi = (r[0] + MARGIN, r[1] - MARGIN) if r[1] - r[0] > 2 * MARGIN else (0.0, 0.0)
         return [max(-cap, min(lo, -floor)), min(cap, max(hi, floor))]
-    return {"yaw": shrink([y0, y1], 175, 60), "pitch": shrink([p0, p1], 80, 40), "radius": float(np.percentile(dist, 50))}
+    # how far the nearest things ahead are (3rd percentile within 35 degrees of forward): the camera's wander
+    # is kept within this, as deep worlds (OBTRAN 001's ruins: median 7, ground 0.46 ahead) have near scenery
+    fwd = pos[:, 2] / dist > np.cos(np.radians(35))
+    clear = float(np.percentile(dist[fwd], 3)) if fwd.sum() > 100 else float(np.percentile(dist, 3))
+    return {"yaw": shrink([y0, y1], 175, 60), "pitch": shrink([p0, p1], 80, 40), "radius": float(np.percentile(dist, 50)),
+            "clear": round(clear, 3)}
 
 
 def grade_for(crop_path, pos, rgb):
@@ -136,9 +148,69 @@ def grade_for(crop_path, pos, rgb):
             "shares": [round(float(ink.mean()), 3), round(float(mid.mean()), 3), round(float(paper.mean()), 3)]}
 
 
+# YCbCr (full range, BT.601): luma and two colour axes, a cheap space for moving colours on the GPU
+YCC = np.array([[0.299, 0.587, 0.114], [-0.168736, -0.331264, 0.5], [0.5, -0.418688, -0.081312]])
+
+
+def srgb_to_lab(rgb):
+    c = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+    xyz = c @ np.array([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]]).T
+    xyz /= np.array([0.95047, 1.0, 1.08883])
+    f = np.where(xyz > 0.008856, np.cbrt(xyz), 7.787 * xyz + 16 / 116)
+    return np.stack([116 * f[:, 1] - 16, 500 * (f[:, 0] - f[:, 1]), 200 * (f[:, 1] - f[:, 2])], axis=1)
+
+
+def kmeans(x, k, iters=30, seed=5):
+    rng = np.random.default_rng(seed)
+    c = x[rng.choice(len(x), 1)]
+    for _ in range(1, k):  # k-means++ seeding
+        d = ((x[:, None, :] - c[None]) ** 2).sum(-1).min(1)
+        c = np.vstack([c, x[rng.choice(len(x), 1, p=d / d.sum())]])
+    for _ in range(iters):
+        lab = ((x[:, None, :] - c[None]) ** 2).sum(-1).argmin(1)
+        c = np.array([x[lab == j].mean(0) if (lab == j).any() else c[j] for j in range(k)])
+    return c, lab
+
+
+def palette_grade_for(crop_path, pos, rgb, colours=8):
+    """Move the world's front view to the crop's colour statistics, then pull towards the crop's main colours."""
+    a = (np.asarray(Image.open(crop_path).convert("RGB"), np.float32) / 255.0).reshape(-1, 3)
+    rng = np.random.default_rng(1)
+    a = a[rng.choice(len(a), min(len(a), 40000), replace=False)]
+    dist = np.linalg.norm(pos, axis=1) + 1e-9
+    yaw = np.degrees(np.arctan2(pos[:, 0], pos[:, 2]))
+    pitch = np.degrees(np.arcsin(np.clip(-pos[:, 1] / dist, -1, 1)))
+    front = (np.abs(yaw) < 70) & (np.abs(pitch) < 50)
+    yc, yw = a @ YCC.T, rgb[front] @ YCC.T
+    centres, lab = kmeans(srgb_to_lab(a), colours)
+    pal = np.array([a[lab == j].mean(0) for j in range(colours) if (lab == j).any()])
+    share = np.array([(lab == j).mean() for j in range(colours) if (lab == j).any()])
+    order = np.argsort(pal @ LUMA)
+    pal, share = pal[order], share[order]
+    lum = rgb[front] @ LUMA
+    r3 = lambda v: [round(float(x), 4) for x in v]
+    return {"mode": "palette",
+            "mw": r3(yw.mean(0)), "sw": r3(np.maximum(yw.std(0), 1e-3)),
+            "mc": r3(yc.mean(0)), "sc": r3(np.maximum(yc.std(0), 1e-3)),
+            "palette": [r3(p) for p in pal], "shares": r3(share),
+            # luminance bands for the extrusion and echoes (bright things come forward): the world's own quartiles
+            "lo": round(float(np.quantile(lum, 0.25)), 4), "hi": round(float(np.quantile(lum, 0.75)), 4),
+            # how far to move towards the crop's statistics, how hard to pull to the palette, and how soft the pull is
+            # (a strong pull posterises: Lyra's red ground went yellow and the manifold's nebulae turned to blotches)
+            "transfer": 0.6, "pull": 0.45, "soft": 0.08}
+
+
 def main():
-    manifest = json.loads((ROOT / "worlds" / "manifest.json").read_text())
-    crops = {e["id"]: ROOT / "worlds" / e["crop"] for e in manifest["elements"]}
+    global WORLDS
+    base = ROOT / "worlds"
+    if "--comic" in sys.argv:
+        cid = sys.argv[sys.argv.index("--comic") + 1]
+        if cid != "obtran003":
+            base = ROOT / "comics" / cid / "worlds"
+            WORLDS = base / "worlds"
+    manifest = json.loads((base / "manifest.json").read_text())
+    crops = {e["id"]: base / e["crop"] for e in manifest["elements"]}
+    gmode = manifest.get("grade", {})
     # reliefs built from the page (tools/make_bob_head.py) are the page's own ink: leave them alone
     reliefs_file = WORLDS / "reliefs.json"
     reliefs = {w["id"] for w in json.loads(reliefs_file.read_text()).get("worlds", [])} if reliefs_file.exists() else set()
@@ -158,12 +230,16 @@ def main():
         print(f"{dest.name:32} {n} of {spz['n']} splats kept ({spz['n'] - n} removed), {dest.stat().st_size / 1048576:.1f} MB")
         if ".100k." not in name:
             views[wid] = view_limits(pos[keep], rgb[keep])
-            if wid in crops:
+            if wid in crops and gmode.get("mode") == "palette":
+                views[wid]["grade"] = palette_grade_for(crops[wid], pos[keep], rgb[keep], gmode.get("colours", 8))
+            elif wid in crops:
                 views[wid]["grade"] = grade_for(crops[wid], pos[keep], rgb[keep])
             phone = WORLDS / f"{wid}.100k.spz"
             views[wid]["files"] = {"500k": f"worlds/{dest.name}", "100k": f"worlds/{wid}.100k.clean.spz" if phone.exists() else None}
             print(f"{'':32} look limits yaw {views[wid]['yaw']} pitch {views[wid]['pitch']}")
-            if "grade" in views[wid]:
+            if "grade" in views[wid] and views[wid]["grade"].get("mode") == "palette":
+                print(f"{'':32} palette {len(views[wid]['grade']['palette'])} colours, shares {views[wid]['grade']['shares']}")
+            elif "grade" in views[wid]:
                 g = views[wid]["grade"]
                 print(f"{'':32} grade lo {g['lo']} hi {g['hi']} shares {g['shares']} mid {g['mid']}")
     (WORLDS / "views.json").write_text(json.dumps(views, indent=2) + "\n")
