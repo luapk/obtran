@@ -23,7 +23,8 @@ const files = {
   'assets/voice/index.json': JSON.stringify({ lines: {} }, null, 2) + '\n',
   'assets/films/index.json': JSON.stringify({ note: 'Films for this comic: clips, cues and backdrops (see comics/obtran003 via prototype/assets/films/index.json for every option).', clips: {}, cues: {}, backdrops: {} }, null, 2) + '\n',
   'assets/music/index.json': JSON.stringify({ note: 'Tracks to unlock, loops per space and the start beat (see prototype/assets/music/index.json).', tracks: [], loops: {}, loopLevel: 2.4 }, null, 2) + '\n',
-  'worlds/worlds.json': JSON.stringify({ worlds: [] }, null, 2) + '\n',
+  'worlds/manifest.json': JSON.stringify({ page: '', page_px: [0, 0], style: '', elements: [] }, null, 2) + '\n',
+  'worlds/worlds/worlds.json': JSON.stringify({ worlds: [] }, null, 2) + '\n',
 };
 for (const sub of ['assets/sfx', 'assets/props']) mkdirSync(join(dir, sub), { recursive: true });
 for (const [path, body] of Object.entries(files)) {

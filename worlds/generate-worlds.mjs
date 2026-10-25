@@ -13,6 +13,8 @@
 //                   shape and fetch anything missing, such as the panorama
 //   --concurrency n worlds in flight at once (default 2)
 //   --credits       only read the API credit balance (free) into worlds/worlds/credits.json
+//   --comic id      a comic other than OBTRAN 003: comics/<id>/worlds/ holds its manifest.json and crops,
+//                   and its results go to comics/<id>/worlds/worlds/ (or COMIC=<id>)
 //
 // Env: WORLDLABS_API_KEY (required unless --dry-run), WORLDLABS_BASE (default https://api.worldlabs.ai).
 // State lives in worlds/worlds/state.json and is saved after every step, so a rerun resumes
@@ -21,7 +23,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, renameSyn
 import { dirname, join, extname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const HERE = dirname(fileURLToPath(import.meta.url));
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const COMIC = (() => { const a = process.argv.indexOf('--comic'); return (a >= 0 ? process.argv[a + 1] : process.env.COMIC) || 'obtran003'; })();
+if (!/^[a-z0-9-]+$/.test(COMIC)) { console.error(`error: bad comic id '${COMIC}'`); process.exit(1); }
+// OBTRAN 003 keeps its pipeline in this folder; other comics in comics/<id>/worlds.
+const HERE = COMIC === 'obtran003' ? SCRIPT_DIR : join(SCRIPT_DIR, '..', 'comics', COMIC, 'worlds');
 const OUT = join(HERE, 'worlds');
 const STATE_FILE = join(OUT, 'state.json');
 const MODELS = { draft: { model: 'marble-1.0-draft', credits: 230 }, full: { model: 'marble-1.1', credits: 1580 } };

@@ -22,7 +22,7 @@ const comic = JSON.parse(readFileSync(COMIC_FILE, 'utf8'));
 for (const k of ['beats', 'journey', 'finalWorld', 'endBeat', 'text']) if (!comic[k]) throw new Error(`comic ${COMIC_ID}: ${k} is missing`);
 // the comic's own folders, beside its comic.json unless it names others (OBTRAN 003 keeps its original ones)
 const ASSETS = join(ROOT, comic.paths?.assets || join('comics', COMIC_ID, 'assets'));
-const WORLDS = join(ROOT, comic.paths?.worlds || join('comics', COMIC_ID, 'worlds'));
+const WORLDS = join(ROOT, comic.paths?.worlds || join('comics', COMIC_ID, 'worlds', 'worlds'));
 const outAt = process.argv.indexOf('--out');
 const DIST = outAt > 0 ? join(ROOT, process.argv[outAt + 1]) : join(ROOT, 'dist');
 

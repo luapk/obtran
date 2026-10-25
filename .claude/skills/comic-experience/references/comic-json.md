@@ -10,7 +10,7 @@ OBTRAN 003's (`comics/obtran003/comic.json`).
 | --- | --- | --- |
 | `id` | The folder name under `comics/`; `--comic <id>` | `obtran003` |
 | `paths.assets` | Folder with `page.jpg`, `depth.png`, `meta.json`, `voice/`, `films/`, `music/`, `sfx/`, `props/`. Default `comics/<id>/assets` | `prototype/assets` |
-| `paths.worlds` | Folder with `worlds.json`, `views.json`, `reliefs.json` and the splats. Default `comics/<id>/worlds` | `worlds/worlds` |
+| `paths.worlds` | Folder with `worlds.json`, `views.json`, `reliefs.json` and the splats. Default `comics/<id>/worlds/worlds` (the pipeline: `comics/<id>/worlds/manifest.json` and `crops/`; `worlds/generate-worlds.mjs --comic <id>`, or `comic` in `worlds/run.json`) | `worlds/worlds` |
 | `beats` | One entry per lettering box, in story order (below) | 9 beats |
 | `journey` | Spaces in order: `{ world, beats: [indexes into beats] }` | 6 spaces |
 | `finalWorld` | The world the finale breaches into; the shards, nucleus, slab, strobe and zoom out live there | `singularity-core` |

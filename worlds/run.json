@@ -1,8 +1,9 @@
 {
+  "comic": "obtran001",
   "quality": "draft",
   "only": [],
   "force": false,
   "refresh": false,
-  "credits": true,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. credits: true only reads the API credit balance into worlds/worlds/credits.json (free, nothing generated), 25 October 2026. The last generation was full quality for singularity-core, hull-machinery and monolith-slabs (about 4,740 credits, approved by Paul on 24 October)."
+  "credits": false,
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001's eight draft worlds (marble-1.0-draft, 8 x 230 = 1,840 credits), 25 October 2026: Paul asked to try again although the balance read 0; he tops up if it is refused."
 }

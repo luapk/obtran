@@ -41,6 +41,10 @@ on:
         description: "Only read the API credit balance (free, no generation)"
         type: boolean
         default: false
+      comic:
+        description: "Comic id (obtran003 uses worlds/, others comics/<id>/worlds/)"
+        type: string
+        default: obtran003
 
 permissions:
   contents: write
@@ -69,16 +73,21 @@ jobs:
           IN_FORCE: ${{ inputs.force }}
           IN_REFRESH: ${{ inputs.refresh }}
           IN_CREDITS: ${{ inputs.credits }}
+          IN_COMIC: ${{ inputs.comic }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            q="$IN_QUALITY"; o="$IN_ONLY"; f="$IN_FORCE"; r="$IN_REFRESH"; c="$IN_CREDITS"
+            q="$IN_QUALITY"; o="$IN_ONLY"; f="$IN_FORCE"; r="$IN_REFRESH"; c="$IN_CREDITS"; k="$IN_COMIC"
           else
             q=$(node -p "require('./worlds/run.json').quality || 'draft'")
             o=$(node -p "[].concat(require('./worlds/run.json').only || []).join(',')")
             f=$(node -p "String(require('./worlds/run.json').force === true)")
             r=$(node -p "String(require('./worlds/run.json').refresh === true)")
             c=$(node -p "String(require('./worlds/run.json').credits === true)")
+            k=$(node -p "require('./worlds/run.json').comic || 'obtran003'")
           fi
+          k="${k:-obtran003}"
+          case "$k" in *[!a-z0-9-]*) echo "::error::comic must be a comic id"; exit 1 ;; esac
+          if [ "$k" = "obtran003" ]; then out=worlds/worlds; else out="comics/$k/worlds/worlds"; fi
           case "$q" in draft|full) ;; *) echo "::error::quality must be draft or full, got '$q'"; exit 1 ;; esac
           case "$o" in *[!a-z0-9,-]*) echo "::error::only may hold element ids and commas only"; exit 1 ;; esac
           echo "quality=$q" >> "$GITHUB_OUTPUT"
@@ -86,7 +95,9 @@ jobs:
           echo "force=$f" >> "$GITHUB_OUTPUT"
           echo "refresh=$r" >> "$GITHUB_OUTPUT"
           echo "credits=$c" >> "$GITHUB_OUTPUT"
-          echo "quality=$q only=${o:-all} force=$f refresh=$r credits=$c"
+          echo "comic=$k" >> "$GITHUB_OUTPUT"
+          echo "out=$out" >> "$GITHUB_OUTPUT"
+          echo "comic=$k quality=$q only=${o:-all} force=$f refresh=$r credits=$c"
 
       - name: Check the API key is set
         env:
@@ -102,6 +113,7 @@ jobs:
         working-directory: worlds
         env:
           WORLDLABS_API_KEY: ${{ secrets.WORLDLABS_API_KEY }}
+          COMIC: ${{ steps.settings.outputs.comic }}
         run: node generate-worlds.mjs --credits
 
       - name: Plan
@@ -112,6 +124,7 @@ jobs:
           ONLY: ${{ steps.settings.outputs.only }}
           FORCE: ${{ steps.settings.outputs.force }}
           REFRESH: ${{ steps.settings.outputs.refresh }}
+          COMIC: ${{ steps.settings.outputs.comic }}
         run: |
           args=()
           [ "$QUALITY" = "draft" ] && args+=(--draft)
@@ -129,6 +142,7 @@ jobs:
           ONLY: ${{ steps.settings.outputs.only }}
           FORCE: ${{ steps.settings.outputs.force }}
           REFRESH: ${{ steps.settings.outputs.refresh }}
+          COMIC: ${{ steps.settings.outputs.comic }}
         run: |
           args=()
           [ "$QUALITY" = "draft" ] && args+=(--draft)
@@ -138,12 +152,13 @@ jobs:
           node generate-worlds.mjs "${args[@]}"
 
       - uses: actions/setup-python@v5
-        if: always() && steps.settings.outputs.credits != 'true'
+        if: always() && steps.settings.outputs.credits != 'true' && steps.settings.outputs.comic == 'obtran003'
         with:
           python-version: "3.12"
 
+      # OBTRAN 003's black and white grade; colour comics get their own grade (to come).
       - name: Clean the worlds and measure their grade and look limits
-        if: always() && steps.settings.outputs.credits != 'true'
+        if: always() && steps.settings.outputs.credits != 'true' && steps.settings.outputs.comic == 'obtran003'
         run: |
           if ls worlds/worlds/*.spz >/dev/null 2>&1; then
             pip install --quiet numpy pillow
@@ -154,26 +169,30 @@ jobs:
 
       - name: Report sizes
         if: always()
-        run: ls -la worlds/worlds/ || true
+        env:
+          OUT: ${{ steps.settings.outputs.out }}
+        run: ls -la "$OUT" || true
 
       - name: Commit results
         if: always()
         env:
           QUALITY: ${{ steps.settings.outputs.quality }}
           OUTCOME: ${{ job.status }}
+          OUT: ${{ steps.settings.outputs.out }}
+          COMIC: ${{ steps.settings.outputs.comic }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ ! -d worlds/worlds ]; then
+          if [ -z "$OUT" ] || [ ! -d "$OUT" ]; then
             echo "No results to commit."
             exit 0
           fi
-          git add worlds/worlds
+          git add "$OUT"
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
-          git commit -m "Generate worlds ($QUALITY, $OUTCOME)"
+          git commit -m "Generate worlds ($COMIC, $QUALITY, $OUTCOME)"
           for i in 1 2 3 4; do
             git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
             sleep $((i * 5))

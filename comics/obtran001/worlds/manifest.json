@@ -1,0 +1,107 @@
+{
+  "page": "comics/obtran001/source/OBTRAN_Poster_Insert_001_AW.pdf",
+  "page_px": [
+    4151,
+    5968
+  ],
+  "style": "Hand painted comic art: bold black ink outlines over saturated painted colour, magenta, orange and violet skies, deep violet and teal space, glowing mint green light, visible brush and pencil texture. Keep the painted comic look; do not make it photographic.",
+  "note": "Crops cut clear of the lettering by tools/cut_crops.py. Regions read off a 1000 wide grid over the page (crop_px is page pixels). Provisional until the storyboard.",
+  "elements": [
+    {
+      "id": "lyra-ruins",
+      "title": "Lyra in ruins",
+      "crop": "crops/lyra-ruins.jpg",
+      "crop_px": [
+        54,
+        266,
+        1183,
+        1615
+      ],
+      "prompt": "A ruined alien city on a dead planet: toppled angular towers and broken buildings burning in red and orange, piles of white skulls in the foreground, a huge cratered pink moon in a magenta sky, smoke and dust rising, a small spaceship streaking away into the sky."
+    },
+    {
+      "id": "vessel",
+      "title": "The vessel QNTM CNTRL",
+      "crop": "crops/vessel.jpg",
+      "crop_px": [
+        2358,
+        100,
+        1727,
+        789
+      ],
+      "prompt": "A long segmented green spaceship with glowing mint green engines flying through deep violet space, a bright white vapour trail curling behind it, a ringed pink planet and small moons below, scattered stars."
+    },
+    {
+      "id": "cryptid-cockpit",
+      "title": "The cryptid in the cockpit",
+      "crop": "crops/cryptid-cockpit.jpg",
+      "crop_px": [
+        1494,
+        922,
+        2055,
+        863
+      ],
+      "prompt": "A big eyed alien creature with antennae, blue green skin and huge orange eyes sits in a cramped spaceship cockpit, hands on the controls, a pink window behind, bundles of cables and a giant DNA helix structure curving through the violet machinery beside it."
+    },
+    {
+      "id": "manifold",
+      "title": "The four-dimensional manifold",
+      "crop": "crops/manifold.jpg",
+      "crop_px": [
+        54,
+        1951,
+        2603,
+        1017
+      ],
+      "prompt": "Space folded into giant angled slabs like a zig zag of tall panels, each slab a window onto a different starfield and nebula in blue, green and violet, small planets between them, a glowing green spaceship passing through the folds with a white light trail."
+    },
+    {
+      "id": "crash-forest",
+      "title": "The crash site",
+      "crop": "crops/crash-forest.jpg",
+      "crop_px": [
+        1930,
+        3039,
+        2159,
+        697
+      ],
+      "prompt": "A crashed green spaceship half buried in a dark forest clearing at dusk, smoke rising from it, glowing lights in its hull, a line of tribal warriors with spears silhouetted on a ridge, pine trees against a pink and purple sky."
+    },
+    {
+      "id": "pod",
+      "title": "The elder and the pod",
+      "crop": "crops/pod.jpg",
+      "crop_px": [
+        54,
+        4006,
+        1399,
+        809
+      ],
+      "prompt": "An old hooded tribal elder with a lined face leans over a glass hypersleep pod in which a sleeping blue skinned alien lies, the pod's green control panel marked with alien glyphs, other tribespeople watching behind in dim violet light."
+    },
+    {
+      "id": "bonfire",
+      "title": "The bonfire ritual",
+      "crop": "crops/bonfire.jpg",
+      "crop_px": [
+        2399,
+        4234,
+        1689,
+        581
+      ],
+      "prompt": "Inside a large tent of hanging red cloth, a roaring bonfire with tall orange flames, silhouetted dancers with raised arms around it, a sleeping alien lying in the foreground in the warm firelight, deep red and blue shadows."
+    },
+    {
+      "id": "decode-helix",
+      "title": "The decode",
+      "crop": "crops/decode-helix.jpg",
+      "crop_px": [
+        1777,
+        5417,
+        1453,
+        477
+      ],
+      "prompt": "A giant glowing orange alien eye with flames reflected in its pupil, a bright mint green DNA double helix twisting across tall vertical panels of orange fire and warm light."
+    }
+  ]
+}
