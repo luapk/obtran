@@ -1,0 +1,38 @@
+{
+  "note": "QNTM CTRL, The Eagle and the Senses EP (Oblivious Transfer, OBTRAN001, November 2021). Unlock beats are provisional until the storyboard. Paul supplies the audio (25 to 35 s excerpts for loops, full tracks); tools/make_music.py makes the loops.",
+  "release": {
+    "artist": "QNTM CTRL",
+    "title": "The Eagle and the Senses",
+    "catalogue": "OBTRAN001",
+    "url": "https://oblivioustransfer.bandcamp.com/album/the-eagle-and-the-senses-3"
+  },
+  "tracks": [
+    {
+      "id": "random-value",
+      "title": "Random Value",
+      "file": "random-value.mp3",
+      "loop": "random-value.loop.mp3",
+      "unlockAt": "lifeform",
+      "why": "The DNA-encrypted lifeform: the oblivious transfer, whose cryptography runs on random values"
+    },
+    {
+      "id": "endless-expression",
+      "title": "Endless Expression",
+      "file": "endless-expression.mp3",
+      "loop": "endless-expression.loop.mp3",
+      "unlockAt": "manifold",
+      "why": "QNTM CNTRL traverses the expanse of Cygnus A"
+    },
+    {
+      "id": "the-eagle-and-the-senses",
+      "title": "The Eagle and the Senses",
+      "file": "the-eagle-and-the-senses.mp3",
+      "loop": "the-eagle-and-the-senses.loop.mp3",
+      "unlockAt": "decode",
+      "why": "The bonfire's vibrations trigger the decode protocol"
+    }
+  ],
+  "loops": {},
+  "startAt": "lyra",
+  "loopLevel": 2.4
+}

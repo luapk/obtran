@@ -56,6 +56,8 @@ comics/
   obtran003/comic.json        OBTRAN 003's content: beats, journey, final world, end beat, card width, speaker gains,
                               set pieces (panel, shards, ribbons, nucleus, slab) and the page's words; its assets
                               stay in prototype/assets and worlds/worlds (paths in the file)
+  obtran001/                  OBTRAN 001 (The Eagle and the Senses, 2021): comic.json (beats agreed; journey provisional),
+                              source/ (the poster insert PDF, page 1 is the comic), assets/, worlds/; in progress
   <id>/                       further comics (tools/new_comic.mjs): comic.json, assets/, worlds/
 .claude/skills/comic-experience/  the playbook for a new comic: SKILL.md, references (comic.json fields, prompts,
                               pitfalls), templates/comic.json
@@ -355,6 +357,15 @@ All nine lines were rendered on 24 October (second run; the first failed with HT
 Earlier note:
 
 Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the breach drop to a real track and give each region its own stem.
+
+## OBTRAN 001, the second comic (started 25 October)
+
+- Source: `comics/obtran001/source/OBTRAN_Poster_Insert_001_AW.pdf`, the only file Paul has. Page 1 is the comic (one 4151 x 5968 CMYK JPEG at 395 ppi, Adobe inverted CMYK, extracted correctly by `extract_page.py` to `source/page_rgb.png`, gitignored); page 2 is the insert's back cover. Ignore the QR code (Paul).
+- Full colour painted art. Paul: a bespoke ink grade and colours for each comic, more than three tones where the art needs them, matched to the page. The grade, the films' colour strip, the Super 8 pass and the set pieces' ink shading all assume black and white today and need a per-comic colour mode.
+- Eight narration captions, one beat each (`lyra`, `vessel`, `lifeform`, `manifold`, `patrol`, `plunder`, `ritual`, `decode`), agreed by Paul. Narrator only, the same voice as OBTRAN 003.
+- Music: QNTM CTRL, The Eagle and the Senses EP (OBTRAN001): Random Value, Endless Expression (some shops say Endless Expansion), The Eagle and the Senses. Unlock beats in `comics/obtran001/assets/music/index.json` are provisional.
+- Paul has a 3D file of the cryptid asleep in his escape pod, and concept art of him as a character (not uploaded yet).
+- Credits on 25 October: World Labs API 0 (needs a top-up before any draft; the minimum purchase is 6,250 credits, $5); Higgsfield 280.84. `worlds/run.json` with `credits: true` reads the World Labs balance for free into `worlds/worlds/credits.json`.
 
 ## Methodology for the next comic
 

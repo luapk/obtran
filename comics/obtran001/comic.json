@@ -1,0 +1,104 @@
+{
+  "note": "OBTRAN 001 (The Eagle and the Senses, QNTM CTRL, Oblivious Transfer, 2021): the poster insert's comic, page 1 of comics/obtran001/source/OBTRAN_Poster_Insert_001_AW.pdf. Eight narration captions, beat list agreed by Paul on 25 October 2026. The journey, set pieces and finale are provisional until the storyboard (G2). Beat ids must match the lettering box ids in assets/meta.json and the voice script.",
+  "id": "obtran001",
+  "text": {
+    "title": "Oblivious Transfer 001",
+    "description": "OBTRAN 001 comic page from Oblivious Transfer, read as an interactive 3D page.",
+    "heading": "Oblivious Transfer: OBTRAN 001",
+    "code": "OBTRAN001",
+    "lead": "Turn your sound on and follow the story, exploring to unlock tracks.",
+    "musicTab": "QNTM CTRL",
+    "musicBuy": "The Eagle and the Senses EP on Bandcamp",
+    "triggerHint": "DECODE PROTOCOL",
+    "breachPage": "Decode protocol. The page breaks apart and you fall through the eye.",
+    "breachSpace": "Decode protocol. The space breaks apart and you fall through the eye.",
+    "cctvDate": "3089.01.01"
+  },
+  "beats": [
+    {
+      "b": "lyra",
+      "note": "EPSILON CYGNI, 3089 AD. ALL LIFE ON THE EXOPLANET LYRA HAS BEEN OBLITERATED..."
+    },
+    {
+      "b": "vessel",
+      "note": "...APART FROM THE HOLOSONIC VESSEL QNTM CNTRL..."
+    },
+    {
+      "b": "lifeform",
+      "note": "...A DNA-ENCRYPTED LIFEFORM! ... THE OBLIVIOUS TRANSFER!"
+    },
+    {
+      "b": "manifold",
+      "note": "FOUR-DIMENSIONAL MANIFOLD ENABLED, QNTM CNTRL TRAVERSES THE EXPANSE OF CYGNUS A..."
+    },
+    {
+      "b": "patrol",
+      "note": "OUR FALLEN SHIP IS INTERCEPTED BY A SCOUT PATROL FROM AN ANCIENT TRIBE."
+    },
+    {
+      "b": "plunder",
+      "note": "THEIR PLUNDER OF QNTM CTRL'S HOLD RETRIEVES URANIUM AND THE INVALUABLE CRYPTID, STILL DEEP IN HYPERSLEEP."
+    },
+    {
+      "b": "ritual",
+      "note": "IN METABOLIC STASIS, THE PSYCHEDELIC VIBRATIONS OF THEIR BONFIRE RITUAL...",
+      "hold": true
+    },
+    {
+      "b": "decode",
+      "note": "...WOULD SOON TRIGGER OBTRAN TO BEGIN ITS DECODE PROTOCOL.",
+      "trigger": true,
+      "auto": 1.8
+    }
+  ],
+  "journey": [
+    {
+      "world": "lyra-ruins",
+      "beats": [
+        0
+      ]
+    },
+    {
+      "world": "vessel",
+      "beats": [
+        1
+      ]
+    },
+    {
+      "world": "cryptid-cockpit",
+      "beats": [
+        2
+      ]
+    },
+    {
+      "world": "manifold",
+      "beats": [
+        3
+      ]
+    },
+    {
+      "world": "crash-forest",
+      "beats": [
+        4
+      ]
+    },
+    {
+      "world": "pod",
+      "beats": [
+        5
+      ]
+    },
+    {
+      "world": "bonfire",
+      "beats": [
+        6,
+        7
+      ]
+    }
+  ],
+  "finalWorld": "eye",
+  "endBeat": "decode",
+  "cardAspect": 3.9,
+  "speakerGain": {},
+  "setPieces": {}
+}
