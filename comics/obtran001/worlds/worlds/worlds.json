@@ -1,4 +1,138 @@
 {
-  "updated": "2026-10-25T12:48:04.677Z",
-  "worlds": []
+  "updated": "2026-10-25T12:56:53.611Z",
+  "worlds": [
+    {
+      "id": "lyra-ruins",
+      "title": "Lyra in ruins",
+      "model": "marble-1.0-draft",
+      "world_id": "f73fcfab-726d-4f7c-8718-f6b3c805202e",
+      "marble_url": "https://marble.worldlabs.ai/world/f73fcfab-726d-4f7c-8718-f6b3c805202e",
+      "splats": {
+        "500k": "worlds/lyra-ruins.spz",
+        "100k": "worlds/lyra-ruins.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.013008913514815708,
+        0.04457104557640751,
+        0.29800048181161165,
+        0.3151809651474531
+      ]
+    },
+    {
+      "id": "vessel",
+      "title": "The vessel QNTM CNTRL",
+      "model": "marble-1.0-draft",
+      "world_id": "a861b0c1-aca0-4aeb-92d8-c46e6180f816",
+      "marble_url": "https://marble.worldlabs.ai/world/a861b0c1-aca0-4aeb-92d8-c46e6180f816",
+      "splats": {
+        "500k": "worlds/vessel.spz",
+        "100k": "worlds/vessel.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.5680558901469526,
+        0.01675603217158177,
+        0.9841002168152252,
+        0.14896112600536193
+      ]
+    },
+    {
+      "id": "cryptid-cockpit",
+      "title": "The cryptid in the cockpit",
+      "model": "marble-1.0-draft",
+      "world_id": "3b50c67a-1541-40cc-a8fc-96c0530387f7",
+      "marble_url": "https://marble.worldlabs.ai/world/3b50c67a-1541-40cc-a8fc-96c0530387f7",
+      "splats": {
+        "500k": "worlds/cryptid-cockpit.spz",
+        "100k": "worlds/cryptid-cockpit.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.35991327390990124,
+        0.1544906166219839,
+        0.8549747048903878,
+        0.2990951742627346
+      ]
+    },
+    {
+      "id": "manifold",
+      "title": "The four-dimensional manifold",
+      "model": "marble-1.0-draft",
+      "world_id": "009ab2ad-599e-4c98-962e-8201fb0ea123",
+      "marble_url": "https://marble.worldlabs.ai/world/009ab2ad-599e-4c98-962e-8201fb0ea123",
+      "splats": {
+        "500k": "worlds/manifold.spz",
+        "100k": "worlds/manifold.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.013008913514815708,
+        0.3269101876675603,
+        0.6400867260900988,
+        0.4973190348525469
+      ]
+    },
+    {
+      "id": "crash-forest",
+      "title": "The crash site",
+      "model": "marble-1.0-draft",
+      "world_id": "ead5c0ca-05cb-4581-972b-fc2e393720e7",
+      "marble_url": "https://marble.worldlabs.ai/world/ead5c0ca-05cb-4581-972b-fc2e393720e7",
+      "splats": {
+        "500k": "worlds/crash-forest.spz",
+        "100k": "worlds/crash-forest.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.46494820525174657,
+        0.50921581769437,
+        0.985063840038545,
+        0.6260053619302949
+      ]
+    },
+    {
+      "id": "pod",
+      "title": "The elder and the pod",
+      "model": "marble-1.0-draft",
+      "world_id": "9f81646f-ce66-495d-99ad-8b24100f235c",
+      "marble_url": "https://marble.worldlabs.ai/world/9f81646f-ce66-495d-99ad-8b24100f235c",
+      "splats": {
+        "500k": "worlds/pod.spz",
+        "100k": "worlds/pod.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.013008913514815708,
+        0.6712466487935657,
+        0.3500361358708745,
+        0.8068029490616622
+      ]
+    },
+    {
+      "id": "decode-helix",
+      "title": "The decode",
+      "model": "marble-1.0-draft",
+      "world_id": "89013226-b110-4cba-9596-beafbd3c311f",
+      "marble_url": "https://marble.worldlabs.ai/world/89013226-b110-4cba-9596-beafbd3c311f",
+      "splats": {
+        "500k": "worlds/decode-helix.spz",
+        "100k": "worlds/decode-helix.100k.spz"
+      },
+      "pano": null,
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.4280896169597687,
+        0.9076742627345844,
+        0.7781257528306432,
+        0.9876005361930295
+      ]
+    }
+  ]
 }

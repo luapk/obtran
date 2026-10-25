@@ -1,5 +1,17 @@
 {
-  "remaining_credits": 0,
-  "usd": "$0.00",
-  "checked": "2026-10-25T12:48:05.007Z"
+  "remaining_credits": 23390,
+  "usd": "$18.71",
+  "checked": "2026-10-25T12:56:53.851Z",
+  "history": [
+    {
+      "checked": "2026-10-25T12:54:21.015Z",
+      "remaining_credits": 25000,
+      "at": "before draft run"
+    },
+    {
+      "checked": "2026-10-25T12:56:53.851Z",
+      "remaining_credits": 23390,
+      "at": "after draft run"
+    }
+  ]
 }
