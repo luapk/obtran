@@ -148,7 +148,6 @@
   .gate-card .lead, .gate-card button { opacity: 0; pointer-events: none; }
   #gate.ready .lead { animation: gateIn 0.5s steps(5, end) both; }
   #gate.ready button { animation: gateIn 0.5s 0.35s steps(5, end) both; pointer-events: auto; }
-  #gate.decoding .lead, #gate.decoding button { animation: none; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
   @keyframes gateIn { 0% { opacity: 0; } 20% { opacity: 1; } 40% { opacity: 0.2; } 60% { opacity: 1; } 100% { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { #gate.ready .lead, #gate.ready button { animation: none; opacity: 1; } }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -287,28 +286,6 @@ const $ = (id) => document.getElementById(id);
 
 // OBTRAN003 decrypts like a code as the logo glitches out (Paul, 24 October): each character cycles
 // through code glyphs and settles, left to right, then the sentence and the Enter button come in
-// the decrypt's sound plays only where the browser allows sound before a tap (Paul: "OBTRAN003 audio only plays
-// sometimes": Chrome allows it on a site the reader has used before, phones almost never), so when it did not,
-// the Enter tap decrypts OBTRAN003 again with its sound, inside the tap, before the comic opens
-const decrypt = { snd: null, played: false };
-function redecrypt() {
-  return new Promise((done) => {
-    const el = $('code'), gate = $('gate'), word = 'OBTRAN003', glyphs = '#%&/<>=+*01ABCDEFKLMNXZ';
-    if (!el || decrypt.played || matchMedia('(prefers-reduced-motion: reduce)').matches) { done(); return; }
-    const snd = decrypt.snd || new Audio('assets/sfx/decrypt.mp3'); snd.volume = 0.8;
-    try { snd.currentTime = 0; } catch (e) { /* not loaded yet */ }
-    snd.play().catch(() => {});
-    decrypt.played = true;
-    gate.classList.add('decoding');
-    const t0 = performance.now(), settle = (i) => 300 + i * 115;
-    const tick = () => {
-      const ms = performance.now() - t0;
-      el.textContent = [...word].map((c, i) => ms > settle(i) ? c : glyphs[Math.floor(Math.random() * glyphs.length)]).join('');
-      if (ms < settle(word.length - 1)) setTimeout(tick, 45); else setTimeout(done, 280);
-    };
-    tick();
-  });
-}
 function decryptCode() {
   const el = $('code'), gate = $('gate'), word = 'OBTRAN003', glyphs = '#%&/<>=+*01ABCDEFKLMNXZ';
   if (!el || gate.classList.contains('ready')) { gate.classList.add('ready'); return; }
@@ -317,8 +294,7 @@ function decryptCode() {
   // Paul's telemetry bleeps, cut to the decrypt's length. This is before any tap, so most phones will
   // not let it play (browsers hold sound until the first gesture); where they do, it plays in time
   const snd = new Audio('assets/sfx/decrypt.mp3'); snd.preload = 'auto'; snd.volume = 0.8;
-  decrypt.snd = snd;
-  setTimeout(() => snd.play().then(() => { decrypt.played = true; }).catch(() => {}), 450);
+  setTimeout(() => snd.play().catch(() => {}), 450);
   const tick = () => {
     const ms = performance.now() - t0;
     el.textContent = ms < 0 ? '' : [...word].map((c, i) => ms > settle(i) ? c : ms > i * 40 ? glyphs[Math.floor(Math.random() * glyphs.length)] : ' ').join('');
@@ -2931,11 +2907,16 @@ function primeBackdrops() {
   v?.play().then(() => { if (!backdrop.want) v.pause(); }).catch(() => { /* tried again when it is wanted */ });
 }
 // the world's own splats (not the sand) give way to the backdrop, and come back when it goes
+// and only a little of the sand stays over it (Paul: with all of it the video looked semi-transparent)
+const BACKDROP_SAND = 0.15;
 function backdropHideWorld(hide) {
   if (hide === backdrop.hidWorld || !worlds.mesh) return;
   backdrop.hidWorld = hide;
   const show = !hide && (state.stage === 'breach' || state.stage === 'void');
   for (const m of [worlds.mesh, ...worlds.echoes]) m.visible = show;
+  const full = worlds.sandOn && !reducedMotion ? (worlds.relief ? RELIEF_SAND : 1) : 0;
+  worlds.u.sand.value = hide ? Math.min(full, BACKDROP_SAND) : full;
+  worlds.sandMesh?.updateVersion();
 }
 function updateBackdrop(dt) {
   const beat = BEATS[state.beat]?.b, clip = backdrop.on && backdropClip(beat);
@@ -3283,17 +3264,29 @@ function startHop(i) {
   const hv = Math.max(PH * 0.2, 1.5 * Math.max(Math.abs(A.c.y - m.y) + Math.max(A.bh, B.bh) / 2, (Math.abs(A.c.x - m.x) + Math.max(A.bw, B.bw) / 2) / camera.aspect));
   const W = new THREE.Vector3(m.x, m.y, bubbleZ + Math.min(hv / Math.tan(THREE.MathUtils.degToRad(PAGE_FOV / 2)), pageDist(PAGE_FOV)));
   // a curve from A through W to B: its control point puts W at the halfway mark
-  journey.hop = { i, A, B, C: W.clone().multiplyScalar(2).sub(A.to.clone().add(B.to).multiplyScalar(0.5)), swapped: false,
+  journey.hop = { i, A, B, W, C: W.clone().multiplyScalar(2).sub(A.to.clone().add(B.to).multiplyScalar(0.5)), swapped: false,
     load: loadWorld(STEPS[i].world).catch((e) => console.warn('world unavailable', e)) };
   journey.phase = 'hop'; journey.t = 0;
   // the camera across the page: Paul's big airy whoosh (it carries its own reverb, so a lighter send), his first whoosh if missing
   if (!sound.sfxPlay('airy-1', { gain: 0.7, verb: 0.12, echo: 0.14 }) && !sound.sfxPlay('whoosh-2', { gain: 0.6, verb: 0.35, echo: 0.22 })) sound.blip();
 }
+// the lens and the distance change together, so on their own they can pull against each other: on phones the
+// spaces' lens is much wider than the page's (up to 100 degrees against 40), and narrowing it at the start of a
+// hop zoomed in faster than pulling back zoomed out, then the other way, a double bounce at each end (Paul). So the
+// height of page in view follows one smooth rise and fall (in log terms, through the wide view at the middle),
+// and the distance is worked out from it and the lens at each moment
 function updateHop() {
   const H = journey.hop, u = clamp(journey.t / HOP_DUR, 0, 1), e = ease(u), r = 1 - e;
   camera.position.set(0, 0, 0).addScaledVector(H.A.to, r * r).addScaledVector(H.C, 2 * r * e).addScaledVector(H.B.to, e * e);
   camera.fov = lerp(H.A.fov, H.B.fov, e) + (PAGE_FOV - lerp(H.A.fov, H.B.fov, e)) * Math.sin(Math.PI * e);
   camera.updateProjectionMatrix();
+  if (!H.lv) {
+    const lv = (z, fov) => Math.log(Math.max(1e-3, (z - bubbleZ) * Math.tan(THREE.MathUtils.degToRad(fov / 2))));
+    const a = lv(H.A.to.z, H.A.fov), b = lv(H.B.to.z, H.B.fov), w = lv(H.W.z, PAGE_FOV);
+    H.lv = [a, 2 * w - (a + b) / 2, b];
+  }
+  const view = Math.exp(r * r * H.lv[0] + 2 * r * e * H.lv[1] + e * e * H.lv[2]);
+  camera.position.z = bubbleZ + view / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   pageMat.uniforms.uOpacity.value = smooth(0, 0.25, u) * (1 - smooth(0.72, 0.97, u));
   // halfway, with the whole page showing, the card moves to the next box: they look the same as the drawing
   if (!H.swapped && u >= 0.5) { H.swapped = true; setCard(STEPS[H.i].beat, true); layCard(H.B); }
@@ -3597,10 +3590,8 @@ function onOrient(e) {
 
 const enterSnd = new Audio('assets/sfx/bleep.mp3'); enterSnd.preload = 'auto';
 $('start').addEventListener('click', async () => {
-  if ($('gate').classList.contains('decoding')) return;
   enterSnd.play().catch(() => {});                  // the button's sound (Paul), inside the tap so phones allow it
   sound.start();
-  const replay = redecrypt();                       // OBTRAN003 with its sound, if the browser held it back at load
   if (music.index?.tracks?.length && !REVIEW) $('music').hidden = false;
   primeFilms(); primeBackdrops();
   try {
@@ -3609,7 +3600,6 @@ $('start').addEventListener('click', async () => {
       if (r === 'granted') addEventListener('deviceorientation', onOrient);
     } else addEventListener('deviceorientation', onOrient);
   } catch (e) { /* tilt stays off, pointer still works */ }
-  await replay;
   $('gate').classList.add('hide');
   if (REVIEW) { startReview(); return; }
   if (journey.on) { startJourney(); return; }
@@ -3880,7 +3870,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { glyphVeilShow, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
+  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
