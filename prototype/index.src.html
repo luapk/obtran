@@ -1956,6 +1956,8 @@ function updateRibbons(dt, rawDt) {
 // then turns about its axis, and a band of light runs along it like a strand being read. The world's own
 // helix splats (their hue in `fadeHue`) are faded so the two never double up.
 const HELIX = SP.helix || null;
+// the helix, props and particles take their colours as sampled from the page (sRGB), so their shaders write them
+// as they are, without three's linear to sRGB conversion (which washed them out)
 const helix = { group: new THREE.Group(), mats: [], on: !!HELIX && params.get('helix') !== '0', level: { value: 0 }, t0: null, id: null, axis: new THREE.Vector3(), spin: 0 };
 if (HELIX) {
   const dirOf = ([yw, pt, d]) => { const y = yw * DEG, p = pt * DEG; return new THREE.Vector3(Math.cos(p) * Math.sin(y), Math.sin(p), -Math.cos(p) * Math.cos(y)).multiplyScalar(d * WORLD_SCALE); };
@@ -1994,7 +1996,6 @@ if (HELIX) {
         float run = fract(vS * 2.0 - uTime * 0.12);
         c += vec3(0.9, 1.0, 0.95) * smoothstep(0.05, 0.0, min(run, 1.0 - run)) * 0.6;
         gl_FragColor = vec4(c, uLevel);
-        #include <colorspace_fragment>
       }`,
   });
   helix.mats.push(mat);
@@ -2084,7 +2085,6 @@ function propMaterials(tones = {}) {
         if (l < 0.2) c = mix(uShade * 0.6, uInk, max(hatchA, hatchB));      // cross-hatched where darkest
         c = mix(c, uInk, smoothstep(0.72, 0.82, rim));
         gl_FragColor = vec4(c, uLevel);
-        #include <colorspace_fragment>
       }`,
   });
   const line = new THREE.ShaderMaterial({
@@ -2208,11 +2208,12 @@ if (PARTICLES.length) {
             // a lumpy painted puff: a few offset lobes, soft at the edge
             float lobes = 0.0;
             for (int k = 0; k < 3; k++) { float ang = vSeed.y * 6.28 + float(k) * 2.1; vec2 o = vec2(cos(ang), sin(ang)) * 0.22; lobes = max(lobes, 1.0 - length(q - o) * 2.4); }
-            a = smoothstep(0.0, 0.35, max(lobes, 1.0 - d * 1.15)) * sin(3.14159 * pow(vT, 0.7)) * 0.75;
+            float body = max(lobes, 1.0 - d * 1.15);
+            float grain = fract(sin(dot(floor(q * 9.0 + vSeed.xy * 30.0), vec2(12.9898, 78.233))) * 43758.5453);
+            a = smoothstep(0.0, 0.6, body - 0.12 * grain) * pow(1.0 - d, 0.6) * sin(3.14159 * pow(vT, 0.7)) * 0.75;
           }
           gl_FragColor = vec4(c, a * uAlpha * uLevel);
-          #include <colorspace_fragment>
-        }`,
+          }`,
     });
     const pts = new THREE.Points(geo, mat);
     pts.frustumCulled = false;
