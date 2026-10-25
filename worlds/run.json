@@ -7,5 +7,5 @@
   "force": false,
   "refresh": false,
   "credits": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: retry the bonfire draft (230 credits) with a reworded prompt; its first try was refused by World Labs' content filter (violence), charged nothing. The other seven drafts finished on 25 October (1,610 credits, 23,390 left)."
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: retry the bonfire draft (230 credits) with a tighter crop (tent, smoke and fire only); the first two tries were refused by World Labs' content filter (violence), charged nothing. The other seven drafts finished on 25 October (1,610 credits, 23,390 left)."
 }

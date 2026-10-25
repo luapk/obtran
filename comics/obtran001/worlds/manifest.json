@@ -84,13 +84,13 @@
       "title": "The bonfire ritual",
       "crop": "crops/bonfire.jpg",
       "crop_px": [
-        2399,
-        4234,
-        1689,
-        581
+        2972,
+        4018,
+        722,
+        340
       ],
-      "prompt": "Inside a large tent of hanging red cloth at night, a big campfire with tall orange flames, a crowd of people dancing and celebrating with raised arms around it, a blue skinned alien resting peacefully on a blanket in the warm firelight in the foreground, deep red and blue shadows.",
-      "note": "First prompt refused by World Labs (HTTP 403, 'NSFW Content is not permitted by policy. Violence', 25 October); reworded without spears or ritual."
+      "prompt": "Inside a large tent of hanging red and purple cloth at night, a big campfire with tall orange flames and pale smoke rising to the roof, warm firelight glowing on the cloth walls, deep red and blue shadows.",
+      "note": "Refused twice by World Labs' content filter (HTTP 403, 'Violence', 25 October): first the wide crop with the sleeping alien beside the fire, then the reworded prompt. Recut to the tent, the smoke and the top of the fire, clear of the guards' spears and the dancers in the flames; the dancers come back as the bonfire film and the drum."
     },
     {
       "id": "decode-helix",

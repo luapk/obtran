@@ -5,7 +5,8 @@ puts the input view) and a forward view, with the source crop alongside.
 Splats are drawn as depth sorted discs of their base colour, so this is a rough
 look, not what Spark will render.
 
-Usage: python3 tools/preview_splats.py [out_dir] [ids...]
+Usage: python3 tools/preview_splats.py [--comic <id>] [out_dir] [ids...]
+(another comic: its manifest and crops in comics/<id>/worlds, its splats in comics/<id>/worlds/worlds)
 Needs: Pillow, numpy.
 """
 import gzip
@@ -90,10 +91,20 @@ def forward(pos, rgb, alpha, radius, w=900, h=900, fov=80):
 
 
 def main():
-    out = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "shots" / "worlds"
-    ids = sys.argv[2:]
+    global WORLDS
+    args = sys.argv[1:]
+    base = ROOT / "worlds"
+    if "--comic" in args:
+        i = args.index("--comic")
+        cid = args[i + 1]
+        del args[i:i + 2]
+        if cid != "obtran003":
+            base = ROOT / "comics" / cid / "worlds"
+            WORLDS = base / "worlds"
+    out = Path(args[0]) if args else ROOT / "shots" / "worlds"
+    ids = args[1:]
     out.mkdir(parents=True, exist_ok=True)
-    manifest = json.loads((ROOT / "worlds" / "manifest.json").read_text())
+    manifest = json.loads((base / "manifest.json").read_text())
     for el in manifest["elements"]:
         if ids and el["id"] not in ids:
             continue
@@ -103,7 +114,7 @@ def main():
         pos, rgb, alpha, radius = read_spz(f)
         pano = panorama(pos, rgb, alpha, radius)
         fwd = forward(pos, rgb, alpha, radius)
-        crop = Image.open(ROOT / "worlds" / el["crop"]).convert("RGB")
+        crop = Image.open(base / el["crop"]).convert("RGB")
         crop.thumbnail((900, 900))
         sheet = Image.new("RGB", (1600, 800 + 920), (20, 18, 16))
         sheet.paste(pano, (0, 0))
