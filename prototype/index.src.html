@@ -2072,18 +2072,23 @@ function propMaterials(tones = {}) {
     uniforms: u, transparent: true,
     vertexShader: `varying vec3 vN; varying vec3 vV;
       void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+    // ink grade like the painted skulls: mostly bone, pale grey in the turn, mid grey in shadow, hatching only in the
+    // deepest shadow; ink lines where the surface folds sharply (sockets, brows, cheekbones, teeth: the normal changes
+    // fast across the screen) and at the silhouette
     fragmentShader: `uniform float uLevel; uniform vec3 uLight; uniform vec3 uBase; uniform vec3 uShade; uniform vec3 uInk; varying vec3 vN; varying vec3 vV;
       void main(){
         vec3 n = normalize(vN);
-        float l = 0.5 + 0.5 * dot(n, normalize(vec3(-0.35, 0.75, 0.55)));   // wrapped light: bone stays mostly light, like the painted skulls
+        float l = 0.5 + 0.5 * dot(n, normalize(vec3(-0.35, 0.75, 0.55)));
         float rim = 1.0 - abs(dot(n, normalize(vV)));
         vec2 fc = gl_FragCoord.xy;
-        float hatchA = step(0.7, fract((fc.x + fc.y) / 4.0)), hatchB = step(0.7, fract((fc.x - fc.y) / 4.0));
+        float hatch = step(0.68, fract((fc.x + fc.y) / 4.0));
         vec3 c = uLight;
-        if (l < 0.6) c = uBase;
-        if (l < 0.4) c = mix(uShade, uInk, hatchA * 0.8);                    // hatched shadow, like the painted skulls
-        if (l < 0.2) c = mix(uShade * 0.6, uInk, max(hatchA, hatchB));      // cross-hatched where darkest
-        c = mix(c, uInk, smoothstep(0.72, 0.82, rim));
+        if (l < 0.5) c = uBase;
+        if (l < 0.3) c = uShade;
+        if (l < 0.16) c = mix(uShade, uInk, hatch * 0.85);
+        float fold = length(fwidth(n));
+        c = mix(c, uInk, smoothstep(0.32, 0.55, fold));
+        c = mix(c, uInk, smoothstep(0.78, 0.88, rim));
         gl_FragColor = vec4(c, uLevel);
       }`,
   });
