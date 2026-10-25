@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-25T15:15:37.442Z",
+  "updated": "2026-10-25T21:14:05.533Z",
   "worlds": [
     {
       "id": "lyra-ruins",
@@ -13,6 +13,25 @@
       },
       "pano": "worlds/lyra-ruins.pano.png",
       "metric_scale_factor": null,
+      "crop_uv": [
+        0.013008913514815708,
+        0.04457104557640751,
+        0.29800048181161165,
+        0.3151809651474531
+      ]
+    },
+    {
+      "id": "lyra-ruins-hq",
+      "title": "Lyra in ruins (full quality)",
+      "model": "marble-1.1",
+      "world_id": "88f27e1d-50a7-4bd5-9b0a-40c72a5e8a97",
+      "marble_url": "https://marble.worldlabs.ai/world/88f27e1d-50a7-4bd5-9b0a-40c72a5e8a97",
+      "splats": {
+        "500k": "worlds/lyra-ruins-hq.spz",
+        "100k": "worlds/lyra-ruins-hq.100k.spz"
+      },
+      "pano": "worlds/lyra-ruins-hq.pano.png",
+      "metric_scale_factor": 2.5674684,
       "crop_uv": [
         0.013008913514815708,
         0.04457104557640751,

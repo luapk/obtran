@@ -176,5 +176,23 @@
       "decode-clean-a.spz": 6115391,
       "decode-clean-a.100k.spz": 1284510
     }
+  },
+  "lyra-ruins-hq": {
+    "status": "done",
+    "model": "marble-1.1",
+    "media_asset_id": "d14bb0b1-8788-4c64-97fb-1392985865a6",
+    "operation_id": "bd6d9b89-1c71-4ea5-a21d-ec811be1d15a",
+    "started_at": "2026-10-25T21:08:54.971Z",
+    "world_id": "88f27e1d-50a7-4bd5-9b0a-40c72a5e8a97",
+    "finished_at": "2026-10-25T21:14:05.528Z",
+    "marble_url": "https://marble.worldlabs.ai/world/88f27e1d-50a7-4bd5-9b0a-40c72a5e8a97",
+    "metric_scale_factor": 2.5674684,
+    "caption": "The scene is a vividly hand-painted comic art depiction of a devastated alien landscape, characterized by bold black ink outlines over saturated colors, evoking a sense of dramatic destruction and otherworldly desolation. The overall tone is apocalyptic and foreboding, with intense hues of magenta, orange, and violet dominating the sky. Numerous toppled, angular towers and broken buildings, scarred with deep red and orange burns, are scattered across the terrain, indicating a catastrophic event. Piles of stark white skulls are visible in the foreground, forming macabre mounds. A colossal, cratered pink moon looms prominently in the magenta sky, casting an eerie glow over the scene. Billowing smoke and dust ascend from the burning ruins, further obscuring parts of the chaotic panorama. A small spaceship streaks across the sky, emitting a glowing mint green light as it rapidly departs into the deep violet and teal expanse of space. Visible brush and pencil textures enhance the graphic novel aesthetic. The 360 scene is faultless.",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata:},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "files": {
+      "lyra-ruins-hq.spz": 7860210,
+      "lyra-ruins-hq.100k.spz": 1453591,
+      "lyra-ruins-hq.pano.png": 12820085
+    }
   }
 }
