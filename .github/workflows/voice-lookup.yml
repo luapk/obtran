@@ -28,8 +28,8 @@ jobs:
         env:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
         run: |
-          node - <<'JS'
-          const fs = require('fs');
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
           const { names } = JSON.parse(fs.readFileSync('voices/lookup.json', 'utf8'));
           const H = { 'xi-api-key': process.env.ELEVENLABS_API_KEY };
           const out = { checked: new Date().toISOString(), results: {} };

@@ -1,4 +1,9 @@
 {
   "note": "Names to look up in the ElevenLabs voice library; changing this on main runs the Voice lookup workflow (free). Paul, 25 October: the narrator for OBTRAN 001 is the voice called Myrddin, on v4.",
-  "names": ["Myrddin", "Myrdin", "Merlin"]
+  "names": [
+    "Myrddin",
+    "Myrdin",
+    "Merlin"
+  ],
+  "run": 2
 }
