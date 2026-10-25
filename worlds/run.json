@@ -1,11 +1,9 @@
 {
   "comic": "obtran001",
   "quality": "draft",
-  "only": [
-    "bonfire"
-  ],
+  "only": [],
   "force": false,
-  "refresh": false,
+  "refresh": true,
   "credits": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: retry the bonfire draft (230 credits) with a tighter crop (tent, smoke and fire only); the first two tries were refused by World Labs' content filter (violence), charged nothing. The other seven drafts finished on 25 October (1,610 credits, 23,390 left)."
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: refresh (free) to fetch the eight panoramas, which were not ready when generation finished. All eight drafts done on 25 October (1,840 credits; 23,160 left)."
 }
