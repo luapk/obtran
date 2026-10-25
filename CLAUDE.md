@@ -438,6 +438,7 @@ Ask whether OBTRAN 003 stems can replace the synthesised sound. If so, cue the b
   - The scan lines over films are lighter (14% black, was 34%), the rolling band half as bright.
   - The white flash as a film cuts in or out is far lighter (`FILM_FLASH`: 0.12 on a phone, 0.25 elsewhere; it was 0.6 in, 0.45 out).
   - On portrait screens a film is shown 1.4 times further out than filling the screen (`FILM_OUT`), never past the frame's whole width, with black above and below.
+- **"Our fallen ship" straight into its film** (Paul, 26 October: it cut to the comic, then the video): the patrol beat is `noHop` and `filmOnly` like the escape film, its cue from 0 s; the fold's slingshot cuts straight into the patrol film, and the crash site's world is prepared during the fold.
 - Earlier note on credits: World Labs API 0 then ( the minimum purchase is 6,250 credits, $5); Higgsfield 280.84. `worlds/run.json` with `credits: true` reads the World Labs balance for free into `worlds/worlds/credits.json`.
 
 ## Methodology for the next comic

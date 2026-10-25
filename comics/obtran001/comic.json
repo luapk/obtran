@@ -44,7 +44,10 @@
     },
     {
       "b": "patrol",
-      "note": "OUR FALLEN SHIP IS INTERCEPTED BY A SCOUT PATROL FROM AN ANCIENT TRIBE."
+      "note": "OUR FALLEN SHIP IS INTERCEPTED BY A SCOUT PATROL FROM AN ANCIENT TRIBE.",
+      "filmOnly": true,
+      "noHop": true,
+      "why": "Paul, 26 October: \"Our fallen ship\" cut to the comic, then the video; it goes straight to the video now (no hop across the page), its caption over the film"
     },
     {
       "b": "plunder",

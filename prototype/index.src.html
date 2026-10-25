@@ -4789,7 +4789,7 @@ function journeyNext() {
     else props.spin = { ...beat.outSpin, id: beat.outSpin.prop, t: 0, dur: extra };
     leave(null, () => { props.spin = null; onward(); }, extra, true); return;
   }
-  if (BEATS[next.beat].noHop) { padHide(); onward(); return; }   // no collapse either: the film cuts in at once
+  if (BEATS[next.beat].noHop) { padHide(); foldHide(); drumHide(); onward(); return; }   // no collapse either: the film cuts in at once
   leave(null, () => startHop(i + 1), OUT_DUR, true);
 }
 
