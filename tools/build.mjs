@@ -41,7 +41,7 @@ const local = args.has('--local');
 
 // Served with the page: splats (raw and cleaned, desktop and phone) and the lists.
 // Panoramas stay in the repo for checking; the page never loads them.
-const isWorldFile = (f) => ['worlds.json', 'views.json', 'reliefs.json'].includes(f) || /^[a-z0-9-]+(\.100k)?(\.clean)?\.spz$/.test(f);
+const isWorldFile = (f) => ['worlds.json', 'views.json', 'reliefs.json'].includes(f) || /^[a-z0-9-]+((\.100k)?(\.clean)?\.spz|\.occ\.bin)$/.test(f);
 
 const dataUri = (file, mime) => `data:${mime};base64,${readFileSync(join(ASSETS, file)).toString('base64')}`;
 

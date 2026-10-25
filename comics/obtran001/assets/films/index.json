@@ -1,6 +1,16 @@
 {
-  "note": "Films for this comic: clips, cues and backdrops (see comics/obtran003 via prototype/assets/films/index.json for every option).",
-  "clips": {},
-  "cues": {},
+  "note": "OBTRAN 001's films (Paul, 25 October: \"videos look good, let's wire them in\"): photoreal, in colour (colour), through the Super 8 pass, with a DNA decode readout instead of Bob's CCTV (readout). Seedance 2.5 renders from the live-action stills (comics/obtran001/films/shots.json), 9:16, 5 s. Each comes up over its caption's space with the caption over it (card). See prototype/assets/films/index.json for every option.",
+  "colour": true,
+  "readout": "dna",
+  "clips": {
+    "o1-cockpit": { "file": "o1-cockpit.mp4", "v": "1f58ec22", "note": "the cryptid at the controls: light pulses through his veins up into his head, his eyes turn glowing orange, slow push in" },
+    "o1-shadows": { "file": "o1-shadows.mp4", "v": "cc5b6e80", "note": "dancers round the fire inside the tent, smoke rising, their shadows moving across the cloth" },
+    "o1-eye": { "file": "o1-eye.mp4", "v": "bc9894e0", "note": "the cryptid's eye: the lid trembles, it snaps open in the first second and holds, the fire and dancers reflected" }
+  },
+  "cues": {
+    "lifeform": { "clip": "o1-cockpit", "at": 0.4, "from": 0, "len": 5.0, "card": true, "note": "...a DNA-encrypted lifeform! The light runs through his veins as the caption names him" },
+    "ritual": { "clip": "o1-shadows", "at": 0.4, "from": 0, "len": 5.0, "card": true, "note": "the bonfire ritual: the dancers' shadows (Paul: \"definitely a video render\"); the drum interaction follows the film once built" },
+    "decode": { "clip": "o1-eye", "at": 0.2, "from": 0, "len": 5.0, "card": true, "note": "...would soon trigger OBTRAN to begin its decode protocol: the eye snaps open, then the decode (the beat's auto advance waits for the film)" }
+  },
   "backdrops": {}
 }

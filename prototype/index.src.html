@@ -35,6 +35,7 @@
   /* the films are portrait: on a wide screen show the whole frame with ink either side */
   @media (min-aspect-ratio: 4/5) { #film video { object-fit: contain; } #film video.land { object-fit: cover; } }
   #film video.cur { display: block; }
+  #film.colour video { filter: contrast(1.05); }   /* a comic whose films keep their colour (films/index.json colour) */
   /* over the films (Paul): a super fine scan line, a slow rolling band, and an alien CCTV readout */
   #film::after { content: ''; position: absolute; inset: 0; pointer-events: none; background:
     repeating-linear-gradient(0deg, rgba(0,0,0,0.34) 0 1px, rgba(0,0,0,0) 1px 2px),
@@ -2070,12 +2071,12 @@ function propMaterials(tones = {}) {
     uShade: { value: c3(tones.shade, [0.45, 0.43, 0.44]) }, uInk: { value: c3(tones.ink, [0.04, 0.035, 0.03]) } };
   const fill = new THREE.ShaderMaterial({
     uniforms: u, transparent: true,
-    vertexShader: `varying vec3 vN; varying vec3 vV;
-      void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying float vD;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); vD = -mv.z; gl_Position = projectionMatrix * mv; }`,
     // ink grade like the painted skulls: mostly bone, pale grey in the turn, mid grey in shadow, hatching only in the
     // deepest shadow; ink lines where the surface folds sharply (sockets, brows, cheekbones, teeth: the normal changes
     // fast across the screen) and at the silhouette
-    fragmentShader: `uniform float uLevel; uniform vec3 uLight; uniform vec3 uBase; uniform vec3 uShade; uniform vec3 uInk; varying vec3 vN; varying vec3 vV;
+    fragmentShader: `uniform float uLevel; uniform vec3 uLight; uniform vec3 uBase; uniform vec3 uShade; uniform vec3 uInk; varying vec3 vN; varying vec3 vV; varying float vD;
       void main(){
         vec3 n = normalize(vN);
         float l = 0.5 + 0.5 * dot(n, normalize(vec3(-0.35, 0.75, 0.55)));
@@ -2086,8 +2087,10 @@ function propMaterials(tones = {}) {
         if (l < 0.5) c = uBase;
         if (l < 0.3) c = uShade;
         if (l < 0.16) c = mix(uShade, uInk, hatch * 0.85);
-        float fold = length(fwidth(n));
-        c = mix(c, uInk, smoothstep(0.32, 0.55, fold));
+        // the normal's change per pixel grows as a skull gets smaller on screen, so the threshold rises with distance
+        // (else the far, lighter models inked over entirely)
+        float fold = length(fwidth(n)) / (1.0 + vD * 0.09);
+        c = mix(c, uInk, smoothstep(0.2, 0.36, fold));
         c = mix(c, uInk, smoothstep(0.78, 0.88, rim));
         gl_FragColor = vec4(c, uLevel);
       }`,
@@ -2136,9 +2139,46 @@ async function loadProps() {
       obj.rotateX(r[0] * DEG); obj.rotateY(r[1] * DEG); obj.rotateZ(r[2] * DEG);
       group.add(obj);
     });
+    const occ = await propOccluder(pr.world, dirOf);
+    if (occ) group.add(occ);
     props.root.add(group);
     props.list.push({ pr, group });
   }
+}
+// the world's surface as an invisible depth shell (tools/make_occluder.py, worlds/<id>.occ.bin): splats write no
+// depth, so without it the props drew over the ruins wherever the camera drifted (Paul: skulls "floating above and
+// in front of structures"). Drawn into depth only, after the splats and before the props; triangles across a jump
+// in depth are left out, so a structure's edge does not hide what stands beside it.
+const occluders = {};
+function propOccluder(id, dirOf) {
+  if (params.get('occ') === '0') return Promise.resolve(null);   // ?occ=0: without it, to compare
+  occluders[id] ??= fetch(`worlds/${id}.occ.bin`).then((r) => (r.ok ? r.arrayBuffer() : null)).then((buf) => {
+    if (!buf) return null;
+    const W = 256, H = 128, q = new Uint16Array(buf);
+    if (q.length !== W * H) return null;
+    const pos = new Float32Array(W * H * 3), dist = new Float32Array(W * H);
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const k = j * W + i, d = q[k] ? 0.05 * Math.pow(2000, q[k] / 65535) : 0;
+      dist[k] = d;
+      dirOf([(i + 0.5) / W * 360 - 180, 90 - (j + 0.5) / H * 180, d || 1]).toArray(pos, k * 3);
+    }
+    const idx = [];
+    const ok = (...ks) => { let lo = Infinity, hi = 0; for (const k of ks) { if (!dist[k]) return false; lo = Math.min(lo, dist[k]); hi = Math.max(hi, dist[k]); } return hi / lo < 1.18; };
+    for (let j = 0; j < H - 1; j++) for (let i = 0; i < W; i++) {
+      const a = j * W + i, b = j * W + (i + 1) % W, c = a + W, e = b + W;
+      if (ok(a, b, c)) idx.push(a, c, b);
+      if (ok(b, c, e)) idx.push(b, c, e);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    const show = params.get('occ') === 'show';      // ?occ=show: drawn as a wireframe, to check it lines up with the world
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: show, wireframe: show, color: 0x00ff66, depthWrite: true, transparent: true, side: THREE.DoubleSide }));   // transparent: sorted with the splats, so it comes after them
+    mesh.renderOrder = 3.5;                          // after the splats (-10), before the props' outlines (3.9) and fills (4)
+    mesh.frustumCulled = false;
+    return mesh;
+  }).catch(() => null);
+  return occluders[id].then((m) => (m && !m.parent ? m : m ? m.clone() : null));
 }
 function updateProps(dt) {
   if (!props.list.length && !PROPS.length) return;
@@ -2980,6 +3020,9 @@ const films = { index: null, videos: {}, on: false, timers: [] };
 (async () => {
   try { const r = await fetch('assets/films/index.json', { cache: 'no-cache' }); films.index = r.ok ? await r.json() : null; } catch (e) { films.index = null; }
   if (films.index && params.get('films') === '0') films.index.cues = {};
+  // colour: this comic's films keep their colour (OBTRAN 001, Paul: photoreal, in colour, graded to the page);
+  // OBTRAN 003's stay black and white. readout: 'dna' swaps the alien CCTV glyphs for a DNA decode readout
+  if (films.index?.colour) $('film').classList.add('colour');
 })();
 function filmCue(beat) {
   const cue = films.index?.cues?.[beat];
@@ -3068,7 +3111,7 @@ function super8Init(el, preserve = false) {
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
     const vs = sh(gl.VERTEX_SHADER, 'attribute vec2 p; varying vec2 v; void main(){ v = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }');
     const fs = sh(gl.FRAGMENT_SHADER, `precision mediump float;
-      varying vec2 v; uniform sampler2D uVid; uniform vec2 uScale; uniform vec2 uFocus; uniform vec2 uWeave; uniform vec2 uRes; uniform float uSeed; uniform float uFlick; uniform float uScratch;
+      varying vec2 v; uniform sampler2D uVid; uniform vec2 uScale; uniform vec2 uFocus; uniform vec2 uWeave; uniform vec2 uRes; uniform float uSeed; uniform float uFlick; uniform float uScratch; uniform float uColour;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
       float lum(vec2 uv){ return dot(texture2D(uVid, uv).rgb, vec3(0.299, 0.587, 0.114)); }
       void main(){
@@ -3076,6 +3119,8 @@ function super8Init(el, preserve = false) {
         if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
         vec2 px = 1.6 / uRes;                                    // soft, like a cheap zoom lens
         float l = lum(uv) * 0.36 + (lum(uv + vec2(px.x, 0.0)) + lum(uv - vec2(px.x, 0.0)) + lum(uv + vec2(0.0, px.y)) + lum(uv - vec2(0.0, px.y))) * 0.16;
+        vec3 soft = texture2D(uVid, uv).rgb * 0.36 + (texture2D(uVid, uv + vec2(px.x, 0.0)).rgb + texture2D(uVid, uv - vec2(px.x, 0.0)).rgb + texture2D(uVid, uv + vec2(0.0, px.y)).rgb + texture2D(uVid, uv - vec2(0.0, px.y)).rgb) * 0.16;
+        float l0 = max(l, 0.03);
         l = 0.06 + 0.86 * l;                                      // lifted blacks, rolled-off whites
         l *= uFlick;
         float g = hash(floor(gl_FragCoord.xy / 2.0) + uSeed) - 0.5;   // coarse grain, new every frame
@@ -3089,7 +3134,9 @@ function super8Init(el, preserve = false) {
           if (hash(vec2(float(i), uSeed * 0.11)) < 0.5) l = mix(l, hash(vec2(uSeed, float(i) * 7.0)) < 0.65 ? 0.03 : 0.95, smoothstep(r, r * 0.4, d));
         }
         if (uScratch >= 0.0) l = mix(l, 0.92, smoothstep(1.4 / uRes.x, 0.0, abs(v.x - uScratch - 0.002 * sin(v.y * 40.0 + uSeed))) * 0.7);
-        gl_FragColor = vec4(vec3(clamp(l, 0.0, 1.0)), 1.0);
+        // in colour, the frame's own hue carried at the graded brightness (a little faded, as film stock is)
+        vec3 col = mix(vec3(l), soft * min(l / l0, 3.0), uColour * 0.88);
+        gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
       }`);
     if (vs && fs) {
       const prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
@@ -3101,7 +3148,7 @@ function super8Init(el, preserve = false) {
         s8.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, s8.tex);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        for (const n of ['uScale', 'uFocus', 'uWeave', 'uRes', 'uSeed', 'uFlick', 'uScratch']) s8.u[n] = gl.getUniformLocation(prog, n);
+        for (const n of ['uScale', 'uFocus', 'uWeave', 'uRes', 'uSeed', 'uFlick', 'uScratch', 'uColour']) s8.u[n] = gl.getUniformLocation(prog, n);
         s8.gl = gl; s8.ok = true;
       }
     }
@@ -3126,7 +3173,7 @@ function super8Frame(S, v, W, H, sx, sy, keep, fx, fy) {
   const cx = clamp(fx, Math.min(hx, 0.5), Math.max(1 - hx, 0.5)), cy = clamp(fy, Math.min(hy, 0.5), Math.max(1 - hy, 0.5));
   gl.uniform2f(S.u.uScale, sx * keep, sy * keep); gl.uniform2f(S.u.uFocus, cx, cy);
   gl.uniform2f(S.u.uWeave, S.weave[0], S.weave[1]); gl.uniform2f(S.u.uRes, W, H);
-  gl.uniform1f(S.u.uSeed, S.seed); gl.uniform1f(S.u.uFlick, S.flick); gl.uniform1f(S.u.uScratch, S.scratch);
+  gl.uniform1f(S.u.uSeed, S.seed); gl.uniform1f(S.u.uFlick, S.flick); gl.uniform1f(S.u.uScratch, S.scratch); gl.uniform1f(S.u.uColour, films.index?.colour ? 1 : 0);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   return true;
 }
@@ -3229,7 +3276,8 @@ function cctvPaint(c, W, H, t, dt) {
   // REC and the running timestamp, in the year 3091
   c.font = '600 11px "IBM Plex Mono", ui-monospace, monospace'; c.textBaseline = 'top';
   if (Math.floor(t * 1.6) % 2 === 0) { c.beginPath(); c.arc(m + 14, m + 20, 4, 0, 6.283); c.fill(); }
-  c.fillText('REC', m + 24, m + 15);
+  const dna = films.index?.readout === 'dna';
+  c.fillText(dna ? 'DECODE' : 'REC', m + 24, m + 15);
   const sec = 15453 + t, hh = Math.floor(sec / 3600) % 24, mm = Math.floor(sec / 60) % 60, ss = Math.floor(sec) % 60, ff = Math.floor((sec % 1) * 24);
   const ts = `${COMIC.text.cctvDate} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}:${String(ff).padStart(2, '0')}`;
   c.textAlign = 'right'; c.fillText(ts, W - m - 10, m + 15); c.textAlign = 'left';
@@ -3237,10 +3285,21 @@ function cctvPaint(c, W, H, t, dt) {
   if (!cctv.rows.length) for (let r = 0; r < 4; r++) cctv.rows.push(Array.from({ length: 14 }, () => Math.floor(Math.random() * 28)));
   if (Math.random() < dt * 9) { const r = cctv.rows[Math.floor(Math.random() * 4)]; r[Math.floor(Math.random() * r.length)] = Math.floor(Math.random() * 28); }
   c.lineWidth = 1.2;
+  if (dna) {
+    // a DNA decode readout (OBTRAN 001): base pairs streaming, a sequence counter climbing
+    const bases = (row, n) => Array.from({ length: n }, (_, i) => 'ACGT'[row[i % row.length] % 4]).join(' ');
+    const pair = (row, n) => Array.from({ length: n }, (_, i) => 'TGCA'[row[i % row.length] % 4]).join(' ');
+    c.fillText(bases(cctv.rows[0], 9), m + 10, m + 36);
+    c.fillText(pair(cctv.rows[0], 9), m + 10, m + 50);
+    c.textAlign = 'right'; c.fillText(`SEQ ${Math.min(99.9, t * 9.7).toFixed(1)}%`, W - m - 10, m + 36); c.textAlign = 'left';
+    c.fillText(bases(cctv.rows[2], 12), m + 10, H - m - 64);
+    c.fillText(`LOCUS ${String(48211 + Math.floor(t * 37)).padStart(6, '0')}  CYG-A`, m + 10, H - m - 48);
+  } else {
   cctvGlyphs(c, m + 10, m + 38, cctv.rows[0], 10, 9);
   cctvGlyphs(c, W - m - 10 - 6 * 12.5, m + 38, cctv.rows[1], 10, 6);
   cctvGlyphs(c, m + 10, H - m - 40, cctv.rows[2], 9, 12);
   cctvGlyphs(c, m + 10, H - m - 24, cctv.rows[3], 9, 7);
+  }
   // a faint reticle
   c.strokeStyle = 'rgba(239,233,223,0.32)'; c.lineWidth = 1;
   const cx = W / 2, cy = H / 2;
