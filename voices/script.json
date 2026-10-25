@@ -1,10 +1,10 @@
 {
-  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again. The Render voices workflow runs whenever this file changes on main or the working branch. Spoken text may differ from the lettering for pronunciation: \"Canes\" is said \"caynis\" (Paul), so it is spelt \"Caynis\"; the hyphens make \"Spomenik-Operative-Bob\" one name, QNTM CTRL is said \"quantum control\", and Cryptoflage rhymes with camouflage, so it is spelt \"Crypto-flahzh\". \"Engage...\" is a stern monotone command (Paul, 24 October): high stability, and a full stop rather than an exclamation mark. All lines use Eleven v4 (eleven_v4, Paul, 24 October), which takes only stability and similarity_boost as settings (style and speaker boost are not supported), so pacing and delivery come from the audio tags and punctuation. A line's \"take\" number asks for a fresh render of the same words: raise it to hear another take. Smokehouse is v0eRobr4pSbFT9FKocdw (Paul, 24 October, replacing t1yzxMpe9zK42bXmI1T2). Smokehouse speaks with a thick Russian accent (Paul): an audio tag on each of his lines, as v4 has no style setting; similarity is 0.85 so more of the voice's own character comes through. Smokehouse's radio drive is 1.8 (was 3.2) so his shouting no longer rasps, and his reverb send is 0.22 into a wide 5 s tail (Paul). The accent is pushed harder on smoke1, engage and drill (Paul: \"make sure it's in thick Russian accent on v4\"): a stronger tag, lower stability (0.3; 0.75 on the monotone engage) so v4 follows the tag more, and Russian spellings in the spoken text only (zis, ze, rolled rr); the cards still show the lettering.",
+  "note": "Voice lines for the dialogue, rendered by tools/render-voices.mjs (run by the Render voices workflow). Words follow the hand lettering; bracketed directions are audio tags and are not spoken. A line renders only when its voice is set; changing a line's text, voice or settings renders it again. The Render voices workflow runs whenever this file changes on main or the working branch. Spoken text may differ from the lettering for pronunciation: \"Canes\" is said \"caynis\" (Paul), so it is spelt \"Caynis\"; the hyphens make \"Spomenik-Operative-Bob\" one name, QNTM CTRL is said \"quantum control\", and Cryptoflage rhymes with camouflage, so it is spelt \"Crypto-flahzh\". \"Engage...\" is a stern monotone command (Paul, 24 October): high stability, and a full stop rather than an exclamation mark. All lines use Eleven v4 (eleven_v4, Paul, 24 October), which takes only stability and similarity_boost as settings (style and speaker boost are not supported), so pacing and delivery come from the audio tags and punctuation. A line's \"take\" number asks for a fresh render of the same words: raise it to hear another take. Smokehouse is rL5thyifUCj65q3mamdf (Paul, 25 October, replacing v0eRobr4pSbFT9FKocdw, which replaced t1yzxMpe9zK42bXmI1T2), read calm and insistent (Paul): a [calm, insistent] tag after the accent, full stops rather than exclamation marks, stability 0.5 for all his lines. The narrator is uVKHymY7OYMd6OailpG5 (Paul, 25 October). Smokehouse speaks with a thick Russian accent (Paul): an audio tag on each of his lines, as v4 has no style setting; similarity is 0.85 so more of the voice's own character comes through. Smokehouse's radio drive is 1.8 (was 3.2) so his shouting no longer rasps, and his reverb send is 0.22 into a wide 5 s tail (Paul). The accent is pushed harder on smoke1, engage and drill (Paul: \"make sure it's in thick Russian accent on v4\"): a stronger tag, lower stability (0.3; 0.75 on the monotone engage) so v4 follows the tag more, and Russian spellings in the spoken text only (zis, ze, rolled rr); the cards still show the lettering.",
   "model": "eleven_v4",
   "output_format": "mp3_44100_128",
   "voices": {
     "smokehouse": {
-      "id": "v0eRobr4pSbFT9FKocdw",
+      "id": "rL5thyifUCj65q3mamdf",
       "radio": {
         "low": 420,
         "high": 2900,
@@ -14,7 +14,7 @@
         "reverb": 0.22
       },
       "settings": {
-        "stability": 0.4,
+        "stability": 0.5,
         "similarity_boost": 0.85
       }
     },
@@ -28,7 +28,7 @@
       "note": "Bob is the alien voice Paul chose (deep-wet-1, ElevenLabs Voice Design, 24 October), heard dry. His lines are cut from that take by tools/cut_bob_voice.py (each has a source), so render-voices.mjs leaves them alone; the id here is his old human voice until the designed one is saved (voices/alien-tests/results.json, adopted)."
     },
     "narrator": {
-      "id": "tiLGT9eftokjCKvXtgmt",
+      "id": "uVKHymY7OYMd6OailpG5",
       "radio": false,
       "settings": {
         "stability": 0.55,
@@ -46,19 +46,13 @@
     {
       "beat": "smoke1",
       "speaker": "smokehouse",
-      "text": "[very thick, heavy Russian accent, shouting over the radio] Smokehouse Shift for Bob, zis is Smokehouse Shift for Bob! You arre clearred to initiate your Pulsarr Protocol!",
-      "take": 3,
-      "settings": {
-        "stability": 0.3
-      }
+      "text": "[thick Russian accent, calm, insistent] Smokehouse Shift for Bob, zis is Smokehouse Shift for Bob. You arre clearred to initiate your Pulsarr Protocol.",
+      "take": 3
     },
     {
       "beat": "engage",
       "speaker": "smokehouse",
-      "text": "[very thick, heavy Russian accent, stern, flat monotone, commanding] Engage Chemical Digital Crrypto-flahzh.",
-      "settings": {
-        "stability": 0.75
-      },
+      "text": "[thick Russian accent, calm, insistent] Engage Chemical Digital Crrypto-flahzh.",
       "take": 3
     },
     {
@@ -70,16 +64,13 @@
     {
       "beat": "drill",
       "speaker": "smokehouse",
-      "text": "[very thick, heavy Russian accent, shouting] Zis is not a drrill, Bob! Engage ze Spomenik Trransfer Protocol. Just like you werre trrained to do!",
-      "take": 3,
-      "settings": {
-        "stability": 0.3
-      }
+      "text": "[thick Russian accent, calm, insistent] Zis is not a drrill, Bob. Engage ze Spomenik Trransfer Protocol. Just like you werre trrained to do.",
+      "take": 3
     },
     {
       "beat": "unlock",
       "speaker": "smokehouse",
-      "text": "[thick Russian accent, shouting] Unlock your biometric key, Bob!",
+      "text": "[thick Russian accent, calm, insistent] Unlock your biometric key, Bob.",
       "take": 2
     },
     {
