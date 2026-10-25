@@ -1,0 +1,34 @@
+{
+  "lyra-ruins": {
+    "error": "POST /marble/v1/worlds:generate: HTTP 402 {\"detail\":\"Insufficient API credits to start world generation with model 'marble-1.0-draft'. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing.\"}",
+    "status": "failed"
+  },
+  "vessel": {
+    "error": "POST /marble/v1/worlds:generate: HTTP 402 {\"detail\":\"Insufficient API credits to start world generation with model 'marble-1.0-draft'. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing.\"}",
+    "status": "failed"
+  },
+  "cryptid-cockpit": {
+    "error": "POST /marble/v1/worlds:generate: HTTP 402 {\"detail\":\"Insufficient API credits to start world generation with model 'marble-1.0-draft'. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing.\"}",
+    "status": "failed"
+  },
+  "manifold": {
+    "error": "POST /marble/v1/worlds:generate: HTTP 402 {\"detail\":\"Insufficient API credits to start world generation with model 'marble-1.0-draft'. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing.\"}",
+    "status": "failed"
+  },
+  "crash-forest": {
+    "error": "POST /marble/v1/worlds:generate: HTTP 402 {\"detail\":\"Insufficient API credits to start world generation with model 'marble-1.0-draft'. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing.\"}",
+    "status": "failed"
+  },
+  "pod": {
+    "error": "POST /marble/v1/worlds:generate: HTTP 402 {\"detail\":\"Insufficient API credits to start world generation with model 'marble-1.0-draft'. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing.\"}",
+    "status": "failed"
+  },
+  "bonfire": {
+    "error": "POST /marble/v1/worlds:generate: HTTP 402 {\"detail\":\"Insufficient API credits to start world generation with model 'marble-1.0-draft'. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing.\"}",
+    "status": "failed"
+  },
+  "decode-helix": {
+    "error": "POST /marble/v1/worlds:generate: HTTP 402 {\"detail\":\"Insufficient API credits to start world generation with model 'marble-1.0-draft'. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing.\"}",
+    "status": "failed"
+  }
+}
