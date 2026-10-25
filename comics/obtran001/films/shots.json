@@ -1,5 +1,5 @@
 {
-  "note": "OBTRAN 001's films (storyboard signed off by Paul, 25 October): photoreal, in colour, graded to each scene's palette; Super 8 kept, a DNA decode readout instead of Bob's CCTV. Stills on Nano Banana Pro from the references (served from https://obtran.vercel.app/obtran001/assets/films/), then Seedance 2.5, 5 s, 9:16 first. No weapons and nobody in the flames (World Labs refused that; Higgsfield may too).",
+  "note": "OBTRAN 001's films (storyboard signed off by Paul, 25 October): photoreal, in colour, graded to each scene's palette; Super 8 kept, a DNA decode readout instead of Bob's CCTV. Stills on Nano Banana Pro from the references (served from https://obtran.vercel.app/obtran001/assets/films/), then Seedance 2.5, 5 s, 9:16 first. No weapons and nobody in the flames (World Labs refused that; Higgsfield may too). First stills 25 October, two per shot (Higgsfield logged them as nano_banana_2 though nano_banana_pro was asked for); waiting for Paul's pick (G4).",
   "refs": {
     "cryptid": "ref-cryptid.jpg",
     "cockpit": "ref-cockpit.jpg",
@@ -12,24 +12,52 @@
     {
       "id": "cryptid-cockpit",
       "beat": "lifeform",
-      "refs": ["cryptid", "cockpit"],
+      "refs": [
+        "cryptid",
+        "cockpit"
+      ],
       "still": "Photoreal cinematic film still, 9:16. The alien cryptid from the first reference, exactly his design: blue skin with pink veins, huge round orange eyes with slit pupils, two long thin antennae, pointed pink ears, a squashed snout, a padded red and green spacesuit with yellow markings and a ring collar. He sits at the controls of a cramped retro-futurist spaceship cockpit like the second reference: a pink-lit window behind him, violet and teal panels, bundles of cables, a glowing DNA helix structure in the machinery. His veins glow faintly with light. Shot on 35mm film, shallow depth of field, colour graded magenta, violet and mint green like the comic panel. No text, no graphics, no logos.",
-      "motion": "He grips the controls as light pours through his veins in pulses, from his hands up his neck to his head; his huge orange eyes widen, antennae twitch, the cockpit lights flicker. Slow push in. No camera shake."
+      "motion": "He grips the controls as light pours through his veins in pulses, from his hands up his neck to his head; his huge orange eyes widen, antennae twitch, the cockpit lights flicker. Slow push in. No camera shake.",
+      "still_jobs": [
+        "963f3afc-06f7-4016-b9eb-2df0a3e371d8",
+        "81cb9416-6cd5-4f67-93a5-f291af084416"
+      ]
     },
     {
       "id": "fire-shadows",
       "beat": "ritual",
-      "refs": ["dancers", "bonfire"],
+      "refs": [
+        "dancers",
+        "bonfire"
+      ],
       "still": "Photoreal cinematic film still, 9:16, at night inside a large tent of hanging red cloth. A roaring bonfire in the middle; in front of it and around it the dark silhouettes of tribal dancers with arms raised, and their huge shadows thrown across the cloth walls by the firelight. Sparks rise, smoke curls to the roof. Deep red, orange and indigo, like the comic panels. Shot on 35mm film. No weapons, no one in the flames, no text.",
-      "motion": "The dancers sway and stamp around the fire with arms raised, their shadows leaping huge across the cloth walls; the flames surge, sparks rise. Locked-off camera."
+      "motion": "The dancers sway and stamp around the fire with arms raised, their shadows leaping huge across the cloth walls; the flames surge, sparks rise. Locked-off camera.",
+      "still_jobs": [
+        "ccd2b308-6dc1-42dd-a32b-1eb36ddaab17",
+        "f9fcdac8-d4fe-435e-84e2-503e176e8cab"
+      ]
     },
     {
       "id": "eye-opens",
       "beat": "decode",
-      "refs": ["eye", "cryptid"],
+      "refs": [
+        "eye",
+        "cryptid"
+      ],
       "still": "Extreme macro close-up of the cryptid's huge round orange alien eye with a black slit pupil, wet and glistening, ringed by blue skin with pink veins, as in the references. A roaring bonfire and dancing figures are reflected in the eye. Warm orange firelight. Photoreal, 9:16, shot on 35mm macro. No text.",
       "still_closed": "The same extreme macro close-up, but the eye is closed: a heavy blue-grey eyelid with pink veins, wet lashes of fine hairs, firelight flickering across it. Photoreal, 9:16. No text.",
-      "motion": "The closed eye snaps open; the orange iris and slit pupil contract as the firelight hits; the reflection of the fire and dancers fills the eye. Start frame: the closed still. End frame: the open still."
+      "motion": "The closed eye snaps open; the orange iris and slit pupil contract as the firelight hits; the reflection of the fire and dancers fills the eye. Start frame: the closed still. End frame: the open still.",
+      "still_jobs": [
+        "42b3742c-996f-4e27-a176-4ab5fe976255",
+        "ce495754-c93f-4617-9c88-8a98c2978e50"
+      ]
     }
-  ]
+  ],
+  "media": {
+    "cryptid": "cd2279e9-c527-4240-9d02-a35f165e00da",
+    "cockpit": "bc353929-461f-4f2a-8c6d-8de951061018",
+    "dancers": "11bf15ea-ab1f-45e7-a760-f33d8d6d9b97",
+    "bonfire": "e70fd45f-16a5-4235-bc5f-0a41fae9fdd7",
+    "eye": "7670710a-d577-4734-afd6-f8951d1f2c68"
+  }
 }
