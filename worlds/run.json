@@ -1,9 +1,11 @@
 {
   "comic": "obtran001",
   "quality": "draft",
-  "only": [],
+  "only": [
+    "bonfire"
+  ],
   "force": false,
   "refresh": false,
   "credits": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001's eight draft worlds (marble-1.0-draft, 8 x 230 = 1,840 credits), 25 October 2026, retried after Paul bought 25,000 API credits (the first try was refused with HTTP 402)."
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: retry the bonfire draft (230 credits) with a reworded prompt; its first try was refused by World Labs' content filter (violence), charged nothing. The other seven drafts finished on 25 October (1,610 credits, 23,390 left)."
 }

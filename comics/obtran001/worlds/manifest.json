@@ -89,7 +89,8 @@
         1689,
         581
       ],
-      "prompt": "Inside a large tent of hanging red cloth, a roaring bonfire with tall orange flames, silhouetted dancers with raised arms around it, a sleeping alien lying in the foreground in the warm firelight, deep red and blue shadows."
+      "prompt": "Inside a large tent of hanging red cloth at night, a big campfire with tall orange flames, a crowd of people dancing and celebrating with raised arms around it, a blue skinned alien resting peacefully on a blanket in the warm firelight in the foreground, deep red and blue shadows.",
+      "note": "First prompt refused by World Labs (HTTP 403, 'NSFW Content is not permitted by policy. Violence', 25 October); reworded without spears or ritual."
     },
     {
       "id": "decode-helix",

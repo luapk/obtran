@@ -1,0 +1,119 @@
+{
+  "note": "OBTRAN 001's page layout for tools/make_assets.py --comic obtran001, in a 1000 wide grid over the page (1000 x 1437.7). Boxes: the white caption rectangles, found from the scan (white runs filled, bounds where rows and columns are at least half white), in beat order. centre: the focal point the page's core effects and the finale's dive use (the eye with the fire in it, the decode). panel: the region that glows on the page as the first tap target (the Lyra panel, the first space). Depth: panels sit a little behind the gutters with soft relief, boxes are raised flat; no tunnel (tunnel: false). Provisional until the storyboard.",
+  "grid_w": 1000,
+  "centre": [
+    362,
+    1362
+  ],
+  "tunnel": false,
+  "boxes": [
+    {
+      "id": "lyra",
+      "speaker": "narrator",
+      "rect": [
+        17.1,
+        26.3,
+        210.8,
+        58.5
+      ],
+      "text": "EPSILON CYGNI, 3089 AD. ALL LIFE ON THE EXOPLANET LYRA HAS BEEN OBLITERATED..."
+    },
+    {
+      "id": "vessel",
+      "speaker": "narrator",
+      "rect": [
+        310.0,
+        24.6,
+        561.6,
+        67.7
+      ],
+      "text": "...APART FROM THE HOLOSONIC VESSEL QNTM CNTRL. IT ESCAPES THE POISONOUS ATMOSPHERE, THE LEGACY OF AN ENTIRE CIVILIZATION STOWED ON BOARD..."
+    },
+    {
+      "id": "lifeform",
+      "speaker": "narrator",
+      "rect": [
+        863.4,
+        253.4,
+        961.0,
+        427.1
+      ],
+      "text": "...A DNA-ENCRYPTED LIFEFORM! THE FINAL GIFT FROM THE DYING ELDERS, 15 MILLION ZETABYTES OF LYRA'S SACRED ETHNOLOGY, IMPRINTED INTO ITS CELLS, THE SACRED ENCRYPTION KNOWN AS THE OBLIVIOUS TRANSFER!"
+    },
+    {
+      "id": "manifold",
+      "speaker": "narrator",
+      "rect": [
+        705.4,
+        476.3,
+        972.3,
+        522.0
+      ],
+      "text": "FOUR-DIMENSIONAL MANIFOLD ENABLED, QNTM CNTRL TRAVERSES THE EXPANSE OF CYGNUS A, INTO A SLINGSHOT THAT PROPELS IT INTO THE ORBIT OF AN UNKNOWN PLANET."
+    },
+    {
+      "id": "patrol",
+      "speaker": "narrator",
+      "rect": [
+        469.8,
+        913.0,
+        650.7,
+        943.4
+      ],
+      "text": "OUR FALLEN SHIP IS INTERCEPTED BY A SCOUT PATROL FROM AN ANCIENT TRIBE."
+    },
+    {
+      "id": "plunder",
+      "speaker": "narrator",
+      "rect": [
+        363.3,
+        968.7,
+        568.5,
+        1016.4
+      ],
+      "text": "THEIR PLUNDER OF QNTM CTRL'S HOLD RETRIEVES URANIUM AND THE INVALUABLE CRYPTID, STILL DEEP IN HYPERSLEEP."
+    },
+    {
+      "id": "ritual",
+      "speaker": "narrator",
+      "rect": [
+        210.6,
+        1180.2,
+        339.4,
+        1226.5
+      ],
+      "text": "IN METABOLIC STASIS, THE PSYCHEDELIC VIBRATIONS OF THEIR BONFIRE RITUAL..."
+    },
+    {
+      "id": "decode",
+      "speaker": "narrator",
+      "rect": [
+        19.5,
+        1404.0,
+        353.4,
+        1418.0
+      ],
+      "text": "...WOULD SOON TRIGGER OBTRAN TO BEGIN ITS DECODE PROTOCOL."
+    }
+  ],
+  "panel": [
+    [
+      13,
+      22
+    ],
+    [
+      300,
+      22
+    ],
+    [
+      300,
+      455
+    ],
+    [
+      13,
+      455
+    ]
+  ],
+  "panel_depth": 140,
+  "box_depth": 158
+}
