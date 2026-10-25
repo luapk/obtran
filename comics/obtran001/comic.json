@@ -1874,10 +1874,11 @@
       ]
     },
     "drum": {
-      "note": "the ritual (Paul, 25 October): tap in time; about eight good hits trigger the decode. bpm to match The Eagle and the Senses once its excerpt is here (116 until then); window: seconds either side of a beat that count",
-      "bpm": 116,
+      "note": "the ritual (Paul, 25 October): tap in time with The Eagle and the Senses; about eight good hits trigger the decode. Locked to that loop's beat grid when it is playing (track; its bpm in the music index), else its own grid at bpm. window: seconds either side of a beat that count",
+      "bpm": 120,
       "hits": 8,
-      "window": 0.13
+      "window": 0.13,
+      "track": "the-eagle-and-the-senses"
     }
   },
   "sfxShared": {

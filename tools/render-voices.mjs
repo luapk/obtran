@@ -6,6 +6,7 @@
 //   node tools/render-voices.mjs --dry-run                     list what would render, call nothing
 //   --force       render every line with a voice again
 //   --only a,b    just these beats (ids from the script, e.g. smoke1,drill)
+//   --comic <id>  another comic: comics/<id>/voices/script.json into comics/<id>/assets/voice
 //
 // Writes prototype/assets/voice/<beat>.mp3 and prototype/assets/voice/index.json, which
 // records each line's speaker, whether it plays through the radio, and a hash of what was
@@ -17,11 +18,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SCRIPT = join(ROOT, 'voices', 'script.json');
-const OUT = join(ROOT, 'prototype', 'assets', 'voice');
+const argv = process.argv.slice(2);
+const comicAt = argv.indexOf('--comic');
+const COMIC = comicAt >= 0 && argv[comicAt + 1] !== 'obtran003' ? argv[comicAt + 1] : null;
+if (COMIC && !/^[a-z0-9-]+$/.test(COMIC)) throw new Error(`bad comic id ${COMIC}`);
+const SCRIPT = COMIC ? join(ROOT, 'comics', COMIC, 'voices', 'script.json') : join(ROOT, 'voices', 'script.json');
+const OUT = COMIC ? join(ROOT, 'comics', COMIC, 'assets', 'voice') : join(ROOT, 'prototype', 'assets', 'voice');
 const INDEX = join(OUT, 'index.json');
 
-const argv = process.argv.slice(2);
 const dryRun = argv.includes('--dry-run');
 const force = argv.includes('--force');
 const onlyAt = argv.indexOf('--only');

@@ -1,5 +1,5 @@
 {
-  "note": "QNTM CTRL, The Eagle and the Senses EP (Oblivious Transfer, OBTRAN001, November 2021). Unlock beats are provisional until the storyboard. Paul supplies the audio (25 to 35 s excerpts for loops, full tracks); tools/make_music.py makes the loops.",
+  "note": "QNTM CTRL, The Eagle and the Senses EP (Oblivious Transfer, OBTRAN001, November 2021). Paul, 25 October: Random Value over the destruction of Lyra, Endless Expansion (high paced, spaceship travelling music) through space, The Eagle and the Senses on the new planet into the tribal celebration. Loops cut on the beat by tools/make_music.py --comic obtran001 (bpm: the loop's tempo; each loop starts on a beat and holds whole bars, so the drum can lock to it). Full tracks (file) still to come.",
   "release": {
     "artist": "QNTM CTRL",
     "title": "The Eagle and the Senses",
@@ -12,8 +12,9 @@
       "title": "Random Value",
       "file": "random-value.mp3",
       "loop": "random-value.loop.mp3",
-      "unlockAt": "lifeform",
-      "why": "The DNA-encrypted lifeform: the oblivious transfer, whose cryptography runs on random values"
+      "unlockAt": "lyra",
+      "why": "Lyra's destruction: the opening, where it plays",
+      "bpm": 135
     },
     {
       "id": "endless-expansion",
@@ -21,7 +22,8 @@
       "file": "endless-expansion.mp3",
       "loop": "endless-expansion.loop.mp3",
       "unlockAt": "manifold",
-      "why": "QNTM CNTRL traverses the expanse of Cygnus A"
+      "why": "QNTM CNTRL traverses the expanse of Cygnus A: the fold",
+      "bpm": 100
     },
     {
       "id": "the-eagle-and-the-senses",
@@ -29,10 +31,18 @@
       "file": "the-eagle-and-the-senses.mp3",
       "loop": "the-eagle-and-the-senses.loop.mp3",
       "unlockAt": "decode",
-      "why": "The bonfire's vibrations trigger the decode protocol"
+      "why": "The bonfire's vibrations trigger the decode protocol: the drum's reward",
+      "bpm": 120
     }
   ],
-  "loops": {},
+  "loops": {
+    "default": "random-value"
+  },
   "startAt": "lyra",
-  "loopLevel": 2.4
+  "loopLevel": 2.4,
+  "cues": {
+    "vessel": "endless-expansion",
+    "patrol": "the-eagle-and-the-senses"
+  },
+  "cuesNote": "Endless Expansion takes over as the ship escapes (vessel), The Eagle and the Senses on the new planet (patrol), each crossfading and staying from then on"
 }

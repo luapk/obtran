@@ -6,7 +6,8 @@ name: Render voices
 # rendered, so rerunning costs nothing.
 #
 # Starts from "Run workflow" on the Actions tab, or from a push to main that
-# changes voices/script.json.
+# changes voices/script.json or a comic's comics/<id>/voices/script.json (each comic
+# with a script renders into comics/<id>/assets/voice).
 #
 # Needs the repository secret ELEVENLABS_API_KEY (Settings > Secrets and
 # variables > Actions). Never put the key in code or logs.
@@ -15,7 +16,7 @@ on:
   push:
     # the working branch too, so voices can render before the branch reaches main
     branches: [main, ccr-f7c462d2-dx11rj]
-    paths: [voices/script.json, .github/workflows/render-voices.yml]
+    paths: [voices/script.json, 'comics/*/voices/script.json', .github/workflows/render-voices.yml]
   workflow_dispatch:
     inputs:
       force:
@@ -66,14 +67,20 @@ jobs:
           case "$ONLY" in *[!a-z0-9,]*) echo "::error::only may hold beat ids and commas only"; exit 1 ;; esac
           [ -n "$ONLY" ] && args+=(--only "$ONLY")
           node tools/render-voices.mjs "${args[@]}"
+          # each further comic with a script of its own (comics/<id>/voices/script.json)
+          for s in comics/*/voices/script.json; do
+            [ -e "$s" ] || continue
+            id=$(basename "$(dirname "$(dirname "$s")")")
+            echo "== $id"
+            node tools/render-voices.mjs --comic "$id" "${args[@]}"
+          done
 
       - name: Commit results
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ ! -d prototype/assets/voice ]; then echo "Nothing rendered."; exit 0; fi
-          git add prototype/assets/voice
+          git add prototype/assets/voice comics/*/assets/voice 2>/dev/null || true
           if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
           git commit -m "Render voices"
           for i in 1 2 3 4; do

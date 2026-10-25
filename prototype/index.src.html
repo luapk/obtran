@@ -1494,7 +1494,7 @@ class Sound {
     const o = ctx.createOscillator(); o.type = 'sine';
     const f0 = miss ? 70 : hit ? 105 : accent ? 92 : 80;
     o.frequency.setValueAtTime(f0 * 1.9, t); o.frequency.exponentialRampToValueAtTime(f0, t + 0.04); o.frequency.exponentialRampToValueAtTime(f0 * 0.62, t + 0.4);
-    const g = ctx.createGain(), peak = hit ? 0.9 : miss ? 0.28 : accent ? 0.5 : 0.36;
+    const g = ctx.createGain(), peak = (hit ? 0.9 : miss ? 0.28 : accent ? 0.5 : 0.36) * (kind === 'soft' ? 0.55 : 1);   // soft: under the music, which carries the beat
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.004); g.gain.setTargetAtTime(0, t + 0.02, hit ? 0.16 : miss ? 0.05 : 0.11);
     o.connect(g).connect(this.master); o.start(t); o.stop(t + 1.2);
     // the slap of a hand on the skin
@@ -3069,7 +3069,7 @@ async function musicLoop(key, force, fadeIn = 2.5) {
   if (!music.index || (key === music.loopKey && !force)) return;
   music.loopKey = key;
   if (!music.started || music.off) { musicLoopStop(); return; }
-  const id = music.track || (music.index.loops?.[key] ?? null);
+  const id = music.track || (music.index.loops?.[key] ?? music.index.loops?.default ?? null);
   if (music.loopNow?.id === id) return;              // already playing: carry on with no seam
   if (music.playing) return;                        // a full track is playing: loops wait
   musicLoopStop();
@@ -3079,7 +3079,7 @@ async function musicLoop(key, force, fadeIn = 2.5) {
   src.buffer = buf; src.loop = true;
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime((music.index.loopLevel ?? 2.4) * (buf.level || 1), t + fadeIn);
   src.connect(g).connect(musicBus()); src.start(t);
-  music.loopNow = { id, src, g };
+  music.loopNow = { id, src, g, t0: t };          // t0: the loop starts on a beat here (the drum can lock to it)
 }
 // Music on/off (Paul): the loops and any full track; sound effects and voices carry on
 function musicSetOff(off) {
@@ -3812,11 +3812,16 @@ function drawDrum(dt) {
   // armed: the beating starts once the ritual's film has played and the space is open
   if (!drum.started) {
     if (films.on || performance.now() < drum.armAt || worlds.suction > 0.5 || !sound.ok) return;
-    drum.started = true; drum.t0 = sound.now() + 0.25; drum.next = 0;
+    drum.started = true; drum.next = 0;
+    // locked to the music when its loop is playing (it starts on a beat and holds whole bars), else a grid of its own
+    const lp = music.loopNow, tr = music.index?.tracks?.find((t) => t.id === DRUM.track);
+    if (lp && lp.id === DRUM.track && tr?.bpm && !music.off) {
+      drum.iv = 60 / tr.bpm; drum.t0 = lp.t0 + Math.ceil((sound.now() + 0.25 - lp.t0) / drum.iv) * drum.iv; drum.synced = true;
+    } else { drum.t0 = sound.now() + 0.25; drum.synced = false; }
     setHint('Tap in time with the drum');
   }
   // the guide beat, scheduled a little ahead on the audio clock (four to a bar, the first accented); it stops when done
-  if (!drum.done) while (drum.t0 + drum.next * drum.iv < sound.now() + 0.15) { sound.drum('beat', drum.t0 + drum.next * drum.iv, drum.next % 4 === 0); drum.next++; }
+  if (!drum.done) while (drum.t0 + drum.next * drum.iv < sound.now() + 0.15) { sound.drum(drum.synced ? 'soft' : 'beat', drum.t0 + drum.next * drum.iv, drum.next % 4 === 0); drum.next++; }
   drum.level = Math.min(1, drum.level + dt * 2);
   const heard = drumHeard(), ph = (heard - drum.t0) / drum.iv, k = Math.floor(ph), frac = ph - k;
   if (k > drum.lastBeat && k >= 0) { drum.lastBeat = k; drum.pulse = 1; }

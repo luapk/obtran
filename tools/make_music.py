@@ -10,6 +10,15 @@ the last FADE seconds fade out, a slight reverb (a synthetic decaying stereo tai
 at WET) is laid over the end, and the part of the reverb that rings past the end is folded back onto
 the start, so it rings on under the opening hit as the loop comes round. The loop keeps the excerpt's
 length, so it holds its tempo, and plays with no seam. pulsar_forest.mp3 (32.7 s, 25 October) is made the same way. Writes prototype/assets/music/<name>.loop.mp3.
+
+  python3 tools/make_music.py --comic obtran001
+
+OBTRAN 001's excerpts (Paul, 25 October: RANDOM.mp3, ENDLESS.mp3, EAGLE_SENSES.mp3; in comics/obtran001/source/music/,
+outside git) are cut on the beat instead: each loop starts on a beat and runs a whole number of bars, at the tempo
+measured from the excerpt (low band onset flux, the grid that best fits it), and the music just past the cut is
+blended over the loop's opening (XFADE, equal power), so the loop comes round in time with no fade. A loop that
+starts on a beat and holds whole bars keeps one beat grid however often it repeats, so the page can lock the drum
+to it (bpm in the music index). Writes comics/<id>/assets/music/<name>.loop.mp3.
 """
 import subprocess
 from pathlib import Path
@@ -26,6 +35,15 @@ TAIL = 3.0        # the reverb's length
 WET = 0.28        # how much reverb
 VERB_IN = 5.0     # the reverb hears this much of the end
 LEVEL = -22.0     # loudness of every loop (RMS, dB full scale)
+XFADE = 0.45      # beat-cut loops: the music past the cut, blended over the opening
+# beat-cut loops per comic: track id: (source file, bpm, first beat s, beats)
+BEAT_LOOPS = {
+    "obtran001": {
+        "random-value": ("random_value.mp3", 135.0, 0.177, 88),              # 22 bars, 39.11 s
+        "endless-expansion": ("endless_expansion.mp3", 100.0, 0.110, 64),    # 16 bars, 38.40 s
+        "the-eagle-and-the-senses": ("eagle_senses.mp3", 120.0, 0.096, 60),  # 15 bars, 30.00 s
+    },
+}
 
 
 def reverb_ir(n, rng):
@@ -68,6 +86,33 @@ def make(track, src):
     print(f"{out.name} {n / SR:.2f} s, peak {20 * np.log10(np.abs(y).max()):.1f} dB, {out.stat().st_size // 1024} KB")
 
 
+def make_beat(src_dir, out_dir, track, src, bpm, first, beats):
+    raw = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", str(src_dir / src), "-ar", str(SR), "-ac", "2", "-f", "f32le", "-"],
+                         capture_output=True, check=True).stdout
+    x = np.frombuffer(raw, np.float32).reshape(-1, 2).astype(np.float64)
+    a, n, xf = round(first * SR), round(beats * 60 / bpm * SR), round(XFADE * SR)
+    if a + n + xf > len(x):
+        raise SystemExit(f"{src}: {beats} beats at {bpm} from {first} s need {(a + n + xf) / SR:.2f} s, the excerpt is {len(x) / SR:.2f} s")
+    y = x[a:a + n].copy()
+    t = np.linspace(0, np.pi / 2, xf)[:, None]
+    y[:xf] = y[:xf] * np.sin(t) + x[a + n:a + n + xf] * np.cos(t)          # what follows the cut, fading over the opening
+    y *= 10 ** (LEVEL / 20) / np.sqrt(np.mean(y ** 2))
+    peak = np.abs(y).max()
+    if peak > 0.98: y *= 0.98 / peak
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"{track}.loop.mp3"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", "-", "-b:a", "192k", str(out)],
+                   input=y.astype(np.float32).tobytes(), check=True)
+    print(f"{out.name} {n / SR:.3f} s ({beats} beats at {bpm} bpm), peak {20 * np.log10(np.abs(y).max()):.1f} dB, {out.stat().st_size // 1024} KB")
+
+
 if __name__ == "__main__":
-    for track, src in LOOPS.items():
-        make(track, src)
+    import sys
+    if "--comic" in sys.argv and sys.argv[sys.argv.index("--comic") + 1] != "obtran003":
+        cid = sys.argv[sys.argv.index("--comic") + 1]
+        base = ROOT / "comics" / cid
+        for track, spec in BEAT_LOOPS[cid].items():
+            make_beat(base / "source" / "music", base / "assets" / "music", track, *spec)
+    else:
+        for track, src in LOOPS.items():
+            make(track, src)
