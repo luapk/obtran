@@ -201,6 +201,48 @@
       "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261024_200930_70c5be49-bd87-4acc-866a-4d379de995b0.png",
       "job": "70c5be49-bd87-4acc-866a-4d379de995b0",
       "note": "Extreme close-up of Alien Bob's bare spindly hand holding the OT logo mug, steam rising, skull ring, black suit sleeve and cuff ring; 16:9, shallow depth of field (Nano Banana Pro request, refs bob4-wide-2, media 092eb8d3, OT logo)"
+    },
+    "o1-decode-clean-a": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_150809_d07d9e10-3fb4-432e-b97d-0865e03cec5a.png",
+      "job": "d07d9e10-3fb4-432e-b97d-0865e03cec5a",
+      "note": "OBTRAN 001: the decode crop with the painted helix removed by Nano Banana, for a new draft world",
+      "full": true
+    },
+    "o1-decode-clean-b": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_150809_581a6937-011c-4f91-8491-6487e70d7aab.png",
+      "job": "581a6937-011c-4f91-8491-6487e70d7aab",
+      "note": "OBTRAN 001: the decode crop with the helix removed, second take",
+      "full": true
+    },
+    "o1-cockpit-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_145332_963f3afc-06f7-4016-b9eb-2df0a3e371d8.png",
+      "job": "963f3afc-06f7-4016-b9eb-2df0a3e371d8",
+      "note": "OBTRAN 001 film 1 still"
+    },
+    "o1-cockpit-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_145332_81cb9416-6cd5-4f67-93a5-f291af084416.png",
+      "job": "81cb9416-6cd5-4f67-93a5-f291af084416",
+      "note": "OBTRAN 001 film 1 still"
+    },
+    "o1-shadows-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_145336_ccd2b308-6dc1-42dd-a32b-1eb36ddaab17.png",
+      "job": "ccd2b308-6dc1-42dd-a32b-1eb36ddaab17",
+      "note": "OBTRAN 001 film 2 still"
+    },
+    "o1-shadows-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_145336_f9fcdac8-d4fe-435e-84e2-503e176e8cab.png",
+      "job": "f9fcdac8-d4fe-435e-84e2-503e176e8cab",
+      "note": "OBTRAN 001 film 2 still"
+    },
+    "o1-eye-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_145338_42b3742c-996f-4e27-a176-4ab5fe976255.png",
+      "job": "42b3742c-996f-4e27-a176-4ab5fe976255",
+      "note": "OBTRAN 001 film 3 still"
+    },
+    "o1-eye-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_145338_ce495754-c93f-4617-9c88-8a98c2978e50.png",
+      "job": "ce495754-c93f-4617-9c88-8a98c2978e50",
+      "note": "OBTRAN 001 film 3 still"
     }
   }
 }
