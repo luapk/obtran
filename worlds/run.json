@@ -2,10 +2,10 @@
   "comic": "obtran001",
   "quality": "draft",
   "only": [
-    "decode-clean"
+    "decode-clean-a"
   ],
   "force": false,
   "refresh": false,
   "credits": false,
-  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: a draft of the decode world from the crop with the painted helix removed (230 credits), 25 October; 23,160 credits before it."
+  "note": "Changing this file on main starts the Generate worlds workflow with these settings. OBTRAN 001: a draft of the decode world from take A of the helix-free crop (230 credits), 25 October; take B lost the giant eye. 22,930 credits before it."
 }
