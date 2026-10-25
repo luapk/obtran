@@ -143,6 +143,18 @@
       "job": "2cb9ef7d-9f86-443a-9ffe-6682ad6f2e11",
       "comic": "obtran001",
       "note": "OBTRAN 001: the scout patrol watching the ship fall (Paul: \"render this scene as video\", still o1-patrol-1); Seedance 2.5, 16:9, 5 s (the first try, with a rider pointing his pole, failed)"
+    },
+    "o1-shadows-16x9": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_200226_811ce583-9c52-411c-a0b4-25b5f6ca6df6.mp4",
+      "job": "811ce583-9c52-411c-a0b4-25b5f6ca6df6",
+      "comic": "obtran001",
+      "note": "OBTRAN 001 film 2 re-rendered 16:9 (Paul: the wide frame approved; \"have the camera orbit around the space, shooting inwards\"): from the outpaint bd231269 of o1-live-shadows-2"
+    },
+    "o1-crash": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_200348_4143c505-dff9-4ebc-adb3-aec1192b4b1a.mp4",
+      "job": "4143c505-dff9-4ebc-adb3-aec1192b4b1a",
+      "comic": "obtran001",
+      "note": "OBTRAN 001: the crash panel live action (Paul): the wreck smoking in the dusk forest, the patrol on the ridge; from still 731781cf, 16:9, 5 s"
     }
   },
   "stills": {
@@ -376,6 +388,11 @@
       "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_191350_9f8c9f54-bd72-48d7-a635-822f9fbd5513.png",
       "job": "9f8c9f54-bd72-48d7-a635-822f9fbd5513",
       "note": "OBTRAN 001: the wide Lyra escape still Paul chose"
+    },
+    "o1-crash-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_200239_731781cf-4883-4f07-97e6-559a443be3ed.png",
+      "job": "731781cf-4883-4f07-97e6-559a443be3ed",
+      "note": "OBTRAN 001: crash film still"
     }
   },
   "models": {
