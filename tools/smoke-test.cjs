@@ -68,7 +68,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // the journey: tap into Bob's panel, then each beat in its own space
     await shot('page');
     await page.keyboard.press('ArrowRight');
-    const spaceReady = (step) => page.waitForFunction((s) => window.__ot.journey.phase === 'space' && window.__ot.journey.step === s && window.__ot.worlds.ok, { timeout: 600000, polling: 500 }, step);
+    // ready = in its space; or already gone on (a beat that advances by itself, such as the one before the finale, can
+// leave its space between two polls when a frame takes seconds under SwiftShader)
+    const spaceReady = (step) => page.waitForFunction((s) => { const J = window.__ot.journey; return (J.step === s && J.phase === 'space' && window.__ot.worlds.ok) || J.step > s || (J.step === s && (J.phase === 'out' || J.phase === 'load' || J.done)); }, { timeout: 600000, polling: 500 }, step);
     const steps = await page.evaluate(() => window.__ot.STEPS);
     const beats = await page.evaluate(() => window.__ot.BEATS);
     for (let i = 0; i < steps.length; i++) {
