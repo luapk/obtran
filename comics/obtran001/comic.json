@@ -1648,6 +1648,77 @@
           ]
         ],
         "alpha": 1
+      },
+      {
+        "note": "the bonfire in the tent (the world's own fire splats: yaw -10 to 30, pitch -45 to -10, about 1.05 out); the drum's good hits make it flare",
+        "world": "bonfire",
+        "kind": "fire",
+        "at": [
+          10,
+          -30,
+          1.0
+        ],
+        "count": 110,
+        "spread": 1.8,
+        "life": 1.2,
+        "rise": 4.5,
+        "drift": [
+          0.3,
+          0,
+          0
+        ],
+        "size": [
+          1.2,
+          0.4
+        ],
+        "colours": [
+          [
+            1,
+            0.75,
+            0.3
+          ],
+          [
+            0.9,
+            0.2,
+            0.05
+          ]
+        ],
+        "alpha": 0.2
+      },
+      {
+        "world": "bonfire",
+        "kind": "embers",
+        "at": [
+          10,
+          -30,
+          1.0
+        ],
+        "count": 160,
+        "spread": 2.4,
+        "life": 4,
+        "rise": 14,
+        "drift": [
+          2,
+          0,
+          1
+        ],
+        "size": [
+          0.16,
+          0.08
+        ],
+        "colours": [
+          [
+            1,
+            0.8,
+            0.35
+          ],
+          [
+            1,
+            0.35,
+            0.1
+          ]
+        ],
+        "alpha": 1
       }
     ],
     "fold": {
@@ -1749,6 +1820,12 @@
           ]
         ]
       ]
+    },
+    "drum": {
+      "note": "the ritual (Paul, 25 October): tap in time; about eight good hits trigger the decode. bpm to match The Eagle and the Senses once its excerpt is here (116 until then); window: seconds either side of a beat that count",
+      "bpm": 116,
+      "hits": 8,
+      "window": 0.13
     }
   },
   "sfxShared": {

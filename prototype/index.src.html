@@ -1464,6 +1464,27 @@ class Sound {
     const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * level, t + 0.006); g.gain.setTargetAtTime(0, t + 0.04, 0.07);
     o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.5);
   }
+  // the drum (OBTRAN 001's ritual): the guide beat at a given time, a good hit, a miss
+  drum(kind = 'beat', when = 0, accent = false) {
+    if (!this.ok || this.muted) return;
+    const ctx = this.ctx, t = Math.max(this.now(), when || 0);
+    const hit = kind === 'hit', miss = kind === 'miss';
+    // the skin: a sine that drops in pitch
+    const o = ctx.createOscillator(); o.type = 'sine';
+    const f0 = miss ? 70 : hit ? 105 : accent ? 92 : 80;
+    o.frequency.setValueAtTime(f0 * 1.9, t); o.frequency.exponentialRampToValueAtTime(f0, t + 0.04); o.frequency.exponentialRampToValueAtTime(f0 * 0.62, t + 0.4);
+    const g = ctx.createGain(), peak = hit ? 0.9 : miss ? 0.28 : accent ? 0.5 : 0.36;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.004); g.gain.setTargetAtTime(0, t + 0.02, hit ? 0.16 : miss ? 0.05 : 0.11);
+    o.connect(g).connect(this.master); o.start(t); o.stop(t + 1.2);
+    // the slap of a hand on the skin
+    const len = Math.floor((hit ? 0.09 : 0.04) * ctx.sampleRate), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.18));
+    const nz = ctx.createBufferSource(); nz.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = miss ? 420 : hit ? 1400 : 900; bp.Q.value = 0.9;
+    const ng = ctx.createGain(); ng.gain.value = hit ? 0.6 : miss ? 0.14 : 0.2;
+    nz.connect(bp).connect(ng).connect(this.master); nz.start(t);
+    if (hit) { const vs = ctx.createGain(); vs.gain.value = 0.35; g.connect(vs).connect(this.longVerbSend()); ng.connect(vs); this.thump(0.5); }
+  }
   // a crease closing in the fold (OBTRAN 001): a dry click and a short knock that rises with each crease
   crease(k = 0, n = 5) {
     if (!this.ok || this.muted) return;
@@ -2220,7 +2241,7 @@ function updateProps(dt) {
 // sizes (world units, start and end) and colours (start and end). Each particle moves on the GPU from its own
 // seed and the clock: no work per frame beyond one uniform.
 const PARTICLES = SP.particles || [];
-const particles = { root: new THREE.Group(), list: [], level: { value: 0 }, on: params.get('particles') !== '0' && PARTICLES.length > 0, scale: { value: 800 } };
+const particles = { root: new THREE.Group(), list: [], level: { value: 0 }, on: params.get('particles') !== '0' && PARTICLES.length > 0, scale: { value: 800 }, boost: { value: 0 } };
 particles.root.visible = false;
 scene.add(particles.root);
 if (PARTICLES.length) {
@@ -2236,14 +2257,14 @@ if (PARTICLES.length) {
     const kind = K[em.kind] ?? 0;
     const c3 = (v, d) => new THREE.Vector3(...(v || d));
     const mat = new THREE.ShaderMaterial({
-      uniforms: { uTime: shared.uTime, uLevel: particles.level, uScale: particles.scale, uBase: { value: dirOf(em.at) },
+      uniforms: { uTime: shared.uTime, uLevel: particles.level, uScale: particles.scale, uBoost: particles.boost, uBase: { value: dirOf(em.at) },
         uSpread: { value: em.spread ?? 2 }, uLife: { value: em.life ?? 3 }, uRise: { value: em.rise ?? 6 },
         uDrift: { value: c3(em.drift, [0, 0, 0]) }, uSize: { value: new THREE.Vector2(...(em.size || [1, 2])) },
         uC0: { value: c3(em.colours?.[0], [1, 0.85, 0.3]) }, uC1: { value: c3(em.colours?.[1], [0.8, 0.15, 0.05]) },
         uAlpha: { value: em.alpha ?? 1 }, uKind: { value: kind } },
       transparent: true, depthWrite: false, depthTest: false,
       blending: kind === 2 ? THREE.NormalBlending : THREE.AdditiveBlending,
-      vertexShader: `uniform float uTime; uniform float uScale; uniform vec3 uBase; uniform float uSpread; uniform float uLife; uniform float uRise;
+      vertexShader: `uniform float uTime; uniform float uScale; uniform float uBoost; uniform vec3 uBase; uniform float uSpread; uniform float uLife; uniform float uRise;
         uniform vec3 uDrift; uniform vec2 uSize; uniform float uKind; attribute vec4 aSeed; varying float vT; varying vec4 vSeed;
         void main(){
           float life = uLife * (0.7 + 0.6 * aSeed.w);
@@ -2253,13 +2274,13 @@ if (PARTICLES.length) {
           vec3 p = uBase + vec3(cos(a) * r, 0.0, sin(a) * r);
           // flames lick up and narrow; embers rise far and wander; smoke billows up and spreads with the drift
           float rise = uKind < 0.5 ? uRise * t * (0.6 + 0.8 * aSeed.w) : uKind < 1.5 ? uRise * t * (0.5 + aSeed.w) : uRise * pow(t, 0.8);
-          p.y += rise;
+          p.y += rise * (1.0 + 0.7 * uBoost);   // a flare (the drum's good hits): flames leap
           p += uDrift * t * (uKind > 1.5 ? 1.0 : 0.5 + aSeed.y);
           p.x += sin(uTime * (1.3 + aSeed.z) + aSeed.y * 9.0) * (uKind < 1.5 ? 0.35 : 0.9) * t;
           if (uKind < 0.5) p.xz = mix(p.xz, uBase.xz, t * 0.5);
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
           float sz = mix(uSize.x, uSize.y, uKind > 1.5 ? sqrt(t) : t) * (0.6 + 0.8 * aSeed.z);
-          gl_PointSize = clamp(sz * uScale / max(-mv.z, 0.1), 1.0, 512.0);
+          gl_PointSize = clamp(sz * (1.0 + 0.35 * uBoost) * uScale / max(-mv.z, 0.1), 1.0, 512.0);
           gl_Position = projectionMatrix * mv;
         }`,
       fragmentShader: `uniform float uLevel; uniform vec3 uC0; uniform vec3 uC1; uniform float uAlpha; uniform float uKind; varying float vT; varying vec4 vSeed;
@@ -2300,6 +2321,7 @@ function updateParticles(dt) {
   particles.root.position.copy(P0);
   // point sizes in world units: pixels per unit at distance 1
   particles.scale.value = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+  particles.boost.value *= Math.exp(-dt * 2.4);
 }
 
 /* ---------- Bob's panel: cut from the page, floating in the opening space in layers ---------- */
@@ -3690,6 +3712,91 @@ function drawFold(dt) {
   }
 }
 
+// ---------- the drum (OBTRAN 001's ritual; Paul, 25 October: tap in time with the music; on-beat taps flare the
+// fire; about eight good hits trigger the decode) ----------
+// setPieces.drum: bpm, hits (good hits needed), window (seconds either side of a beat that count). Once the ritual's
+// film has played, the page beats a drum itself on the audio clock, shown as a ring that pulses on each beat with a
+// second ring closing onto it, so the beat can be seen as well as heard. A tap (or key) near a beat lands a heavy
+// hit: the fire flares (the world's particles), embers burst from the ring, one of its marks lights. Off the beat,
+// a dull thud and nothing lost. Taps are judged against what the reader hears (the audio clock less its output
+// latency). When enough hits have landed the story moves on to the decode. ?drum=0 skips it (a tap moves on).
+const DRUM = SP.drum && params.get('drum') !== '0' ? SP.drum : null;
+const drum = { on: false, armAt: 0, started: false, t0: 0, iv: 0.5, next: 0, good: 0, done: false, doneAt: 0, pulse: 0, hitT: -9, missT: -9, lastBeat: -1, level: 0 };
+function drumShow() {
+  if (!DRUM) return;
+  Object.assign(drum, { on: true, armAt: performance.now() + 900, started: false, next: 0, good: 0, done: false, doneAt: 0, pulse: 0, hitT: -9, missT: -9, lastBeat: -1, level: 0 });
+  drum.iv = 60 / (DRUM.bpm || 116);
+  fold.el.classList.add('on');
+}
+function drumHide() { if (!drum.on) return; drum.on = false; if (!fold.on) fold.el.classList.remove('on'); }
+function drumWaiting(beat) { return !!(DRUM && beat?.drum && !drum.done); }
+function drumHeard() { const c = sound.ctx; return sound.now() - (c ? (c.outputLatency || c.baseLatency || 0) : 0); }
+function drumTap() {
+  if (!drum.on || !drum.started || drum.done) return false;
+  const t = drumHeard(), k = Math.round((t - drum.t0) / drum.iv), off = t - (drum.t0 + k * drum.iv);
+  const win = DRUM.window ?? 0.13;
+  if (k >= 0 && Math.abs(off) <= win) {
+    drum.good++; drum.hitT = performance.now();
+    sound.drum('hit');
+    particles.boost.value = Math.min(1.6, particles.boost.value + 0.8);
+    worlds.jitter = Math.max(worlds.jitter, 0.25);
+    const g = drumGeom(); fxEmit(reducedMotion ? 30 : 90, g.cx, g.cy, 620);
+    flash(0.18);
+    if (navigator.vibrate) navigator.vibrate(18);
+    if (drum.good >= (DRUM.hits || 8)) {
+      drum.done = true; drum.doneAt = performance.now();
+      particles.boost.value = 2; flash(0.55); setHint('');
+      fxEmit(reducedMotion ? 60 : 300, g.cx, g.cy, 1000);
+    }
+  } else { drum.missT = performance.now(); sound.drum('miss'); }
+  return true;
+}
+function drumGeom() { const W = innerWidth, H = innerHeight; return { cx: W / 2, cy: H * 0.42, R: Math.min(W, H) * 0.15 }; }
+function drawDrum(dt) {
+  const el = fold.el, dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+  if (el.width !== Math.round(W * dpr) || el.height !== Math.round(H * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
+  const c = fold.ctx;
+  if (!fold.on) { c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H); }
+  // armed: the beating starts once the ritual's film has played and the space is open
+  if (!drum.started) {
+    if (films.on || performance.now() < drum.armAt || worlds.suction > 0.5 || !sound.ok) return;
+    drum.started = true; drum.t0 = sound.now() + 0.25; drum.next = 0;
+    setHint('Tap in time with the drum');
+  }
+  // the guide beat, scheduled a little ahead on the audio clock (four to a bar, the first accented); it stops when done
+  if (!drum.done) while (drum.t0 + drum.next * drum.iv < sound.now() + 0.15) { sound.drum('beat', drum.t0 + drum.next * drum.iv, drum.next % 4 === 0); drum.next++; }
+  drum.level = Math.min(1, drum.level + dt * 2);
+  const heard = drumHeard(), ph = (heard - drum.t0) / drum.iv, k = Math.floor(ph), frac = ph - k;
+  if (k > drum.lastBeat && k >= 0) { drum.lastBeat = k; drum.pulse = 1; }
+  drum.pulse *= Math.exp(-dt * 7);
+  const { cx, cy, R } = drumGeom(), now = performance.now();
+  const hitA = Math.max(0, 1 - (now - drum.hitT) / 450), missA = Math.max(0, 1 - (now - drum.missT) / 300);
+  const fadeOut = drum.done ? Math.max(0, 1 - (now - drum.doneAt) / 900) : 1;
+  c.save(); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.globalAlpha = drum.level * fadeOut;
+  const warm = '255,176,80', paper = '255,240,215';
+  // the skin: a ring that swells on each beat, and warms and widens on a good hit
+  const r = R * (1 + 0.14 * drum.pulse + 0.18 * hitA) * (1 - 0.05 * missA);
+  c.lineWidth = 2 + 4 * hitA; c.strokeStyle = `rgba(${hitA > 0.05 ? warm : paper},${0.5 + 0.4 * drum.pulse + 0.1 * hitA})`;
+  c.shadowColor = `rgba(${warm},0.9)`; c.shadowBlur = 12 + 30 * hitA + 10 * drum.pulse;
+  c.beginPath(); c.arc(cx, cy, r, 0, 6.2832); c.stroke();
+  c.fillStyle = `rgba(${warm},${0.06 + 0.2 * hitA})`; c.fill();
+  // the next beat closing in: a ring that shrinks onto the skin as it comes
+  if (!drum.done) {
+    const ra = R * (1 + 1.4 * (1 - frac));
+    c.shadowBlur = 0; c.lineWidth = 1.5; c.strokeStyle = `rgba(${paper},${0.15 + 0.45 * frac})`;
+    c.beginPath(); c.arc(cx, cy, ra, 0, 6.2832); c.stroke();
+  }
+  // the marks: one lights for each good hit
+  const n = DRUM.hits || 8;
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + i * 6.2832 / n, x = cx + Math.cos(a) * (R * 1.32), y = cy + Math.sin(a) * (R * 1.32), lit = i < drum.good;
+    c.shadowBlur = lit ? 14 : 0; c.fillStyle = lit ? `rgba(${warm},1)` : `rgba(${paper},0.25)`;
+    c.beginPath(); c.arc(x, y, lit ? 5 : 3.5, 0, 6.2832); c.fill();
+  }
+  c.restore();
+  if (drum.done && now - drum.doneAt > 1100 && journey.phase === 'space') { drumHide(); journeyNext(); }
+}
+
 function prefetchFilm(beat) { const cue = filmCue(beat); if (cue) filmVideo(cue.clip).load(); }
 // called from the Start tap: starting and stopping each film inside the reader's own gesture
 // lets phones that block a page's own video playback (data saver, low power) play them later
@@ -3819,6 +3926,7 @@ function showStep(i, keepCard = false) {
   // from the start (Paul); after that only the hold, a gesture nobody would guess, is named, and
   // a card left waiting 10 s pulses once instead
   if (beat.fold && FOLD) foldShow(); else foldHide();
+  if (beat.drum && DRUM) drumShow(); else drumHide();
   if (beat.hold) { setHint('Press and hold to unlock'); padShow(beat.b); prefetchWorld(FINAL_WORLD); prepareWorld(FINAL_WORLD); }
   else if (i === 0) setHint(`${tapWord} to continue`, true);
   else setHint('');
@@ -3955,7 +4063,7 @@ function enterSpace() {
 function journeyNext() {
   if (journey.phase !== 'space') return;
   const i = journey.step, beat = BEATS[STEPS[i].beat];
-  if (beat.hold || foldWaiting(beat)) { nudge(); return; }
+  if (beat.hold || foldWaiting(beat) || drumWaiting(beat)) { nudge(); return; }
   musicCue(beat.b + ':leave');
   if (beat.trigger) { finalBreach(); return; }
   const next = STEPS[i + 1];
@@ -3970,7 +4078,7 @@ function journeyNext() {
 // keepCard: the card stays up while the space collapses behind it, to be carried onto the page.
 function leave(nextWorld, then, dur = OUT_DUR, keepCard = false) {
   journey.autoAt = null;
-  padHide(); foldHide();
+  padHide(); foldHide(); drumHide();
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
   sound.stopVoice(); sound.crackleStop();
   sound.sfxPlay('transition', { gain: 0.5, verb: 0.35, echo: 0.22 });   // the hit as the space collapses (Paul's transition), in the long reverb with an eighth-note delay
@@ -4115,6 +4223,7 @@ canvas.addEventListener('pointerdown', (e) => {
   down = { x: e.clientX, y: e.clientY, t: performance.now() };
   if (state.stage === 'read' && !journey.on && BEATS[state.beat].hold) startHold(e.clientX, e.clientY);
   if (journey.on && journey.phase === 'space' && BEATS[state.beat].hold) startHold(e.clientX, e.clientY);
+  if (drum.on && journey.phase === 'space' && drumTap()) { down = null; return; }   // judged on the press, for timing
   if (fold.on && journey.phase === 'space') { foldDragStart(e.clientX); canvas.setPointerCapture(e.pointerId); return; }   // the drag folds, it does not look round
   if (state.stage === 'void') { look.dragging = true; look.lastX = e.clientX; look.lastY = e.clientY; canvas.setPointerCapture(e.pointerId); }
 });
@@ -4158,7 +4267,7 @@ function pointerEnd(e) {
       const beat = BEATS[state.beat];
       // Paul: the first bleep of his UI confirm tone when a text box is clicked to move on
       if (beat.trigger) { if (hitCard(e.clientX, e.clientY)) { sound.sfxPlay('bleep', { gain: 0.6 }); finalBreach(); } else nudge(); return; }
-      if (foldWaiting(beat)) { nudge(); return; }
+      if (foldWaiting(beat) || drumWaiting(beat)) { nudge(); return; }
       if (!beat.hold) sound.sfxPlay('bleep', { gain: 0.6 });
       journeyNext();
     }
@@ -4190,6 +4299,7 @@ addEventListener('keydown', (e) => {
     if (beat.hold) { if (!keyHold && !e.repeat) { keyHold = true; startHold(innerWidth / 2, innerHeight / 2); } return; }
     if (beat.trigger) { if (e.key === 'Enter' || e.key === ' ') { sound.sfxPlay('bleep', { gain: 0.6 }); finalBreach(); } return; }
     if (foldWaiting(beat)) { if (!e.repeat) foldStep(); return; }
+    if (drumWaiting(beat)) { if (!e.repeat) { if (!drumTap()) nudge(); } return; }
     if (!e.repeat) { sound.sfxPlay('bleep', { gain: 0.6 }); journeyNext(); }
     return;
   }
@@ -4491,6 +4601,7 @@ function frame() {
   if (films.on) { drawSuper8(rawDt); drawCCTV(rawDt); } else if (s8.el.classList.contains('on')) s8.el.classList.remove('on');
   if (pad.on) drawPad(rawDt);
   if (fold.on) drawFold(rawDt);
+  if (drum.on) drawDrum(rawDt);
   updateRibbons(dt, rawDt);
   updateHelix(dt);
   updateProps(dt);
@@ -4507,7 +4618,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, fold, foldShow, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
+  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, fold, foldShow, drum, drumShow, drumTap, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
