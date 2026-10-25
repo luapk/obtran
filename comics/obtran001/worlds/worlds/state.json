@@ -142,5 +142,22 @@
       "decode-helix.100k.spz": 1385589,
       "decode-helix.pano.png": 4187345
     }
+  },
+  "decode-clean": {
+    "status": "done",
+    "model": "marble-1.0-draft",
+    "media_asset_id": "db78139b-bfaa-4986-9dbe-6846f432d401",
+    "operation_id": "1a96eeaa-184c-4fdb-81e3-d1d460edab49",
+    "started_at": "2026-10-25T15:13:08.637Z",
+    "world_id": "1bc1237e-cc9d-47f8-9f89-9240d3dc60da",
+    "finished_at": "2026-10-25T15:13:39.997Z",
+    "marble_url": "https://marble.worldlabs.ai/world/1bc1237e-cc9d-47f8-9f89-9240d3dc60da",
+    "metric_scale_factor": null,
+    "caption": "The scene is a dynamically painted comic art piece, characterized by its bold black ink outlines over saturated colors and visible brush and pencil textures, conveying an intense and fantastical tone. A colossal, glowing orange alien eye, possessing a black vertical slit pupil and framed by blue, textured skin, commands a central presence within the composition. To the immediate right, tall, vertical panels are filled with vibrant orange and pale yellow firelight, each panel delineated by thick black ink outlines and separated by thin white gaps. As the panoramic view extends to the right, these panels of firelight continue, some showcasing subtle brushstrokes that mimic rising flames, while others suggest a more diffuse, fiery glow. Further around, the atmosphere transitions into a cosmic expanse, with magenta, orange, and violet hues blending across vast skies, giving way to deep violet and teal depths of space. Throughout this celestial backdrop, areas of glowing mint green light emerge, perhaps indicating distant nebulae or alien energy sources, all rendered with the same energetic brushwork. The blue skin surrounding the alien eye to the left gradually transitions into more scales or geological features as the view encompasses more of the alien creature or landscape. The 360 scene is faultless.",
+    "response_shape": "{world_id,display_name,tags,assets:{mesh:{collider_mesh_url,hq_mesh_url,full_res_mesh_url},imagery:{pano_url},splats:{spz_urls:,semantics_metadata},thumbnail_url,caption},created_at,updated_at,permission:{public,allowed_readers:{},allowed_writers:{},allow_id_access},world_prompt,world_marble_url,model}",
+    "files": {
+      "decode-clean.spz": 6119512,
+      "decode-clean.100k.spz": 1283155
+    }
   }
 }

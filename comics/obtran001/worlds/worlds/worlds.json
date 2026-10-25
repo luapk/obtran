@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-25T13:02:33.512Z",
+  "updated": "2026-10-25T15:13:39.999Z",
   "worlds": [
     {
       "id": "lyra-ruins",
@@ -145,6 +145,25 @@
         "100k": "worlds/decode-helix.100k.spz"
       },
       "pano": "worlds/decode-helix.pano.png",
+      "metric_scale_factor": null,
+      "crop_uv": [
+        0.4280896169597687,
+        0.9076742627345844,
+        0.7781257528306432,
+        0.9876005361930295
+      ]
+    },
+    {
+      "id": "decode-clean",
+      "title": "The decode (no helix)",
+      "model": "marble-1.0-draft",
+      "world_id": "1bc1237e-cc9d-47f8-9f89-9240d3dc60da",
+      "marble_url": "https://marble.worldlabs.ai/world/1bc1237e-cc9d-47f8-9f89-9240d3dc60da",
+      "splats": {
+        "500k": "worlds/decode-clean.spz",
+        "100k": "worlds/decode-clean.100k.spz"
+      },
+      "pano": null,
       "metric_scale_factor": null,
       "crop_uv": [
         0.4280896169597687,
