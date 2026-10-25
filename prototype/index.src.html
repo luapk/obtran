@@ -3396,7 +3396,8 @@ function filmCue(beat) {
 function filmVideo(id) {
   if (!films.videos[id]) {
     const v = document.createElement('video');
-    v.muted = true; v.playsInline = true; v.preload = 'auto';
+    // nothing is downloaded until the film is near (prefetchFilm): fetching every film at once made each one late (Paul)
+    v.muted = true; v.playsInline = true; v.preload = 'none';
     v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
     // landscape screens take a clip's 16:9 version where it has one (Paul), and fill the screen with it
     const clip = films.index.clips[id], land = innerWidth / innerHeight >= 1.2 && clip.wide;
@@ -4249,18 +4250,48 @@ function drawDrum(dt) {
   if (drum.done && now - drum.doneAt > 1100 && journey.phase === 'space') { drumHide(); journeyNext(); }
 }
 
-function prefetchFilm(beat) { const cue = filmCue(beat); if (cue) filmVideo(cue.clip).load(); }
+// the films of a cue, its chained clip too, fetched in full ahead of time
+function filmClipsOf(beat) { const cue = filmCue(beat); return cue ? [cue.clip, cue.then?.clip].filter((c) => c && films.index.clips[c]) : []; }
+function prefetchFilm(beat) {
+  for (const id of filmClipsOf(beat)) {
+    const v = filmVideo(id);
+    if (v.dataset.released) { v.src = v.dataset.released; delete v.dataset.released; }
+    if (v.preload !== 'auto') { v.preload = 'auto'; v.load(); }
+  }
+}
+// films the story has passed are let go, so their memory and connections are free for the ones ahead
+function releaseFilms(keep) {
+  for (const [id, v] of Object.entries(films.videos)) {
+    if (keep.has(id) || v.classList.contains('cur') || v.dataset.released || v.preload !== 'auto') continue;
+    v.pause(); v.dataset.released = v.getAttribute('src'); v.removeAttribute('src'); v.preload = 'none'; v.load();
+  }
+}
+// which films the next steps need: fetched now; the rest released
+function filmWindow(i) {
+  const keep = new Set();
+  for (let k = i; k < Math.min(STEPS.length, i + 3); k++) {
+    const b = BEATS[STEPS[k].beat].b;
+    for (const id of filmClipsOf(b)) keep.add(id);
+    if (k > i) prefetchFilm(b);
+  }
+  releaseFilms(keep);
+}
 // called from the Start tap: starting and stopping each film inside the reader's own gesture
 // lets phones that block a page's own video playback (data saver, low power) play them later
 function primeFilms() {
   if (!films.index?.clips || REVIEW) return;
-  for (const id of Object.keys(films.index.clips)) {
+  // only the first few films: priming starts their download, and all of them at once crowded the line
+  const first = new Set();
+  for (let k = 0; k < STEPS.length && first.size < 3; k++) for (const id of filmClipsOf(BEATS[STEPS[k].beat].b)) first.add(id);
+  for (const id of first) {
     const v = filmVideo(id);
     v.play().then(() => { if (!films.on || !v.classList.contains('cur')) v.pause(); }).catch(() => { /* tried again at its cue */ });
   }
 }
 function playFilm(beat) {
+  if (films.beat === beat && (films.on || films.timers.length)) return;   // already started (a straight cut starts it at once)
   stopFilm(false);
+  films.beat = beat;
   let cue = filmCue(beat);
   if (!cue || REVIEW) return;
   const v0 = filmVideo(cue.clip), box = $('film');
@@ -4338,6 +4369,7 @@ function filmInteract() {
 }
 function stopFilm(snap) {
   films.timers.forEach(clearTimeout); films.timers = [];
+  films.beat = null;
   filmUnsync();
   films.looping = false;
   const box = $('film');
@@ -4402,7 +4434,7 @@ function showStep(i, keepCard = false) {
   scheduleAuto(i, beat);
   const next = STEPS[i + 1];
   sound.prefetchVoice(next ? BEATS[next.beat].b : END_BEAT);
-  if (next) prefetchFilm(BEATS[next.beat].b);
+  if (journey.on) filmWindow(i); else if (next) prefetchFilm(BEATS[next.beat].b);
   prefetchWorld(next ? next.world : FINAL_WORLD);
 }
 
@@ -4497,6 +4529,8 @@ function updateHop() {
 function cutTo(i, how = 'cut') {
   journey.autoAt = null; journey.phase = 'load'; journey.cut = true;
   sound.stopVoice(); stopFilm(false); setHint('');
+  // straight into a film (Paul: from the dissolving skull "straight to wide video"): it starts now, the world loads behind it
+  if (how === 'film' && filmCue(BEATS[STEPS[i].beat].b)) { state.beat = STEPS[i].beat; playFilm(BEATS[STEPS[i].beat].b); }
   card.visible = false; cardState.target = 0; cardState.lift = 0;
   loadWorld(STEPS[i].world).then(() => arrive(i, how)).catch((e) => { console.warn(e); arrive(i, how); });
 }
