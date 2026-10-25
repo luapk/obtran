@@ -258,6 +258,25 @@
         "sat": 0.22,
         "freq": 0.8,
         "speed": 0.25
+      },
+      {
+        "note": "the tusk Marble grew out of the painted pod's lid, and the pod's pale shell: cut, where the 3D pod lies",
+        "world": "pod",
+        "kind": "cut",
+        "yaw": [
+          -60,
+          60
+        ],
+        "pitch": [
+          -80,
+          40
+        ],
+        "dist": [
+          0,
+          1.4
+        ],
+        "lum": 0.6,
+        "sat": 0.3
       }
     ],
     "props": [
@@ -1433,6 +1452,39 @@
         "id": "skulls",
         "designs": 3,
         "grow": 1.15
+      },
+      {
+        "note": "Paul's 3D pod (3D/Data_Pillar_v06.mb by tools/mb_to_glb.py): the cryptid asleep inside, where the painted pod lies in the elder's camp (Marble had turned its lid into a tusk, cut below). Its own colour maps, lit in three steps (shade: texture), with an ink outline.",
+        "id": "pod",
+        "world": "pod",
+        "files": [
+          "pod.glb"
+        ],
+        "shade": "texture",
+        "line": 0.6,
+        "tones": {
+          "ink": [
+            0.052,
+            0.045,
+            0.038
+          ]
+        },
+        "copies": [
+          {
+            "at": [
+              2,
+              -27,
+              0.92
+            ],
+            "size": 0.95,
+            "model": 0,
+            "turn": [
+              38,
+              90,
+              0
+            ]
+          }
+        ]
       }
     ],
     "particles": [

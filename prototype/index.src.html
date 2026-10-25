@@ -2145,6 +2145,34 @@ function propMaterials(tones = {}) {
   });
   return { fill, line };
 }
+// shade: "texture" (the pod): the model's own colour maps, lit in three steps like a painting, the emissive map
+// (its lights) on top, ink at the silhouette; the outline as for any prop
+function propTextured(src, u) {
+  const map = src.map || null, emit = src.emissiveMap || null;
+  return new THREE.ShaderMaterial({
+    uniforms: { uLevel: u.uLevel, uInk: u.uInk, uMap: { value: map }, uEmit: { value: emit }, uHasMap: { value: map ? 1 : 0 }, uHasEmit: { value: emit ? 1 : 0 },
+      uColor: { value: new THREE.Color(src.color || 0xffffff) } },
+    transparent: true,
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying vec2 vUv;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); vUv = uv; gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform float uLevel; uniform vec3 uInk; uniform sampler2D uMap; uniform sampler2D uEmit; uniform float uHasMap; uniform float uHasEmit; uniform vec3 uColor;
+      varying vec3 vN; varying vec3 vV; varying vec2 vUv;
+      void main(){
+        vec3 n = normalize(vN);
+        vec3 base = uHasMap > 0.5 ? texture2D(uMap, vUv).rgb : uColor;
+        float l = 0.5 + 0.5 * dot(n, normalize(vec3(-0.35, 0.75, 0.55)));
+        float step3 = l < 0.32 ? 0.52 : l < 0.6 ? 0.8 : 1.0;          // three tones, as the page paints them
+        vec3 c = base * step3;
+        float spec = pow(max(dot(reflect(-normalize(vec3(-0.35, 0.75, 0.55)), n), normalize(vV)), 0.0), 24.0);
+        c += step(0.6, spec) * 0.25;                                   // a hard highlight
+        if (uHasEmit > 0.5) c += texture2D(uEmit, vUv).rgb;
+        float rim = 1.0 - abs(dot(n, normalize(vV)));
+        c = mix(c, uInk, smoothstep(0.8, 0.9, rim));
+        gl_FragColor = vec4(c, uLevel);
+        #include <colorspace_fragment>
+      }`,
+  });
+}
 async function loadProps() {
   if (props.loaded || !PROPS.length) return;
   props.loaded = true;
@@ -2171,7 +2199,9 @@ async function loadProps() {
       const meshes = [];
       holder.traverse((m) => { if (m.isMesh) meshes.push(m); });
       for (const m of meshes) {
-        m.material = mats.fill; m.renderOrder = 4;
+        if (pr.shade === 'texture') { m.userData.tex ??= propTextured(m.material, mats.fill.uniforms); m.material = m.userData.tex; }
+        else m.material = mats.fill;
+        m.renderOrder = 4;
         const o = new THREE.Mesh(m.geometry, mats.line); o.renderOrder = 3.9;
         m.add(o);
       }
