@@ -113,6 +113,18 @@
       "job": "fd598691-4171-4007-a8e9-0e9c8cb68710",
       "comic": "obtran001",
       "note": "OBTRAN 001 film 3, the decode: the eye snaps open with the fire reflected. Seedance 2.5, start frame o1-live-eye-closed, end frame o1-live-eye-1, 9:16, 5 s."
+    },
+    "o1-eye-final": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_190447_71845b0e-c988-49a1-b972-9edd722a0261.mp4",
+      "job": "71845b0e-c988-49a1-b972-9edd722a0261",
+      "comic": "obtran001",
+      "note": "OBTRAN 001's finale (Paul: \"one huge single eye that will fill the whole frame... no reflection in eye, but pupil moving\", still 1 chosen, outpainted to 16:9): the eye fills the frame, the pupil flicks and dilates; the 3D helix grows out of it, then black and To be continued. Seedance 2.5 from the outpaint 64365bd0 of still 9a8ff831, 16:9, 5 s"
+    },
+    "o1-eye-reflect": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_185111_2385c818-5cd5-4738-8475-0b27d8d15ef6.mp4",
+      "job": "2385c818-5cd5-4738-8475-0b27d8d15ef6",
+      "comic": "obtran001",
+      "note": "spare: the first finale eye, with the fire reflected (Paul wanted no reflection), 9:16"
     }
   },
   "stills": {
@@ -311,6 +323,36 @@
       "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_154655_4e7d2cf2-b1f6-47a8-8fd7-a37f383c69b9.png",
       "job": "4e7d2cf2-b1f6-47a8-8fd7-a37f383c69b9",
       "note": "OBTRAN 001: the eye closed, start frame for film 3 (the eye opens)"
+    },
+    "o1-bigeye-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_185723_9a8ff831-4b3a-4047-8114-adf5c3a61eae.png",
+      "job": "9a8ff831-4b3a-4047-8114-adf5c3a61eae",
+      "note": "OBTRAN 001: finale eye still"
+    },
+    "o1-bigeye-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_185723_3e34f69b-87cf-4840-8b45-f5c89912cd0a.png",
+      "job": "3e34f69b-87cf-4840-8b45-f5c89912cd0a",
+      "note": "OBTRAN 001: finale eye still"
+    },
+    "o1-bigeye-3": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_185723_d76357a6-7d11-4ede-9229-6f6c566939e9.png",
+      "job": "d76357a6-7d11-4ede-9229-6f6c566939e9",
+      "note": "OBTRAN 001: finale eye still"
+    },
+    "o1-bigeye-4": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_185723_06811b59-f3d4-4d4d-8069-d992d4245736.png",
+      "job": "06811b59-f3d4-4d4d-8069-d992d4245736",
+      "note": "OBTRAN 001: finale eye still"
+    },
+    "o1-patrol-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_190655_8190e505-5ee5-47a5-bf3b-98763e79cc23.png",
+      "job": "8190e505-5ee5-47a5-bf3b-98763e79cc23",
+      "note": "OBTRAN 001: patrol film still"
+    },
+    "o1-patrol-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_190656_dbe82189-1412-4a46-a7ae-c33065259f2b.png",
+      "job": "dbe82189-1412-4a46-a7ae-c33065259f2b",
+      "note": "OBTRAN 001: patrol film still"
     }
   },
   "models": {
