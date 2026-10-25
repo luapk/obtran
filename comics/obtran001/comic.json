@@ -99,7 +99,7 @@
       ]
     }
   ],
-  "finalWorld": "decode-helix",
+  "finalWorld": "decode-clean-a",
   "endBeat": "decode",
   "cardAspect": 3.9,
   "atmosphere": {
@@ -113,8 +113,8 @@
   "speakerGain": {},
   "setPieces": {
     "helix": {
-      "note": "Paul, 25 October: the twisting DNA strands built precisely in 3D for the final scene. from/to are [yaw, pitch, distance] in the world's frame (Marble units): near the ends of the world's own helix, measured from its mint splats (it arcs round the viewer about 2 units out), lowered about 9 and 5 degrees so the 3D one crosses the middle of the view; the 3D one runs along the chord between them, so it passes a little nearer. radius from the spread of those splats. fadeHue: [hue from, hue to, least brightness, fade] for the world's own helix splats. colours: sampled from the panel's own helix (Paul: the same colour as the original, with the grade): its mid, shadow (15-30% luminance) and light (85-100%) mint, and the panel's darkest ink (luminance under 0.08).",
-      "world": "decode-helix",
+      "note": "Paul, 25 October: the twisting DNA strands built precisely in 3D for the final scene. from/to are [yaw, pitch, distance] in the world's frame (Marble units): near the ends of the world's own helix, measured from its mint splats (it arcs round the viewer about 2 units out), lowered about 9 and 5 degrees so the 3D one crosses the middle of the view; the 3D one runs along the chord between them, so it passes a little nearer. radius from the spread of those splats. fadeHue: [hue from, hue to, least brightness, fade] for the world's own helix splats. colours: sampled from the panel's own helix (Paul: the same colour as the original, with the grade): its mid, shadow (15-30% luminance) and light (85-100%) mint, and the panel's darkest ink (luminance under 0.08). Since 25 October the final world is decode-clean-a, made from the panel with the painted helix removed by Nano Banana (take A; take B lost the giant eye), so nothing needs fading.",
+      "world": "decode-clean-a",
       "from": [
         -12,
         10,
@@ -131,12 +131,6 @@
       "strand": 0.018,
       "spin": 0.35,
       "grow": 4.5,
-      "fadeHue": [
-        135,
-        176,
-        0.28,
-        0.92
-      ],
       "colours": {
         "base": [
           0.167,
