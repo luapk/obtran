@@ -1649,6 +1649,121 @@
         ],
         "alpha": 1
       }
-    ]
+    ],
+    "fold": {
+      "note": "the manifold panel cut by tools/cut_fold_panel.py: facets as fractions of fold-panel.webp; the reader drags to fold them together (a tick per crease) and the ship slingshots through",
+      "image": "fold-panel.webp",
+      "ship": "fold-ship.webp",
+      "aspect": 3.682,
+      "facets": [
+        [
+          [
+            0.0023,
+            0.0126
+          ],
+          [
+            0.1466,
+            0.0126
+          ],
+          [
+            0.3034,
+            0.9874
+          ],
+          [
+            0.0023,
+            0.9874
+          ]
+        ],
+        [
+          [
+            0.1466,
+            0.0126
+          ],
+          [
+            0.3852,
+            0.0126
+          ],
+          [
+            0.3034,
+            0.9874
+          ]
+        ],
+        [
+          [
+            0.3852,
+            0.0126
+          ],
+          [
+            0.4665,
+            0.9874
+          ],
+          [
+            0.3034,
+            0.9874
+          ]
+        ],
+        [
+          [
+            0.3852,
+            0.0126
+          ],
+          [
+            0.5858,
+            0.0126
+          ],
+          [
+            0.4665,
+            0.9874
+          ]
+        ],
+        [
+          [
+            0.5858,
+            0.0126
+          ],
+          [
+            0.6256,
+            0.9874
+          ],
+          [
+            0.4665,
+            0.9874
+          ]
+        ],
+        [
+          [
+            0.5858,
+            0.0126
+          ],
+          [
+            0.9977,
+            0.0126
+          ],
+          [
+            0.9977,
+            0.9874
+          ],
+          [
+            0.6256,
+            0.9874
+          ]
+        ]
+      ]
+    }
+  },
+  "sfxShared": {
+    "from": "prototype/assets/sfx",
+    "files": [
+      "bleep",
+      "airy-1",
+      "airy-2",
+      "whoosh-1",
+      "whoosh-2",
+      "whoosh-3",
+      "transition",
+      "unlock",
+      "decrypt"
+    ],
+    "note": "the label's own sounds, shared with OBTRAN 003 (the bleep, whooshes, transition hit, unlock chime and the decrypt); Bob's radio static, the biometric power-up and the singularity's bed stay OBTRAN 003's"
   }
 }

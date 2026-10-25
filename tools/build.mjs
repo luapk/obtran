@@ -91,6 +91,15 @@ if (!inline) {
     mkdirSync(join(DIST, 'assets', 'sfx'), { recursive: true });
     for (const f of readdirSync(SFX).filter((f) => /\.mp3$/.test(f)).sort()) copyFileSync(join(SFX, f), join(DIST, 'assets', 'sfx', f));
   }
+  // sounds shared from another comic's folder (comic.json sfxShared: the label's own bleep, whooshes and so on),
+  // where this comic has none of its own by that name
+  if (comic.sfxShared?.from) {
+    mkdirSync(join(DIST, 'assets', 'sfx'), { recursive: true });
+    for (const n of comic.sfxShared.files || []) {
+      const src = join(ROOT, comic.sfxShared.from, n + '.mp3'), dst = join(DIST, 'assets', 'sfx', n + '.mp3');
+      if (existsSync(src) && !existsSync(dst)) copyFileSync(src, dst);
+    }
+  }
   const MUSIC = join(ASSETS, 'music');
   if (existsSync(join(MUSIC, 'index.json'))) {
     mkdirSync(join(DIST, 'assets', 'music'), { recursive: true });

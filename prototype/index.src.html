@@ -184,6 +184,8 @@
     background: radial-gradient(circle, rgba(239,233,223,0) 60%, rgba(239,233,223,0.28) 66%, rgba(239,233,223,0) 71%); mix-blend-mode: screen; animation: glyphRing 0.9s linear infinite; }
   @keyframes glyphRing { 0% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(0.02); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { #glyphVeil canvas { animation: none; } #glyphVeil canvas:first-child { opacity: 1; } #glyphVeil .ring { display: none; } }
+  #fold { position: fixed; inset: 0; top: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; display: none; }
+  #fold.on { display: block; }
   #fx { position: fixed; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }   /* over the pad and films, as they are raised */
   #ring circle { fill: none; stroke-width: 4; }
   #ring .track { stroke: rgba(239,233,223,0.2); }
@@ -218,6 +220,7 @@
 <div class="grain"></div>
 <div class="flash" id="flash"></div>
 <div class="black" id="black"></div>
+<canvas id="fold" aria-hidden="true"></canvas>
 <canvas id="fx" aria-hidden="true"></canvas>
 
 <div id="gate" role="dialog" aria-label="Start">
@@ -1460,6 +1463,25 @@ class Sound {
     const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.22);
     const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5 * level, t + 0.006); g.gain.setTargetAtTime(0, t + 0.04, 0.07);
     o.connect(g).connect(this.master); o.start(t); o.stop(t + 0.5);
+  }
+  // a crease closing in the fold (OBTRAN 001): a dry click and a short knock that rises with each crease
+  crease(k = 0, n = 5) {
+    if (!this.ok || this.muted) return;
+    const ctx = this.ctx, t = this.now() + 0.005;
+    const len = Math.floor(0.03 * ctx.sampleRate), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.12));
+    const nz = ctx.createBufferSource(); nz.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2400 + 300 * k; bp.Q.value = 1.4;
+    const ng = ctx.createGain(); ng.gain.value = 0.55;
+    nz.connect(bp).connect(ng).connect(this.master); nz.start(t);
+    const o = ctx.createOscillator(); o.type = 'triangle';
+    const f0 = 180 * Math.pow(1.19, k);
+    o.frequency.setValueAtTime(f0 * 1.6, t); o.frequency.exponentialRampToValueAtTime(f0, t + 0.05);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.32, t + 0.004); g.gain.setTargetAtTime(0, t + 0.02, 0.06);
+    o.connect(g).connect(this.master);
+    const vs = ctx.createGain(); vs.gain.value = 0.18; g.connect(vs).connect(this.longVerbSend());
+    o.start(t); o.stop(t + 0.5);
+    if (k >= n - 1) this.thump(0.6);
   }
   creak(x, y, z, size = 1) {
     if (!this.ok || this.muted) return;
@@ -3527,6 +3549,147 @@ function drawPad(dt) {
   }
 }
 
+// ---------- the fold (OBTRAN 001's manifold; Paul, 25 October: "fold space": the reader drags the panel's slabs
+// together, a tick per crease, and the ship slingshots through when they close) ----------
+// setPieces.fold (tools/cut_fold_panel.py): the manifold panel cut from the page with its white keyed out, split
+// into facets along its own diagonals. They come up spread apart over the space, with the world showing through
+// the gaps; dragging sideways (either way) folds them together like a fan: the gaps close, then the facets stack and
+// narrow, sheared in turn so they read as angled, the ones turned away darkening. Each crease closing ticks, flashes
+// along its edge and shakes the signal; the space pulls in towards its core as it folds. Released, the fold holds
+// at the last crease. Fully folded, the ship (cut from the panel) slingshots through and the story moves on. A key
+// folds one crease at a time. ?fold=0 skips it (a tap moves on).
+const FOLD = SP.fold && params.get('fold') !== '0' ? SP.fold : null;
+const fold = { on: false, el: $('fold'), ctx: null, img: null, ship: null, f: 0, target: 0, passed: 0, done: false, t: 0, doneT: 0, drag: null, flashes: [], level: 0 };
+fold.ctx = fold.el.getContext('2d');
+function foldLoad() {
+  if (!FOLD || fold.img) return;
+  const load = (f) => { const im = new Image(); im.decoding = 'async'; im.src = 'assets/props/' + f; return im; };
+  fold.img = load(FOLD.image); fold.ship = load(FOLD.ship);
+}
+function foldCreases() { return FOLD.facets.length - 1; }
+function foldShow() {
+  if (!FOLD) return;
+  foldLoad();
+  Object.assign(fold, { on: true, f: 0, target: 0, passed: 0, done: false, t: 0, doneT: 0, drag: null, flashes: [], level: 0 });
+  fold.el.classList.add('on');
+  setHint('Drag to fold space');
+}
+function foldHide() {
+  if (!fold.on) return;
+  fold.on = false; fold.drag = null;
+  fold.el.classList.remove('on');
+}
+// a beat with fold is waiting until the fold is done
+function foldWaiting(beat) { return !!(FOLD && beat?.fold && !fold.done); }
+function foldDragStart(x) { if (fold.on && !fold.done) fold.drag = { x, moved: 0 }; }
+function foldDragMove(x) {
+  if (!fold.drag) return;
+  const dx = x - fold.drag.x; fold.drag.x = x; fold.drag.moved += Math.abs(dx);
+  fold.target = clamp(fold.target + Math.abs(dx) / (innerWidth * 1.1), 0, 1);
+}
+// released: the fold holds at the last crease it closed (or folds right through if it is nearly there)
+function foldDragEnd() {
+  if (!fold.drag) return false;
+  const moved = fold.drag.moved; fold.drag = null;
+  const n = foldCreases();
+  fold.target = fold.target > 0.93 ? 1 : Math.floor(fold.target * n + 0.08) / n;
+  return moved > 14;
+}
+function foldStep() { if (fold.on && !fold.done) { const n = foldCreases(); fold.target = Math.min(1, (Math.floor(fold.target * n + 1e-3) + 1) / n); } }
+function drawFold(dt) {
+  const el = fold.el, dpr = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+  if (el.width !== Math.round(W * dpr) || el.height !== Math.round(H * dpr)) { el.width = Math.round(W * dpr); el.height = Math.round(H * dpr); }
+  const c = fold.ctx;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  fold.t += dt;
+  if (worlds.suction < 0.5 || fold.done) fold.level = Math.min(1, fold.level + dt * 2.2);   // up once the space has opened
+  const img = fold.img;
+  if (!img?.complete || !img.naturalWidth) return;
+  const n = foldCreases();
+  // the fold follows the reader's drag on a short spring
+  fold.f += (fold.target - fold.f) * (1 - Math.exp(-dt * 9));
+  if (Math.abs(fold.target - fold.f) < 1e-3) fold.f = fold.target;
+  const f = fold.f;
+  // a crease closing: tick, flash along it, a shake of the signal
+  const passed = Math.min(n, Math.floor(f * n + 1e-3));
+  while (fold.passed < passed) {
+    fold.passed++;
+    sound.crease(fold.passed - 1, n);
+    fold.flashes.push({ k: fold.passed, t: 0 });
+    worlds.jitter = Math.max(worlds.jitter, 0.35 + 0.1 * fold.passed);
+    if (navigator.vibrate) navigator.vibrate(12);
+  }
+  if (!fold.done) worlds.suctionTarget = 0.4 * f;   // the space draws in towards its core as it folds
+  // layout: the panel as tall as fits in the upper part of the screen (wider than a phone: the folding brings it in)
+  const asp = FOLD.aspect, Hs = Math.min(H * 0.4, W * 0.78), Ws = Hs * asp;
+  const cx = W / 2, cy = H * 0.38;
+  const ef = reducedMotion ? f : f * f * (3 - 2 * f);
+  const spread = 1.38 - 1.3 * ef;                   // facets' centres: apart (gaps), together, then stacked at the middle
+  const squash = 1 - 0.86 * Math.max(0, (ef - 0.25) / 0.75);   // each facet narrows as if turned edge on
+  let burst = 0;
+  if (fold.done) { if (!fold.freeze) fold.doneT += dt; burst = Math.min(1, fold.doneT / 0.55); }
+  const alpha = fold.level * (1 - burst);
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  FOLD.facets.forEach((poly, i) => {
+    const mx = poly.reduce((a, p) => a + p[0], 0) / poly.length;
+    const side = i % 2 ? -1 : 1;
+    const px = cx + (mx - 0.5) * Ws * spread * (1 + burst * 1.5);
+    c.save();
+    c.globalAlpha = alpha;
+    // the facet in place: its centre moved, squashed about it, sheared in turn so alternate facets lean away
+    c.translate(px, cy);
+    c.transform(squash, side * 0.16 * ef, 0, 1, 0, 0);
+    c.scale(1 + burst * 0.4, 1 + burst * 0.4);
+    c.translate(-mx * Ws, -Hs / 2);
+    c.beginPath();
+    poly.forEach(([u, v], k) => (k ? c.lineTo(u * Ws, v * Hs) : c.moveTo(u * Ws, v * Hs)));
+    c.closePath();
+    c.clip();
+    c.drawImage(img, 0, 0, iw, ih, 0, 0, Ws, Hs);
+    // the facets turned away darken as it folds; the ones facing the reader catch a little light
+    const shade = side < 0 ? 0.62 * ef : 0;
+    if (shade > 0) { c.fillStyle = `rgba(4,3,10,${shade})`; c.fillRect(0, 0, Ws, Hs); }
+    else if (ef > 0) { c.fillStyle = `rgba(255,250,240,${0.08 * ef})`; c.fillRect(0, 0, Ws, Hs); }
+    c.restore();
+  });
+  // a crease flash: a bright line along the edge it closed on
+  fold.flashes = fold.flashes.filter((fl) => (fl.t += dt) < 0.45);
+  for (const fl of fold.flashes) {
+    const k = Math.min(fl.k, n), poly = FOLD.facets[k], prev = FOLD.facets[k - 1];
+    const shared = poly.filter(([u, v]) => prev.some(([a, b]) => Math.abs(a - u) < 1e-3 && Math.abs(b - v) < 1e-3));
+    if (shared.length < 2) continue;
+    const mx = poly.reduce((a, p) => a + p[0], 0) / poly.length;
+    const px = cx + (mx - 0.5) * Ws * spread;
+    c.save();
+    c.translate(px, cy); c.transform(squash, (k % 2 ? -1 : 1) * 0.16 * ef, 0, 1, 0, 0); c.translate(-mx * Ws, -Hs / 2);
+    c.globalAlpha = (1 - fl.t / 0.45) * fold.level;
+    c.strokeStyle = '#f4fff8'; c.lineWidth = 3 / Math.max(0.2, squash); c.shadowColor = '#7fffc8'; c.shadowBlur = 18;
+    c.beginPath(); c.moveTo(shared[0][0] * Ws, shared[0][1] * Hs); c.lineTo(shared[1][0] * Ws, shared[1][1] * Hs); c.stroke();
+    c.restore();
+  }
+  // folded right through: the ship slingshots across, trailing ghosts of itself
+  if (f > 0.995 && !fold.done) {
+    fold.done = true; fold.doneT = 0;
+    if (!sound.sfxPlay('airy-1', { gain: 0.75, verb: 0.15, echo: 0.2 })) sound.sfxPlay('whoosh-2', { gain: 0.7 }) || sound.blip();
+    worlds.jitter = 1;
+    setHint('');
+  }
+  if (fold.done && fold.ship?.complete && fold.ship.naturalWidth) {
+    const u = Math.min(1, fold.doneT / 0.8), sh = fold.ship, sw = Hs * 0.48, shh = sw * sh.naturalHeight / sh.naturalWidth;
+    const xAt = (q) => -sw + (W + 2 * sw) * (q * q * (3 - 2 * q));
+    if (u < 1) {
+      for (let g = 7; g >= 0; g--) {
+        const q = Math.max(0, u - g * 0.035);
+        c.globalAlpha = g ? 0.16 * (1 - g / 8) : 1;
+        c.drawImage(sh, xAt(q) - sw / 2, cy - shh / 2 - (q - 0.5) * Hs * 0.25, sw, shh);
+      }
+      c.globalAlpha = 1;
+    }
+    if (fold.doneT > 0.38 && !fold.flashed) { fold.flashed = true; flash(0.6); }
+    if (fold.doneT > 1.0 && journey.phase === 'space') { fold.flashed = false; foldHide(); journeyNext(); }
+  }
+}
+
 function prefetchFilm(beat) { const cue = filmCue(beat); if (cue) filmVideo(cue.clip).load(); }
 // called from the Start tap: starting and stopping each film inside the reader's own gesture
 // lets phones that block a page's own video playback (data saver, low power) play them later
@@ -3655,6 +3818,7 @@ function showStep(i, keepCard = false) {
   // the tap hint only on the first scene, pointing at the card, so the story's way through is clear
   // from the start (Paul); after that only the hold, a gesture nobody would guess, is named, and
   // a card left waiting 10 s pulses once instead
+  if (beat.fold && FOLD) foldShow(); else foldHide();
   if (beat.hold) { setHint('Press and hold to unlock'); padShow(beat.b); prefetchWorld(FINAL_WORLD); prepareWorld(FINAL_WORLD); }
   else if (i === 0) setHint(`${tapWord} to continue`, true);
   else setHint('');
@@ -3791,7 +3955,7 @@ function enterSpace() {
 function journeyNext() {
   if (journey.phase !== 'space') return;
   const i = journey.step, beat = BEATS[STEPS[i].beat];
-  if (beat.hold) { nudge(); return; }
+  if (beat.hold || foldWaiting(beat)) { nudge(); return; }
   musicCue(beat.b + ':leave');
   if (beat.trigger) { finalBreach(); return; }
   const next = STEPS[i + 1];
@@ -3806,7 +3970,7 @@ function journeyNext() {
 // keepCard: the card stays up while the space collapses behind it, to be carried onto the page.
 function leave(nextWorld, then, dur = OUT_DUR, keepCard = false) {
   journey.autoAt = null;
-  padHide();
+  padHide(); foldHide();
   journey.phase = 'out'; journey.t = 0; journey.outDur = dur; journey.then = then; journey.nextWorld = nextWorld;
   sound.stopVoice(); sound.crackleStop();
   sound.sfxPlay('transition', { gain: 0.5, verb: 0.35, echo: 0.22 });   // the hit as the space collapses (Paul's transition), in the long reverb with an eighth-note delay
@@ -3951,12 +4115,14 @@ canvas.addEventListener('pointerdown', (e) => {
   down = { x: e.clientX, y: e.clientY, t: performance.now() };
   if (state.stage === 'read' && !journey.on && BEATS[state.beat].hold) startHold(e.clientX, e.clientY);
   if (journey.on && journey.phase === 'space' && BEATS[state.beat].hold) startHold(e.clientX, e.clientY);
+  if (fold.on && journey.phase === 'space') { foldDragStart(e.clientX); canvas.setPointerCapture(e.pointerId); return; }   // the drag folds, it does not look round
   if (state.stage === 'void') { look.dragging = true; look.lastX = e.clientX; look.lastY = e.clientY; canvas.setPointerCapture(e.pointerId); }
 });
 canvas.addEventListener('pointermove', (e) => {
   if (state.stage === 'read' || state.stage === 'gate' || (state.stage === 'void' && !look.dragging && e.pointerType === 'mouse')) {
     parallax.tx = (e.clientX / innerWidth - 0.5) * 2; parallax.ty = (e.clientY / innerHeight - 0.5) * 2;
   }
+  if (fold.drag) foldDragMove(e.clientX);
   if (state.holding) { ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px'; state.holdX = e.clientX; state.holdY = e.clientY; }
   if (e.pointerType === 'mouse') canvas.style.cursor = state.stage === 'void' && endReady() && hitTbc(e.clientX, e.clientY) ? 'pointer' : '';
   if (state.stage === 'void' && look.dragging) {
@@ -3973,6 +4139,7 @@ canvas.addEventListener('pointermove', (e) => {
 });
 function pointerEnd(e) {
   if (state.holding) endHold(false);
+  if (fold.drag) { const dragged = foldDragEnd(); down = null; if (!dragged) nudge(); return; }
   // the end: a tap or click on the panel reads it again
   if (state.stage === 'void' && endReady() && down) {
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t;
@@ -3991,6 +4158,7 @@ function pointerEnd(e) {
       const beat = BEATS[state.beat];
       // Paul: the first bleep of his UI confirm tone when a text box is clicked to move on
       if (beat.trigger) { if (hitCard(e.clientX, e.clientY)) { sound.sfxPlay('bleep', { gain: 0.6 }); finalBreach(); } else nudge(); return; }
+      if (foldWaiting(beat)) { nudge(); return; }
       if (!beat.hold) sound.sfxPlay('bleep', { gain: 0.6 });
       journeyNext();
     }
@@ -4021,6 +4189,7 @@ addEventListener('keydown', (e) => {
     const beat = BEATS[state.beat];
     if (beat.hold) { if (!keyHold && !e.repeat) { keyHold = true; startHold(innerWidth / 2, innerHeight / 2); } return; }
     if (beat.trigger) { if (e.key === 'Enter' || e.key === ' ') { sound.sfxPlay('bleep', { gain: 0.6 }); finalBreach(); } return; }
+    if (foldWaiting(beat)) { if (!e.repeat) foldStep(); return; }
     if (!e.repeat) { sound.sfxPlay('bleep', { gain: 0.6 }); journeyNext(); }
     return;
   }
@@ -4321,6 +4490,7 @@ function frame() {
   updateGlyphField(rawDt);
   if (films.on) { drawSuper8(rawDt); drawCCTV(rawDt); } else if (s8.el.classList.contains('on')) s8.el.classList.remove('on');
   if (pad.on) drawPad(rawDt);
+  if (fold.on) drawFold(rawDt);
   updateRibbons(dt, rawDt);
   updateHelix(dt);
   updateProps(dt);
@@ -4337,7 +4507,7 @@ Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, d
   resize();
   // the OT logo holds for at least 1.8 s from the page opening, then cuts away to the start
   setTimeout(() => { $('intro').classList.add('out'); decryptCode(); }, Math.max(0, 1800 - (performance.now() - (window.__introT0 || 0))));
-  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
+  window.__ot = { glyphVeilShow, startHop, updateHop, state, breach, showBeat, BEATS, camera, worlds, look, parallax, journey, STEPS, journeyNext, finalBreach, enterSpace, showStep, sound, films, playFilm, fold, foldShow, stopFilm, shards, nucleus, ribbons, helix, props, particles, slab, panelFloat, backdrop, card, music, musicBeat, pad, strobe, strobeBurst, endReady, s8, panelGrains, glyphField, shared };
   requestAnimationFrame(frame);
 }).catch((e) => { $('gate').classList.add('ready'); $('note').innerHTML = '<span class="err">The page artwork failed to load.</span>'; console.error(e); });
 </script>
