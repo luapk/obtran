@@ -67,6 +67,20 @@ jobs:
             fi
             echo "still $id"
           done
+          # 3D models (for example Higgsfield's image to 3D) saved as they are to their dest in the repo
+          for id in $(jq -r '(.models // {}) | keys[]' films/sources.json); do
+            case "$id" in *[!a-z0-9-]*) echo "::error::bad model id $id"; exit 1 ;; esac
+            url=$(jq -r --arg id "$id" '.models[$id].url' films/sources.json)
+            dest=$(jq -r --arg id "$id" '.models[$id].dest' films/sources.json)
+            case "$url" in https://*) ;; *) echo "::error::$id: url must be https"; exit 1 ;; esac
+            case "$dest" in comics/*.glb|prototype/assets/*.glb) ;; *) echo "::error::$id: dest must be a .glb under comics/ or prototype/assets/"; exit 1 ;; esac
+            case "$dest" in *..*) echo "::error::$id: bad dest"; exit 1 ;; esac
+            [ -f "$dest" ] && continue
+            mkdir -p "$(dirname "$dest")"
+            curl -fsSL --retry 3 -o "$dest" "$url"
+            echo "model $id: $(du -k "$dest" | cut -f1) KB"
+            git add "$dest"
+          done
 
       - name: Commit results
         run: |

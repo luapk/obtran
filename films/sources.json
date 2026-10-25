@@ -243,6 +243,51 @@
       "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_145338_ce495754-c93f-4617-9c88-8a98c2978e50.png",
       "job": "ce495754-c93f-4617-9c88-8a98c2978e50",
       "note": "OBTRAN 001 film 3 still"
+    },
+    "o1-live-cockpit-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152229_36b0de9c-80cd-4808-97cc-944643dd5ef2.png",
+      "job": "36b0de9c-80cd-4808-97cc-944643dd5ef2",
+      "note": "OBTRAN 001: live-action re-render on Cinema Studio Image 2.5"
+    },
+    "o1-live-cockpit-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152230_0da6923c-3951-4327-8b56-645d34ce31c7.png",
+      "job": "0da6923c-3951-4327-8b56-645d34ce31c7",
+      "note": "OBTRAN 001: live-action re-render on Cinema Studio Image 2.5"
+    },
+    "o1-live-shadows-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152229_e4f128ea-e7c2-4fe6-be53-1c20f49ffed8.png",
+      "job": "e4f128ea-e7c2-4fe6-be53-1c20f49ffed8",
+      "note": "OBTRAN 001: live-action re-render on Cinema Studio Image 2.5"
+    },
+    "o1-live-shadows-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152342_25ed0c1e-882d-42d5-9415-274582b204a7.png",
+      "job": "25ed0c1e-882d-42d5-9415-274582b204a7",
+      "note": "OBTRAN 001: live-action re-render on Cinema Studio Image 2.5"
+    },
+    "o1-live-eye-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152228_538a3444-2549-4317-83b2-4313fa59a992.png",
+      "job": "538a3444-2549-4317-83b2-4313fa59a992",
+      "note": "OBTRAN 001: live-action re-render on Cinema Studio Image 2.5"
+    },
+    "o1-live-eye-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152229_0e0754a3-467b-4596-bd6d-674d280e178d.png",
+      "job": "0e0754a3-467b-4596-bd6d-674d280e178d",
+      "note": "OBTRAN 001: live-action re-render on Cinema Studio Image 2.5"
+    },
+    "o1-skull-1": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152230_770880cc-7adc-4d4d-9ccb-1acadd457596.png",
+      "job": "770880cc-7adc-4d4d-9ccb-1acadd457596",
+      "note": "OBTRAN 001: cryptid skull design for 3D"
+    },
+    "o1-skull-2": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152230_4f479881-96e0-461c-a5d5-8d37a2f5ed21.png",
+      "job": "4f479881-96e0-461c-a5d5-8d37a2f5ed21",
+      "note": "OBTRAN 001: cryptid skull design for 3D"
+    },
+    "o1-skull-3": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_2vDo5BAB59qOK3RP4jciJLWeyl2/hf_20261025_152229_25393096-78f9-4286-844f-793a9a5c4179.png",
+      "job": "25393096-78f9-4286-844f-793a9a5c4179",
+      "note": "OBTRAN 001: cryptid skull design for 3D"
     }
   }
 }
