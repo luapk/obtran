@@ -906,7 +906,7 @@ const worlds = {
   limits: { yaw: [-Math.PI, Math.PI], pitch: [-1.3, 1.3] }, parallax: 2.0, offset: new THREE.Vector3(),
   radius: 1.2, wander: new THREE.Vector3(), wanderT: null, suctionTarget: 0, suctionRate: 0.18, echoes: [], extrudeOn: params.get('extrude') === '1' || (params.get('extrude') !== '0' && COMIC.extrude !== false), lastTick: -1,
   sandMesh: null, sandOn: params.get('sand') !== '0', prepared: {},
-  u: null, suction: 0, jitter: 0, nextCrackle: 0, drift: new THREE.Vector3(),
+  u: null, suction: 0, jitter: 0, swirl: 0, nextCrackle: 0, drift: new THREE.Vector3(),
 };
 
 async function loadSpark() {
@@ -914,7 +914,7 @@ async function loadSpark() {
   worlds.Spark = await import('@sparkjsdev/spark');
   const { dyno } = worlds.Spark;
   worlds.u = {
-    time: dyno.dynoFloat(0), grade: dyno.dynoFloat(1), suction: dyno.dynoFloat(0), jitter: dyno.dynoFloat(0),
+    time: dyno.dynoFloat(0), grade: dyno.dynoFloat(1), suction: dyno.dynoFloat(0), jitter: dyno.dynoFloat(0), swirl: dyno.dynoFloat(0),
     lo: dyno.dynoFloat(0.15), hi: dyno.dynoFloat(0.3), grit: dyno.dynoFloat(0.04), grain: dyno.dynoFloat(0.22), size: dyno.dynoFloat(0.88),
     extrude: dyno.dynoFloat(1), sand: dyno.dynoFloat(1), mist: dyno.dynoFloat(0), cut: dyno.dynoFloat(0),
     // fade splats of one colour (hue from, hue to, least brightness, how much): the world's own helix under the 3D one
@@ -954,7 +954,7 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
   return dyno.dynoBlock({ gsplat: dyno.Gsplat }, { gsplat: dyno.Gsplat }, ({ gsplat }) => {
     const node = dyno.dyno({
       inTypes: {
-        gsplat: dyno.Gsplat, time: 'float', grade: 'float', suction: 'float', jitter: 'float', lo: 'float', hi: 'float',
+        gsplat: dyno.Gsplat, time: 'float', grade: 'float', suction: 'float', jitter: 'float', swirl: 'float', lo: 'float', hi: 'float',
         grit: 'float', grain: 'float', size: 'float', ink: 'vec3', mid: 'vec3', paper: 'vec3',
         extrude: 'float', depth: 'float', alpha: 'float', brightOnly: 'float', cut: 'float',
         fade: 'vec4', r0a: 'vec4', r0b: 'vec4', r0k: 'vec4', r1a: 'vec4', r1b: 'vec4', r1k: 'vec4', gmode: 'float', transfer: 'float', pull: 'float', soft: 'float', npal: 'float', mw: 'vec3', sw: 'vec3', mc: 'vec3', sc: 'vec3',
@@ -986,7 +986,8 @@ function inkModifier(layer = { depth: 1, alpha: 1, brightOnly: 0 }) {
           vec3 core = vec3(0.0, 0.0, 1.25);
           vec3 d = c - core;
           float r = length(d.xy);
-          float a = ${i.suction} * (2.5 + 5.0 / (r + 0.3)) * (0.75 + 0.5 * otHash(id));
+          // swirl: the vortex turning as it holds (a spinning prop over it), faster near the core, so it spirals on
+          float a = (${i.suction} * (2.5 + 5.0 / (r + 0.3)) + ${i.swirl} * ${i.suction} * (0.5 + 1.1 / (r + 0.3))) * (0.75 + 0.5 * otHash(id));
           float cs = cos(a), sn = sin(a);
           d.xy = vec2(d.x * cs - d.y * sn, d.x * sn + d.y * cs);
           float pull = ${i.suction} * ${i.suction};
@@ -1220,6 +1221,7 @@ function loadWorld(id) {
       scene.add(m);
     }
     worlds.mesh = mesh; worlds.echoes = echoes; worlds.sandMesh = sandMesh; worlds.id = id; worlds.ok = true;
+    worlds.swirl = 0;                                  // a new world's vortex starts from rest
     if (journey.noWorld === id) { journey.noWorld = null; worlds.suction = 1; worlds.suctionTarget = 0; for (const m of worldMeshes()) m.visible = true; }
     worlds.relief = !!entry.relief;
     worlds.u.sand.value = sandLevel();
@@ -1310,9 +1312,14 @@ function updateWorld(dt, t) {
   // animated regions (smoke, trails) move smoothly at 24 refreshes a second
   const animated = u.r0k.value.x > 0 || u.r1k.value.x > 0;
   const tick = animated ? Math.floor(t * 24) : u.extrude.value > 0 ? Math.floor(t * 10) : -1;
-  const changed = u.suction.value !== worlds.suction || worlds.jitter > 0 || u.jitter.value > 0 || tick !== worlds.lastTick;
+  // the vortex turns while a prop spins over it (spinStay, then its outSpin into the collapse), one continuous turn
+  // from the hold into the transition (Paul, 26 October: the pod's background "spiralling in one continuous shot");
+  // it starts again from nothing in the next world
+  if (props.spin && worlds.suction > 0.05) worlds.swirl += dt * 0.55;
+  else if (worlds.suction < 0.02) worlds.swirl = 0;
+  const changed = u.suction.value !== worlds.suction || worlds.jitter > 0 || u.jitter.value > 0 || tick !== worlds.lastTick || u.swirl.value !== worlds.swirl;
   worlds.lastTick = tick;
-  u.time.value = t; u.suction.value = worlds.suction; u.jitter.value = worlds.jitter;
+  u.time.value = t; u.suction.value = worlds.suction; u.jitter.value = worlds.jitter; u.swirl.value = worlds.swirl;
   if (changed) for (const m of worldMeshes()) m.updateVersion();
   else if (worlds.sandMesh && u.sand.value > 0) worlds.sandMesh.updateVersion();   // the sand moves every frame
 }
@@ -4236,7 +4243,8 @@ function foldShow() {
   foldLoad();
   Object.assign(fold, { on: true, f: 0, target: 0, passed: 0, done: false, t: 0, doneT: 0, drag: null, flashes: [], level: 0, touched: false, seen: 0, lastAct: 0, autoNext: 0 });
   fold.el.classList.add('on');
-  setHint('Swipe sideways to fold space');
+  // the instruction sits between the arrows on the fold itself (Paul, 26 October: "warp manifold"); screen readers are told
+  setHint(''); $('sr').textContent = 'Swipe sideways to warp the manifold.';
 }
 function foldHide() {
   if (!fold.on) return;
@@ -4334,6 +4342,16 @@ function drawFold(dt) {
     }
     c.restore();
   }
+  // the instruction between the arrows (Paul, 26 October: "warp manifold"), until the map locks shut
+  if (!fold.done && fold.level > 0.3) {
+    const sz = Math.round(Math.min(15, W / 26)), y = cy + Hs * 0.62 + Math.max(30, sz * 2.4);   // just under the arrows, clear of their sweep
+    c.save(); c.font = `500 ${sz}px "IBM Plex Mono", ui-monospace, monospace`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    if ('letterSpacing' in c) c.letterSpacing = `${(sz * 0.28).toFixed(1)}px`;
+    c.globalAlpha = fold.level * (0.78 + 0.22 * Math.sin(fold.seen * 2.4));
+    c.shadowColor = 'rgba(0,0,0,0.75)'; c.shadowBlur = 8;
+    c.fillStyle = '#f4efe6'; c.fillText('WARP MANIFOLD', cx, y);
+    c.restore();
+  }
   // folded right through: the ship slingshots across, trailing ghosts of itself
   if (f > 0.995 && !fold.done) {
     fold.done = true; fold.doneT = 0;
@@ -4369,7 +4387,7 @@ function drawFold(dt) {
 const SHIP = SP.ship || null;
 const ship = { ready: false, obj: null, trail: null, t: 0, pos: new THREE.Vector3(), prev: new THREE.Vector3(), dash: null, emit: 0, head: 0, level: 0 };
 const TRAIL_N = 2400;
-const SHIP_PASS = 2.3;   // s from the fold closing until the ship is past the camera
+const SHIP_PASS = 3.2;   // s from the map locking until the ship is past the camera (2.3, then "a little slower")   // s from the fold closing until the ship is past the camera
 // fetched only once its world is here or next, not with the first world
 function loadShip() {
   if (ship.asked) return;
@@ -4419,43 +4437,42 @@ function updateShip(dt) {
   if (!SHIP) return;
   if (!ship.asked && state.stage === 'void' && (worlds.id === SHIP.world || (journey.on && STEPS[journey.step + 1]?.world === SHIP.world))) loadShip();
   if (!ship.ready) return;
-  const here = state.stage === 'void' && worlds.ok && worlds.id === SHIP.world && (fold.on || ship.dash);
-  ship.level += ((here ? 1 - 0.85 * Math.max(0, worlds.suction - (fold.on ? 0.4 : 0)) : 0) - ship.level) * (1 - Math.exp(-dt * 2.5));
+  // not until the map has locked shut (Paul, 26 October: "do not have the 3D ship until map locks into position")
+  if (fold.done && !ship.dash && fold.on && worlds.id === SHIP.world) ship.dash = { t: 0 };
+  const here = state.stage === 'void' && worlds.ok && worlds.id === SHIP.world && !!ship.dash;
+  ship.level += ((here ? 1 : 0) - ship.level) * (1 - Math.exp(-dt * (here ? 6 : 2.5)));
   ship.u.uLevel.value = ship.level;
   ship.obj.visible = ship.trail.visible = ship.level > 0.01;
-  if (!ship.obj.visible) { ship.dash = null; ship.t = 0; return; }
+  if (!ship.obj.visible) { if (!fold.on) ship.dash = null; ship.t = 0; return; }
   ship.t += dt;
   const T = ship.trail.material.uniforms.uTime; T.value += dt;
-  // where it is: a figure of eight in the space ahead, drawn in as the map folds; then the dash
+  // the slingshot (Paul, 26 October: "move a little slower and arc/barrel up to left near end past camera, but
+  // starting in centre"): it comes out of the middle of the view, straight at the camera, gathering speed, and near the
+  // end arcs up and to the left past the camera with a full barrel roll, filling the frame as it goes by (a cubic curve
+  // from the centre far ahead, through the centre nearer, to just up and left of the camera and on behind)
   const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-  const D = SHIP.distance ?? 18, C = camera.position.clone().addScaledVector(fwd, D);
-  const f = fold.f || 0, speed = 1 + 2.5 * f;
-  ship.phase = (ship.phase || 0) + dt * speed * 2 * Math.PI / (SHIP.period ?? 14);
-  const a = ship.phase, R = (SHIP.radius ?? 9) * (1 - 0.75 * f);
-  const loop = C.clone().addScaledVector(right, Math.sin(a) * R).addScaledVector(up, Math.sin(2 * a) * R * 0.18 + 1).addScaledVector(fwd, Math.cos(a) * R * 0.5);
-  if (fold.done && !ship.dash) ship.dash = { t: 0, from: ship.pos.clone() };
-  ship.prev.copy(ship.pos);
-  if (ship.dash) {
-    // the slingshot (Paul: "should play past camera getting huge in frame"): it swings in through the middle of the
-    // view and comes straight at the camera, passing just beside it, filling the frame, and on out behind
-    ship.dash.t += dt;
-    const q = Math.min(1, ship.dash.t / SHIP_PASS), e = q * q * (1.6 - 0.6 * q);   // gathering speed
-    const mid = camera.position.clone().addScaledVector(fwd, D * 0.55).addScaledVector(up, 0.4);
-    const by = camera.position.clone().addScaledVector(right, SHIP.passSide ?? 1.1).addScaledVector(up, SHIP.passUp ?? -0.35).addScaledVector(fwd, -12);
-    const a1 = 1 - e;
-    ship.pos.copy(ship.dash.from).multiplyScalar(a1 * a1).addScaledVector(mid, 2 * a1 * e).addScaledVector(by, e * e);
-    if (!ship.dash.boom && ship.pos.clone().sub(camera.position).dot(fwd) < 2) {   // as it fills the frame
-      ship.dash.boom = true; flash(0.35); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate(40);
-    }
-    if (q >= 1 && !fold.on) ship.dash = null;
-  } else ship.pos.copy(loop);
+  const D = SHIP.distance ?? 18, cam = camera.position;
+  const at = (a, b, c) => cam.clone().addScaledVector(fwd, a).addScaledVector(right, b).addScaledVector(up, c);
+  const P = [at(D, 0, 0), at(D * 0.42, 0, 0.1), at(2.4, -(SHIP.passSide ?? 1.0), SHIP.passUp ?? 0.55), at(-10, -3.2, 3.4)];
+  ship.dash.t += dt;
+  const q = Math.min(1, ship.dash.t / SHIP_PASS), e = q * q * (1.5 - 0.5 * q);   // gathering speed
+  const bez = (t) => { const a = 1 - t; return P[0].clone().multiplyScalar(a * a * a).addScaledVector(P[1], 3 * a * a * t).addScaledVector(P[2], 3 * a * t * t).addScaledVector(P[3], t * t * t); };
+  ship.prev.copy(ship.dash.t <= dt ? bez(Math.max(0, e - 0.01)) : ship.pos);
+  ship.pos.copy(bez(e));
+  if (!ship.dash.boom && ship.pos.clone().sub(cam).dot(fwd) < 2) {   // as it fills the frame
+    ship.dash.boom = true; flash(0.3); worlds.jitter = 1; if (navigator.vibrate) navigator.vibrate(40);
+  }
+  if (q >= 1 && !fold.on) ship.dash = null;
   ship.obj.position.copy(ship.pos);
   const dir = ship.pos.clone().sub(ship.prev);
   if (dir.lengthSq() > 1e-8) {
     const m = new THREE.Matrix4().lookAt(ship.pos, ship.pos.clone().add(dir), up);   // -z (the nose) along the way it is going
-    const target = new THREE.Quaternion().setFromRotationMatrix(m);
-    ship.obj.quaternion.slerp(target, 1 - Math.exp(-dt * 6));
+    // the barrel roll: one full turn about its own length as it arcs away, rolling to the left
+    const roll = 2 * Math.PI * smooth(0.5, 0.97, e);
+    const target = new THREE.Quaternion().setFromRotationMatrix(m).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), roll));
+    if (ship.dash.t <= dt) ship.obj.quaternion.copy(target); else ship.obj.quaternion.slerp(target, 1 - Math.exp(-dt * 16));
   }
+  const f = 1;
   // the contrail: points stamped at each nozzle as it goes, more of them when it is fast
   const pos = ship.trail.geometry.attributes.position, birth = ship.trail.geometry.attributes.aBirth;
   ship.emit += dt * (ship.dash ? 900 : 260 + 300 * f);
