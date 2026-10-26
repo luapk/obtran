@@ -45,7 +45,41 @@
         "file": "o1-escape.mp4",
         "v": "23adc68d"
       },
-      "note": "QNTM CNTRL escaping Lyra (Paul's film, 25 October: 4 s, 16:9, plays full screen once for its length): the ship fills the frame, its engines light and it pulls away; portrait screens cut it about the ship (focus), wide ones show it whole"
+      "note": "QNTM CNTRL escaping Lyra (Paul's film, 25 October: 4 s, 16:9, plays full screen once for its length): the ship fills the frame, its engines light and it pulls away; portrait screens cut it about the ship (focus), wide ones show it whole",
+      "jets": {
+        "note": "Paul, 26 October: the engines keep burning over the last frame while the film waits for the reader. Each flare in the last frame as [u, v, plume length, core radius] (shares of the frame's width), measured from it; the plumes run left",
+        "dir": [
+          -1,
+          0.05
+        ],
+        "at": [
+          [
+            0.366,
+            0.354,
+            0.22,
+            0.02
+          ],
+          [
+            0.49,
+            0.453,
+            0.14,
+            0.018
+          ],
+          [
+            0.38,
+            0.519,
+            0.34,
+            0.021
+          ],
+          [
+            0.49,
+            0.593,
+            0.21,
+            0.02
+          ]
+        ],
+        "speed": 1.6
+      }
     },
     "o1-eye-final": {
       "file": "o1-eye-final.mp4",
