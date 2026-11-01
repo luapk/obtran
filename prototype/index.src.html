@@ -4444,6 +4444,7 @@ function updateShip(dt) {
   ship.u.uLevel.value = ship.level;
   ship.obj.visible = ship.trail.visible = ship.level > 0.01;
   if (!ship.obj.visible) { if (!fold.on) ship.dash = null; ship.t = 0; return; }
+  if (!ship.dash) return;                              // its flight is over: it fades where it is (reading the flight here had thrown and stopped every frame)
   ship.t += dt;
   const T = ship.trail.material.uniforms.uTime; T.value += dt;
   // the slingshot (Paul, 26 October: "move a little slower and arc/barrel up to left near end past camera, but
@@ -5359,7 +5360,7 @@ $('mute').addEventListener('click', () => { const m = !sound.muted; sound.setMut
 /* ---------- loop ---------- */
 const clock = new THREE.Clock();
 const tmpV = new THREE.Vector3();
-function frame() {
+function frameBody() {
   const rawDt = Math.min(clock.getDelta(), 0.25);
   const dt = Math.min(rawDt, 0.05);
   const t = (shared.uTime.value += dt);
@@ -5537,37 +5538,48 @@ function frame() {
   spinners.forEach((s) => { s.o.rotation.y += s.s * dt; s.o.rotation.x += s.s * 0.5 * dt; });
   sing.material.rotation += dt * 0.03;
   sing.scale.setScalar(46 + Math.sin(t * 0.7) * 2);
-  updateJourney(rawDt, dt);
-  updateWorld(rawDt, t);
-  updateShards(dt);
-  updateNucleus(dt);
-  updateSlab(dt, rawDt);
-  updateStrobe(rawDt);
+  safe('updateJourney', () => { updateJourney(rawDt, dt); });
+  safe('updateWorld', () => { updateWorld(rawDt, t); });
+  safe('updateShards', () => { updateShards(dt); });
+  safe('updateNucleus', () => { updateNucleus(dt); });
+  safe('updateSlab', () => { updateSlab(dt, rawDt); });
+  safe('updateStrobe', () => { updateStrobe(rawDt); });
+  safe('ambience', () => {
   if (COMIC.sounds?.ambience) {
     const here = state.stage === 'void' && worlds.ok ? COMIC.sounds.ambience[worlds.id] : null, open = 1 - worlds.suction, lv = {};
     if (here) for (const [n, g] of Object.entries(here)) lv[n] = g * open * (films.on ? 0.25 : 1);   // a film is another place
     sound.ambTo(lv);
   }
-  sound.bedTo(state.stage === 'read' || (state.stage === 'void' && worlds.id === STORY_WORLD && (!journey.on || journey.done) && !REVIEW) ? 0.55 : 0);
-  updatePanelFloat(dt);
-  updateBackdrop(rawDt);
-  updateGlyphField(rawDt);
-  if (films.on) { drawSuper8(rawDt); drawCCTV(rawDt); } else if (s8.el.classList.contains('on')) s8.el.classList.remove('on');
-  drawJets(rawDt);
-  if (pad.on) drawPad(rawDt);
-  if (fold.on) drawFold(rawDt);
-  updateShip(rawDt);
-  if (drum.on) drawDrum(rawDt);
-  updateRibbons(dt, rawDt);
-  updateHelix(dt);
-  updateFinale(rawDt);
-  if (finale.done) drawFinaleFire(Math.min(rawDt, 0.1));
-  updateProps(dt);
-  updateParticles(dt);
-  if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey);
-  sound.update(dt, camera);
-  renderer.render(scene, camera);
+  });
+  safe('sound.bedTo', () => { sound.bedTo(state.stage === 'read' || (state.stage === 'void' && worlds.id === STORY_WORLD && (!journey.on || journey.done) && !REVIEW) ? 0.55 : 0); });
+  safe('updatePanelFloat', () => { updatePanelFloat(dt); });
+  safe('updateBackdrop', () => { updateBackdrop(rawDt); });
+  safe('updateGlyphField', () => { updateGlyphField(rawDt); });
+  safe('films', () => { if (films.on) { drawSuper8(rawDt); drawCCTV(rawDt); } else if (s8.el.classList.contains('on')) s8.el.classList.remove('on'); });
+  safe('drawJets', () => { drawJets(rawDt); });
+  safe('pad', () => { if (pad.on) drawPad(rawDt); });
+  safe('fold', () => { if (fold.on) drawFold(rawDt); });
+  safe('updateShip', () => { updateShip(rawDt); });
+  safe('drum', () => { if (drum.on) drawDrum(rawDt); });
+  safe('updateRibbons', () => { updateRibbons(dt, rawDt); });
+  safe('updateHelix', () => { updateHelix(dt); });
+  safe('updateFinale', () => { updateFinale(rawDt); });
+  safe('finaleFire', () => { if (finale.done) drawFinaleFire(Math.min(rawDt, 0.1)); });
+  safe('updateProps', () => { updateProps(dt); });
+  safe('updateParticles', () => { updateParticles(dt); });
+  safe('music', () => { if (sound.ok && music.index) musicLoop(state.stage === 'void' && worlds.ok ? worlds.id : state.stage === 'read' ? 'page' : music.loopKey); });
+  safe('sound.update', () => { sound.update(dt, camera); });
+}
+// One fault in a set piece must never stop the story (Paul, 27 October: OBTRAN 001 froze on the manifold after the crash
+// films; the ship had thrown on every frame, which ended the frame loop, so the last picture stayed up and taps did
+// nothing). The next frame is asked for first; the frame's work runs guarded, each set piece on its own (safe), and
+// the scene is drawn whatever happened; each fault is logged once.
+const frameFaults = {};
+function safe(name, fn) { try { fn(); } catch (e) { if (!frameFaults[name]) { frameFaults[name] = true; console.error('frame fault in ' + name, e); } } }
+function frame() {
   requestAnimationFrame(frame);
+  safe('frame', frameBody);
+  safe('render', () => renderer.render(scene, camera));
 }
 
 Promise.all([loadTex(PAGE_SRC, true), loadTex(DEPTH_SRC, false)]).then(([page, depth]) => {
